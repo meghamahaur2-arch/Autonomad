@@ -1,9 +1,6 @@
 """
-Recall Network Paper Trading Agent - FIXED VERSION
-Key fixes:
-1. Removed /api prefix from endpoints (it's already in base_url)
-2. Fixed endpoint paths
-3. Added better error handling
+Recall Network Paper Trading Agent - UPDATED FOR NEW API (Nov 2024)
+Updated to use current API endpoints from official documentation
 """
 
 import os
@@ -11,7 +8,7 @@ import sys
 import json
 import logging
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict
 
 import aiohttp
@@ -35,11 +32,12 @@ class PaperConfig:
     """Configuration for Recall Paper Trading"""
     
     RECALL_API_KEY = os.getenv("RECALL_API_KEY", "")
-    USE_SANDBOX = os.getenv("RECALL_USE_SANDBOX", "true")
+    USE_SANDBOX = os.getenv("RECALL_USE_SANDBOX", "true").lower() == "true"
+    COMPETITION_ID = os.getenv("COMPETITION_ID", "")  # Optional: specific competition ID
     
-    # Fixed: Base URLs already include /api
-    SANDBOX_URL = "https://api.sandbox.competitions.recall.network/api"
-    PRODUCTION_URL = "https://api.competitions.recall.network/api"
+    # API base URLs
+    SANDBOX_URL = "https://api.sandbox.competitions.recall.network"
+    PRODUCTION_URL = "https://api.competitions.recall.network"
     
     @property
     def base_url(self):
@@ -55,6 +53,7 @@ class PaperConfig:
     MIN_TRADE_SIZE = float(os.getenv("MIN_TRADE_SIZE", "100"))
     MAX_POSITION_PCT = float(os.getenv("MAX_POSITION_PCT", "0.30"))
     MAX_POSITIONS = int(os.getenv("MAX_POSITIONS", "4"))
+    AGGRESSION_LEVEL = os.getenv("AGGRESSION_LEVEL", "MEDIUM")  # LOW, MEDIUM, HIGH
     
     # Supported tokens (Ethereum mainnet addresses)
     TOKENS = {
@@ -69,11 +68,11 @@ class PaperConfig:
 config = PaperConfig()
 
 # ============================================================================
-# RECALL API CLIENT
+# RECALL API CLIENT - UPDATED TO NEW API STRUCTURE
 # ============================================================================
 
 class RecallAPIClient:
-    """Client for Recall Network Competition API"""
+    """Client for Recall Network Competition API - Updated Nov 2024"""
     
     def __init__(self, api_key: str, base_url: str):
         self.api_key = api_key
@@ -90,7 +89,6 @@ class RecallAPIClient:
     
     async def _request(self, method: str, endpoint: str, **kwargs):
         """Make HTTP request"""
-        # Fixed: Don't add /api prefix since it's in base_url
         url = f"{self.base_url}{endpoint}"
         
         logger.debug(f"Request: {method} {url}")
@@ -119,45 +117,120 @@ class RecallAPIClient:
                 logger.error(f"API request failed: {method} {endpoint} - {e}")
                 raise
     
-    async def get_portfolio(self) -> Dict:
-        """Get current portfolio"""
-        # Fixed: Correct endpoint path
-        return await self._request("GET", "/agent/balances")
+    async def get_portfolio(self, competition_id: str) -> Dict:
+        """
+        Get agent balances (Paper Trading Only)
+        Endpoint: GET /api/agent/balances?competitionId=xxx
+        """
+        return await self._request("GET", f"/api/agent/balances?competitionId={competition_id}")
     
-    async def get_token_price(self, token_address: str, chain: str = "evm") -> float:
-        """Get token price"""
+    async def get_token_price(self, token_address: str, chain: str = "evm", specific_chain: str = "eth") -> float:
+        """
+        Get price for a token
+        Endpoint: GET /api/price
+        Query params: token, chain, specificChain
+        """
         result = await self._request(
             "GET",
-            f"/price?token={token_address}&chain={chain}&specificChain=eth"
+            f"/api/price?token={token_address}&chain={chain}&specificChain={specific_chain}"
         )
         return result.get("price", 0.0)
     
-    async def execute_trade(
+    async def get_trade_quote(
         self,
         from_token: str,
         to_token: str,
         amount: str,
-        reason: str = "AI trading decision"
+        from_chain: str = None,
+        to_chain: str = None
     ) -> Dict:
-        """Execute a token swap"""
+        """
+        Get a quote for a trade (Paper Trading Only)
+        Endpoint: GET /api/trade/quote
+        """
+        params = {
+            "fromToken": from_token,
+            "toToken": to_token,
+            "amount": amount
+        }
+        if from_chain:
+            params["fromChain"] = from_chain
+        if to_chain:
+            params["toChain"] = to_chain
+        
+        query_string = "&".join([f"{k}={v}" for k, v in params.items()])
+        return await self._request("GET", f"/api/trade/quote?{query_string}")
+    
+    async def execute_trade(
+        self,
+        competition_id: str,
+        from_token: str,
+        to_token: str,
+        amount: str,
+        reason: str = "AI trading decision",
+        from_chain: str = None,
+        to_chain: str = None
+    ) -> Dict:
+        """
+        Execute a trade (Paper Trading Only)
+        Endpoint: POST /api/trade/execute
+        """
         payload = {
+            "competitionId": competition_id,
             "fromToken": from_token,
             "toToken": to_token,
             "amount": amount,
             "reason": reason
         }
         
+        if from_chain:
+            payload["fromChain"] = from_chain
+        if to_chain:
+            payload["toChain"] = to_chain
+        
         logger.info(f"🔄 Executing trade:")
         logger.info(f"   From: {from_token[:10]}...")
         logger.info(f"   To: {to_token[:10]}...")
         logger.info(f"   Amount: {amount}")
         
-        # Fixed: Correct endpoint path
-        return await self._request("POST", "/trade/execute", json=payload)
+        return await self._request("POST", "/api/trade/execute", json=payload)
     
-    async def get_leaderboard(self) -> Dict:
-        """Get competition leaderboard"""
-        return await self._request("GET", "/competition/leaderboard")
+    async def get_trade_history(self, competition_id: str) -> Dict:
+        """
+        Get agent trade history (Paper Trading Only)
+        Endpoint: GET /api/agent/trades?competitionId=xxx
+        """
+        return await self._request("GET", f"/api/agent/trades?competitionId={competition_id}")
+    
+    async def get_leaderboard(self, competition_id: str = None) -> Dict:
+        """
+        Get leaderboard
+        Endpoint: GET /api/leaderboard?competitionId=xxx (optional)
+        """
+        if competition_id:
+            return await self._request("GET", f"/api/leaderboard?competitionId={competition_id}")
+        return await self._request("GET", "/api/leaderboard")
+    
+    async def get_agent_profile(self) -> Dict:
+        """
+        Get authenticated agent profile
+        Endpoint: GET /api/agent/profile
+        """
+        return await self._request("GET", "/api/agent/profile")
+    
+    async def get_competitions(self) -> Dict:
+        """
+        Get upcoming competitions
+        Endpoint: GET /api/competitions
+        """
+        return await self._request("GET", "/api/competitions")
+    
+    async def get_user_competitions(self) -> Dict:
+        """
+        Get competitions for user's agents
+        Endpoint: GET /api/user/competitions
+        """
+        return await self._request("GET", "/api/user/competitions")
 
 # ============================================================================
 # TECHNICAL ANALYSIS
@@ -170,14 +243,19 @@ class TechnicalAnalysis:
     def analyze_momentum(price_change_24h: float) -> tuple:
         """Analyze momentum from 24h price change"""
         
-        if price_change_24h > 8:
+        # More aggressive thresholds for paper trading
+        if price_change_24h > 5:
             return "STRONG_BULLISH", "HIGH", f"Strong upward momentum (+{price_change_24h:.1f}%)"
-        elif price_change_24h > 4:
+        elif price_change_24h > 2:
             return "BULLISH", "MEDIUM", f"Bullish momentum (+{price_change_24h:.1f}%)"
-        elif price_change_24h < -8:
+        elif price_change_24h > 0.5:
+            return "WEAK_BULLISH", "LOW", f"Slight upward momentum (+{price_change_24h:.1f}%)"
+        elif price_change_24h < -5:
             return "STRONG_BEARISH", "HIGH", f"Strong downward momentum ({price_change_24h:.1f}%)"
-        elif price_change_24h < -4:
+        elif price_change_24h < -2:
             return "BEARISH", "MEDIUM", f"Bearish momentum ({price_change_24h:.1f}%)"
+        elif price_change_24h < -0.5:
+            return "WEAK_BEARISH", "LOW", f"Slight downward momentum ({price_change_24h:.1f}%)"
         else:
             return "NEUTRAL", "LOW", f"Neutral momentum ({price_change_24h:.1f}%)"
 
@@ -249,35 +327,103 @@ class PaperTradingAgent:
         self.model = config.GAIA_MODEL_NAME
         self.market_data = MarketData()
         self.tokens = config.TOKENS
+        self.competition_id = None  # Will be set on init
         
         logger.info("🤖 Paper Trading Agent initialized")
         logger.info(f"   Trading tokens: {', '.join(self.tokens.keys())}")
     
+    async def select_competition(self) -> str:
+        """Select competition to trade in"""
+        # If competition ID is set in config, use it
+        if config.COMPETITION_ID:
+            logger.info(f"✅ Using configured competition: {config.COMPETITION_ID}")
+            return config.COMPETITION_ID
+        
+        # Otherwise, fetch and select active competition
+        try:
+            logger.info("🔍 Fetching available competitions...")
+            
+            # Try user competitions first
+            user_comps = await self.client.get_user_competitions()
+            competitions = user_comps.get("competitions", [])
+            
+            if not competitions:
+                # Try all competitions
+                all_comps = await self.client.get_competitions()
+                competitions = all_comps.get("competitions", [])
+            
+            if not competitions:
+                raise ValueError(
+                    "❌ No competitions found!\n"
+                    "Please:\n"
+                    "1. Check https://competitions.recall.network/ for active competitions\n"
+                    "2. Join a competition with your agent\n"
+                    "3. Set COMPETITION_ID in your .env file"
+                )
+            
+            # Find active competition
+            active = [c for c in competitions if c.get("status") == "active"]
+            
+            if active:
+                comp = active[0]
+                comp_id = comp.get("id")
+                logger.info(f"✅ Auto-selected active competition:")
+                logger.info(f"   ID: {comp_id}")
+                logger.info(f"   Name: {comp.get('name', 'N/A')}")
+                return comp_id
+            
+            # Use first competition
+            comp = competitions[0]
+            comp_id = comp.get("id")
+            logger.info(f"✅ Auto-selected competition:")
+            logger.info(f"   ID: {comp_id}")
+            logger.info(f"   Name: {comp.get('name', 'N/A')}")
+            logger.info(f"   Status: {comp.get('status', 'N/A')}")
+            return comp_id
+            
+        except Exception as e:
+            logger.error(f"Failed to select competition: {e}")
+            raise ValueError(
+                f"❌ Could not select competition: {e}\n"
+                "Please set COMPETITION_ID manually in your .env file"
+            )
+    
     async def get_portfolio_analysis(self) -> Dict:
         """Get and analyze current portfolio"""
         try:
-            portfolio = await self.client.get_portfolio()
+            portfolio = await self.client.get_portfolio(self.competition_id)
             market_prices = await self.market_data.get_prices_and_changes()
             
-            total_value = portfolio.get("totalValue", 0)
-            tokens = portfolio.get("tokens", [])
-            
+            # Parse balances response
+            balances = portfolio.get("balances", [])
+            total_value = 0
             holdings = {}
-            for token in tokens:
-                symbol = token.get("symbol", "")
+            
+            for balance in balances:
+                symbol = balance.get("symbol", "")
+                amount = float(balance.get("amount", 0))
+                price = float(balance.get("price", 0))
+                value = amount * price
+                total_value += value
+                
                 if symbol in self.tokens:
                     holdings[symbol] = {
-                        "amount": token.get("amount", 0),
-                        "value": token.get("value", 0),
-                        "price": token.get("price", 0),
-                        "pct": (token.get("value", 0) / total_value * 100) if total_value > 0 else 0
+                        "amount": amount,
+                        "value": value,
+                        "price": price,
+                        "pct": 0  # Will calculate after total
                     }
+            
+            # Calculate percentages
+            for symbol in holdings:
+                if total_value > 0:
+                    holdings[symbol]["pct"] = (holdings[symbol]["value"] / total_value * 100)
             
             return {
                 "total_value": total_value,
                 "holdings": holdings,
                 "market_prices": market_prices,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         except Exception as e:
             logger.error(f"Failed to get portfolio: {e}")
@@ -336,19 +482,33 @@ class PaperTradingAgent:
     async def get_trading_decision(self, context: str) -> Optional[Dict]:
         """Get trading decision from LLM"""
         
-        system_prompt = """You are a paper trading bot competing in Recall Network competitions.
+        aggression_prompts = {
+            "HIGH": """You are an AGGRESSIVE paper trading bot. This is fake money - take calculated risks!
+- Deploy capital quickly into promising positions
+- Act on weak signals (even +0.5% moves)
+- Build 2-4 positions rapidly
+- Sitting in 100% cash is LOSING - you must have market exposure""",
+            
+            "MEDIUM": """You are a BALANCED paper trading bot competing for wins.
+- Build positions in assets with positive momentum
+- Don't overthink - even small edges matter
+- Target 2-3 positions with 20-30% allocation each
+- Cash drag is your enemy - stay mostly invested""",
+            
+            "LOW": """You are a CONSERVATIVE paper trading bot.
+- Only take high-conviction trades (>3% momentum)
+- Focus on 1-2 strong positions
+- Accept holding cash when no clear opportunities exist"""
+        }
+        
+        system_prompt = aggression_prompts.get(config.AGGRESSION_LEVEL, aggression_prompts["MEDIUM"])
+        
+        system_prompt += """
 
 **IMPORTANT: SPOT TRADING ONLY**
 - To go LONG: BUY token with USDC (e.g., USDC → WETH)
 - To go SHORT: SELL token to USDC (e.g., WETH → USDC)
 - USDC = cash position
-
-**Strategy:**
-1. Rotate between high-conviction tokens and USDC
-2. Take profits when momentum weakens
-3. Buy when strong bullish momentum
-4. Sell when strong bearish momentum
-5. Hold USDC when uncertain
 
 **Response Format (JSON only):**
 {
@@ -361,9 +521,10 @@ class PaperTradingAgent:
 }
 
 Examples:
-- Bullish on ETH: {"action": "BUY", "from_token": "USDC", "to_token": "WETH", "amount_usd": 1000, "conviction": "HIGH", "reason": "Strong upward momentum"}
+- Bullish on ETH: {"action": "BUY", "from_token": "USDC", "to_token": "WETH", "amount_usd": 1000, "conviction": "MEDIUM", "reason": "Positive momentum +2.3%"}
+- Start position: {"action": "BUY", "from_token": "USDC", "to_token": "WBTC", "amount_usd": 500, "conviction": "LOW", "reason": "Building initial position"}
 - Take profit: {"action": "SELL", "from_token": "WBTC", "to_token": "USDC", "amount_usd": 800, "conviction": "MEDIUM", "reason": "Taking profits"}
-- Wait: {"action": "HOLD", "reason": "Waiting for better setup"}
+- Wait: {"action": "HOLD", "reason": "No clear setup"} (use RARELY - being inactive loses competitions)
 
 Return ONLY valid JSON, no markdown."""
 
@@ -421,28 +582,42 @@ Return ONLY valid JSON, no markdown."""
         from_token_data = holdings.get(from_symbol)
         
         if not from_token_data:
-            logger.error(f"No {from_symbol} balance")
+            logger.error(f"❌ No {from_symbol} balance available")
             return False
         
-        # Calculate amount in from_token units
+        # Get actual available balance
+        available = from_token_data["amount"]
         from_price = from_token_data["price"]
+        max_value = available * from_price
+        
+        logger.info(f"💰 Available {from_symbol}: {available:.6f} (${max_value:.2f})")
+        
+        # Calculate amount in from_token units
         amount_tokens = amount_usd / from_price
         
-        # Check balance
-        available = from_token_data["amount"]
+        # Check if we have enough balance
         if amount_tokens > available:
-            logger.warning(f"Insufficient {from_symbol}: need {amount_tokens:.6f}, have {available:.6f}")
-            amount_tokens = available * 0.95  # Use 95%
+            logger.warning(f"⚠️  Insufficient {from_symbol}: need {amount_tokens:.6f}, have {available:.6f}")
+            # Use 98% of available to be safe
+            amount_tokens = available * 0.98
+            amount_usd = amount_tokens * from_price
+            logger.info(f"🔧 Adjusted to: {amount_tokens:.6f} {from_symbol} (${amount_usd:.2f})")
         
         # Validate minimum trade size
         trade_value = amount_tokens * from_price
         if trade_value < config.MIN_TRADE_SIZE:
-            logger.warning(f"Trade too small: ${trade_value:.2f} < ${config.MIN_TRADE_SIZE}")
+            logger.warning(f"❌ Trade too small: ${trade_value:.2f} < ${config.MIN_TRADE_SIZE}")
             return False
         
         # Execute trade
         try:
+            logger.info(f"📤 Submitting trade:")
+            logger.info(f"   {from_symbol} → {to_symbol}")
+            logger.info(f"   Amount: {amount_tokens:.6f} {from_symbol}")
+            logger.info(f"   Value: ${trade_value:.2f}")
+            
             result = await self.client.execute_trade(
+                competition_id=self.competition_id,
                 from_token=from_address,
                 to_token=to_address,
                 amount=str(amount_tokens),
@@ -450,18 +625,17 @@ Return ONLY valid JSON, no markdown."""
             )
             
             if result.get("success"):
-                tx = result.get("transaction", {})
-                logger.info(f"✅ Trade executed: {from_symbol} → {to_symbol}")
-                logger.info(f"   From: {tx.get('fromAmount', 0)} {from_symbol}")
-                logger.info(f"   To: {tx.get('toAmount', 0)} {to_symbol}")
-                logger.info(f"   Price: ${tx.get('price', 0):,.2f}")
+                logger.info(f"✅ Trade executed successfully!")
+                logger.info(f"   Transaction: {result}")
                 return True
             else:
-                logger.error(f"❌ Trade failed: {result}")
+                error_msg = result.get("error", "Unknown error")
+                logger.error(f"❌ Trade failed: {error_msg}")
+                logger.error(f"   Full response: {result}")
                 return False
                 
         except Exception as e:
-            logger.error(f"Trade execution error: {e}")
+            logger.error(f"❌ Trade execution error: {e}")
             return False
     
     async def run(self):
@@ -471,6 +645,13 @@ Return ONLY valid JSON, no markdown."""
         logger.info("✅ ZERO RISK - Paper trading with virtual funds")
         logger.info(f"   Environment: {'SANDBOX' if config.USE_SANDBOX else 'PRODUCTION'}")
         logger.info("="*80)
+        
+        # Select competition
+        try:
+            self.competition_id = await self.select_competition()
+        except Exception as e:
+            logger.critical(f"❌ Failed to select competition: {e}")
+            return
         
         cycle = 0
         
@@ -488,6 +669,14 @@ Return ONLY valid JSON, no markdown."""
                     logger.warning("Failed to get portfolio")
                     await asyncio.sleep(config.TRADING_INTERVAL)
                     continue
+                
+                # Log current portfolio state
+                total_value = analysis.get("total_value", 0)
+                holdings = analysis.get("holdings", {})
+                
+                logger.info(f"💼 Current Portfolio: ${total_value:,.2f}")
+                for symbol, data in holdings.items():
+                    logger.info(f"   {symbol}: {data['amount']:.6f} = ${data['value']:.2f} ({data['pct']:.1f}%)")
                 
                 # Build context
                 context = self.build_context(analysis)
@@ -510,9 +699,9 @@ Return ONLY valid JSON, no markdown."""
                 
                 # Log leaderboard position
                 try:
-                    leaderboard = await self.client.get_leaderboard()
-                    count = len(leaderboard.get('leaderboard', []))
-                    logger.info(f"📈 Competition agents: {count}")
+                    leaderboard = await self.client.get_leaderboard(self.competition_id)
+                    entries = leaderboard.get('entries', [])
+                    logger.info(f"📈 Competition agents: {len(entries)}")
                 except:
                     pass
                 
