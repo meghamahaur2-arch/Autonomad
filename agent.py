@@ -1,7 +1,9 @@
 """
-Recall Network Paper Trading Agent
-Zero-risk simulated trading for competitions
-✅ NO REAL MONEY - Perfect for testing and learning
+Recall Network Paper Trading Agent - FIXED VERSION
+Key fixes:
+1. Removed /api prefix from endpoints (it's already in base_url)
+2. Fixed endpoint paths
+3. Added better error handling
 """
 
 import os
@@ -10,18 +12,13 @@ import json
 import logging
 import asyncio
 from datetime import datetime
-from typing import Optional, Dict, List
+from typing import Optional, Dict
 
 import aiohttp
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# Load environment variables
 load_dotenv()
-
-# ============================================================================
-# LOGGING CONFIGURATION
-# ============================================================================
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,26 +34,26 @@ logger = logging.getLogger(__name__)
 class PaperConfig:
     """Configuration for Recall Paper Trading"""
     
-    # Recall API Configuration
     RECALL_API_KEY = os.getenv("RECALL_API_KEY", "")
-    USE_SANDBOX = os.getenv("RECALL_USE_SANDBOX", "true").lower() == "true"
+    USE_SANDBOX = os.getenv("RECALL_USE_SANDBOX", "true")
     
-    SANDBOX_URL = "https://api.sandbox.competitions.recall.network"
-    PRODUCTION_URL = "https://api.competitions.recall.network"
+    # Fixed: Base URLs already include /api
+    SANDBOX_URL = "https://api.sandbox.competitions.recall.network/api"
+    PRODUCTION_URL = "https://api.competitions.recall.network/api"
     
     @property
     def base_url(self):
         return self.SANDBOX_URL if self.USE_SANDBOX else self.PRODUCTION_URL
     
     # LLM Configuration
-    GAIA_API_KEY = os.getenv("GAIA_API_KEY", "gaia")
-    GAIA_NODE_URL = os.getenv("GAIA_NODE_URL", "https://qwen72b.gaia.domains/v1")
-    GAIA_MODEL_NAME = os.getenv("GAIA_MODEL_NAME", "Qwen/QwQ-32B-Preview")
+    GAIA_API_KEY = os.getenv("GAIA_API_KEY")
+    GAIA_NODE_URL = os.getenv("GAIA_NODE_URL", "https://qwen7b.gaia.domains/v1")
+    GAIA_MODEL_NAME = os.getenv("GAIA_MODEL_NAME")
     
     # Trading Configuration
-    TRADING_INTERVAL = int(os.getenv("TRADING_INTERVAL_SECONDS", "900"))  # 15 minutes
-    MIN_TRADE_SIZE = float(os.getenv("MIN_TRADE_SIZE", "100"))  # $100 minimum
-    MAX_POSITION_PCT = float(os.getenv("MAX_POSITION_PCT", "0.30"))  # 30% per token
+    TRADING_INTERVAL = int(os.getenv("TRADING_INTERVAL_SECONDS", "900"))
+    MIN_TRADE_SIZE = float(os.getenv("MIN_TRADE_SIZE", "100"))
+    MAX_POSITION_PCT = float(os.getenv("MAX_POSITION_PCT", "0.30"))
     MAX_POSITIONS = int(os.getenv("MAX_POSITIONS", "4"))
     
     # Supported tokens (Ethereum mainnet addresses)
@@ -93,28 +90,45 @@ class RecallAPIClient:
     
     async def _request(self, method: str, endpoint: str, **kwargs):
         """Make HTTP request"""
+        # Fixed: Don't add /api prefix since it's in base_url
         url = f"{self.base_url}{endpoint}"
+        
+        logger.debug(f"Request: {method} {url}")
         
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.request(
                     method, url, headers=self.headers, **kwargs
                 ) as response:
+                    text = await response.text()
+                    
+                    # Log response for debugging
+                    if response.status >= 400:
+                        logger.error(f"API Error ({response.status}): {text}")
+                    
                     response.raise_for_status()
-                    return await response.json()
+                    
+                    # Try to parse JSON
+                    try:
+                        return json.loads(text)
+                    except json.JSONDecodeError:
+                        logger.error(f"Invalid JSON response: {text}")
+                        raise
+                        
             except aiohttp.ClientError as e:
                 logger.error(f"API request failed: {method} {endpoint} - {e}")
                 raise
     
     async def get_portfolio(self) -> Dict:
         """Get current portfolio"""
-        return await self._request("GET", "/api/agent/portfolio")
+        # Fixed: Correct endpoint path
+        return await self._request("GET", "/agent/balances")
     
     async def get_token_price(self, token_address: str, chain: str = "evm") -> float:
         """Get token price"""
         result = await self._request(
             "GET",
-            f"/api/price?token={token_address}&chain={chain}&specificChain=eth"
+            f"/price?token={token_address}&chain={chain}&specificChain=eth"
         )
         return result.get("price", 0.0)
     
@@ -122,21 +136,28 @@ class RecallAPIClient:
         self,
         from_token: str,
         to_token: str,
-        amount: str
+        amount: str,
+        reason: str = "AI trading decision"
     ) -> Dict:
         """Execute a token swap"""
         payload = {
             "fromToken": from_token,
             "toToken": to_token,
-            "amount": amount
+            "amount": amount,
+            "reason": reason
         }
         
-        logger.info(f"🔄 Executing trade: {amount} {from_token[:10]}... → {to_token[:10]}...")
-        return await self._request("POST", "/api/trade/execute", json=payload)
+        logger.info(f"🔄 Executing trade:")
+        logger.info(f"   From: {from_token[:10]}...")
+        logger.info(f"   To: {to_token[:10]}...")
+        logger.info(f"   Amount: {amount}")
+        
+        # Fixed: Correct endpoint path
+        return await self._request("POST", "/trade/execute", json=payload)
     
     async def get_leaderboard(self) -> Dict:
         """Get competition leaderboard"""
-        return await self._request("GET", "/api/competition/leaderboard")
+        return await self._request("GET", "/competition/leaderboard")
 
 # ============================================================================
 # TECHNICAL ANALYSIS
@@ -215,7 +236,9 @@ class PaperTradingAgent:
     def __init__(self):
         if not config.RECALL_API_KEY:
             raise ValueError(
-                "RECALL_API_KEY not set. Get one from https://register.recall.network/"
+                "❌ RECALL_API_KEY not set!\n"
+                "Get your API key from: https://register.recall.network/\n"
+                "Then add it to your .env file: RECALL_API_KEY=your_key_here"
             )
         
         self.client = RecallAPIClient(config.RECALL_API_KEY, config.base_url)
@@ -384,6 +407,7 @@ Return ONLY valid JSON, no markdown."""
         from_symbol = decision.get("from_token", "").upper()
         to_symbol = decision.get("to_token", "").upper()
         amount_usd = decision.get("amount_usd", 0)
+        reason = decision.get("reason", "AI trading decision")
         
         if from_symbol not in self.tokens or to_symbol not in self.tokens:
             logger.error(f"Invalid tokens: {from_symbol} → {to_symbol}")
@@ -421,7 +445,8 @@ Return ONLY valid JSON, no markdown."""
             result = await self.client.execute_trade(
                 from_token=from_address,
                 to_token=to_address,
-                amount=str(amount_tokens)
+                amount=str(amount_tokens),
+                reason=reason
             )
             
             if result.get("success"):
@@ -505,7 +530,7 @@ Return ONLY valid JSON, no markdown."""
 async def main():
     """Main entry point"""
     logger.info("="*80)
-    logger.info("📄 PAPER TRADING AGENT")
+    logger.info("📄 RECALL PAPER TRADING AGENT")
     logger.info("="*80)
     logger.info("This is PAPER TRADING with virtual funds.")
     logger.info("✅ Zero risk - perfect for testing!")
