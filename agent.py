@@ -222,7 +222,7 @@ class Config:
         "WIF": TokenConfig("EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm", "sol", False, 18),
 
         # FLOKI (Official BSC contract)
-        "FLOKI": TokenConfig("0xfb5b838b6cfeedc2873ab27866079ac55363d37e", "bsc", False, 9),
+        "FLOKI": TokenConfig("0xcf0c122c6b73ff809c693db761e7baebe62b6a2e", "eth", False, 9),
     }
 
     
