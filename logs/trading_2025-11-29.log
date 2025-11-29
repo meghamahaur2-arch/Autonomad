@@ -1,0 +1,288 @@
+2025-11-29 08:31:56,093 [[32mINFO[0m] TradingAgent: ✅ Recall API Client initialized (SANDBOX)
+2025-11-29 08:31:56,094 [[32mINFO[0m] TradingAgent: 🤖 Trading Agent initialized
+2025-11-29 08:31:56,094 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-11-29 08:31:56,095 [[32mINFO[0m] TradingAgent: 🚀 ADVANCED PAPER TRADING AGENT - PRODUCTION READY 🚀
+2025-11-29 08:31:56,095 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-11-29 08:31:56,096 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json
+2025-11-29 08:31:56,097 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.0
+2025-11-29 08:31:56,097 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.1
+2025-11-29 08:31:56,098 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.2
+2025-11-29 08:31:56,098 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.3
+2025-11-29 08:31:56,099 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.4
+2025-11-29 08:31:56,099 [[32mINFO[0m] TradingAgent: 💾 No state file found. Starting fresh.
+2025-11-29 08:31:59,957 [[32mINFO[0m] TradingAgent: ✅ Selected competition: Sandbox fake Competition
+2025-11-29 08:31:59,957 [[32mINFO[0m] TradingAgent: ✅ Agent initialized with 0 tracked positions
+2025-11-29 08:31:59,957 [[32mINFO[0m] TradingAgent: 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2025-11-29 08:31:59,958 [[32mINFO[0m] TradingAgent: 🔄 Trading cycle: 2025-11-29T03:01:59.958104+00:00
+2025-11-29 08:32:03,040 [[32mINFO[0m] TradingAgent: 📊 Fetched market data for 9 tokens
+2025-11-29 08:32:03,041 [[33mWARNING[0m] TradingAgent: [DEBUG] Raw CoinGecko data: {'WETH': {'price': 3031.43, 'change_24h_pct': 0.6840966759757465, 'volume_24h': 19379869655.75689, 'market_cap': 365817340347.1866, 'volume_surge_score': 0.5}, 'WBTC': {'price': 90823, 'change_24h_pct': -0.22073046417721212, 'volume_24h': 61232455771.368774, 'market_cap': 1811571788765.4558, 'volume_surge_score': 0.5}, 'UNI': {'price': 6.17, 'change_24h_pct': 0.908982226723359, 'volume_24h': 296376094.98798347, 'market_cap': 3881207684.055274, 'volume_surge_score': 0.5}, 'LINK': {'price': 13.12, 'change_24h_pct': -0.9247953703009147, 'volume_24h': 447565648.2489671, 'market_cap': 9141161334.637993, 'volume_surge_score': 0.5}, 'DAI': {'price': 0.999941, 'change_24h_pct': 0.05380297613388011, 'volume_24h': 72693712.00552163, 'market_cap': 4429885359.511907, 'volume_surge_score': 0.5}, 'USDC': {'price': 0.999799, 'change_24h_pct': 0.010315260403404695, 'volume_24h': 5205590936.094956, 'market_cap': 76533511098.38956, 'volume_surge_score': 0.5}, 'AAVE': {'price': 185.01, 'change_24h_pct': 0.9054527231539883, 'volume_24h': 184634038.96297255, 'market_cap': 2802815596.3346577, 'volume_surge_score': 0.5}, 'BONK': {'price': 9.79e-06, 'change_24h_pct': 0.9376056878069863, 'volume_24h': 104359680.54233429, 'market_cap': 806480051.4078068, 'volume_surge_score': 0.5}, 'FLOKI': {'price': 4.904e-05, 'change_24h_pct': -0.5885237782951592, 'volume_24h': 46172001.72538075, 'market_cap': 473553558.1479317, 'volume_surge_score': 0.5}}
+2025-11-29 08:32:03,042 [[32mINFO[0m] TradingAgent: ============================================================
+2025-11-29 08:32:03,042 [[32mINFO[0m] TradingAgent: 💰 Portfolio Value: $29,937.16
+2025-11-29 08:32:03,042 [[32mINFO[0m] TradingAgent: 📊 Positions: 5/8
+2025-11-29 08:32:03,042 [[32mINFO[0m] TradingAgent: 📈 Daily Trades: 0/3
+2025-11-29 08:32:03,043 [[32mINFO[0m] TradingAgent: ----------------------------------------
+2025-11-29 08:32:03,043 [[32mINFO[0m] TradingAgent:   ⚪ WBTC: $3.58 (+0.0%)
+2025-11-29 08:32:03,043 [[32mINFO[0m] TradingAgent: ============================================================
+2025-11-29 08:32:03,043 [[32mINFO[0m] TradingAgent: ⏸️ HOLD: No opportunities meeting criteria
+2025-11-29 08:37:03,050 [[32mINFO[0m] TradingAgent: 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2025-11-29 08:37:03,050 [[32mINFO[0m] TradingAgent: 🔄 Trading cycle: 2025-11-29T03:07:03.050709+00:00
+2025-11-29 08:37:17,958 [[33mWARNING[0m] TradingAgent: ⚠️ Request failed (attempt 1/5): Cannot connect to host api.sandbox.competitions.recall.network:443 ssl:default [Multiple exceptions: [WinError 1231] The network location cannot be reached. For information about network troubleshooting, see Windows Help, [WinError 1232] The network location cannot be reached. For information about network troubleshooting, see Windows Help]. Retrying in 1.0s
+2025-11-29 08:37:18,987 [[33mWARNING[0m] TradingAgent: ⚠️ Request failed (attempt 2/5): Cannot connect to host api.sandbox.competitions.recall.network:443 ssl:default [The network location cannot be reached. For information about network troubleshooting, see Windows Help]. Retrying in 2.0s
+2025-11-29 08:37:21,000 [[33mWARNING[0m] TradingAgent: ⚠️ Request failed (attempt 3/5): Cannot connect to host api.sandbox.competitions.recall.network:443 ssl:default [The network location cannot be reached. For information about network troubleshooting, see Windows Help]. Retrying in 4.0s
+2025-11-29 08:37:25,008 [[33mWARNING[0m] TradingAgent: ⚠️ Request failed (attempt 4/5): Cannot connect to host api.sandbox.competitions.recall.network:443 ssl:default [The network location cannot be reached. For information about network troubleshooting, see Windows Help]. Retrying in 8.0s
+2025-11-29 08:37:33,018 [[31mERROR[0m] TradingAgent: ❌ Failed to get portfolio: Cannot connect to host api.sandbox.competitions.recall.network:443 ssl:default [The network location cannot be reached. For information about network troubleshooting, see Windows Help]
+2025-11-29 08:37:33,127 [[31mERROR[0m] TradingAgent: 🚫 Cannot retrieve portfolio. Skipping cycle.
+2025-11-29 08:42:33,137 [[32mINFO[0m] TradingAgent: 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2025-11-29 08:42:33,139 [[32mINFO[0m] TradingAgent: 🔄 Trading cycle: 2025-11-29T03:12:33.139123+00:00
+2025-11-29 08:42:35,488 [[32mINFO[0m] TradingAgent: 📊 Fetched market data for 9 tokens
+2025-11-29 08:42:35,489 [[33mWARNING[0m] TradingAgent: [DEBUG] Raw CoinGecko data: {'WETH': {'price': 3033.54, 'change_24h_pct': 0.9530784961357462, 'volume_24h': 19723914572.67438, 'market_cap': 366418609516.40753, 'volume_surge_score': 0.5}, 'WBTC': {'price': 90853, 'change_24h_pct': -0.22843978904516135, 'volume_24h': 61250328042.06929, 'market_cap': 1813214099473.8503, 'volume_surge_score': 0.5}, 'UNI': {'price': 6.18, 'change_24h_pct': 0.9812838390459264, 'volume_24h': 295438700.7845566, 'market_cap': 3888801817.3384223, 'volume_surge_score': 0.5}, 'LINK': {'price': 13.12, 'change_24h_pct': -1.0978770131723596, 'volume_24h': 449695540.36546063, 'market_cap': 9144390270.71692, 'volume_surge_score': 0.5}, 'DAI': {'price': 0.99995, 'change_24h_pct': 0.05124532137481414, 'volume_24h': 69657977.13161626, 'market_cap': 4428447846.338459, 'volume_surge_score': 0.5}, 'USDC': {'price': 0.999802, 'change_24h_pct': 0.00903107874242768, 'volume_24h': 5431520708.948094, 'market_cap': 76537544702.67911, 'volume_surge_score': 0.5}, 'AAVE': {'price': 185.21, 'change_24h_pct': 0.597261514969897, 'volume_24h': 184201620.53406426, 'market_cap': 2806715759.409118, 'volume_surge_score': 0.5}, 'BONK': {'price': 9.83e-06, 'change_24h_pct': 0.8822608882723338, 'volume_24h': 103747049.56772707, 'market_cap': 809200073.0816157, 'volume_surge_score': 0.5}, 'FLOKI': {'price': 4.918e-05, 'change_24h_pct': -0.5169639667721154, 'volume_24h': 46169576.4211937, 'market_cap': 474203022.25798005, 'volume_surge_score': 0.5}}
+2025-11-29 08:42:35,490 [[32mINFO[0m] TradingAgent: ============================================================
+2025-11-29 08:42:35,490 [[32mINFO[0m] TradingAgent: 💰 Portfolio Value: $29,937.23
+2025-11-29 08:42:35,492 [[32mINFO[0m] TradingAgent: 📊 Positions: 5/8
+2025-11-29 08:42:35,493 [[32mINFO[0m] TradingAgent: 📈 Daily Trades: 0/3
+2025-11-29 08:42:35,493 [[32mINFO[0m] TradingAgent: ----------------------------------------
+2025-11-29 08:42:35,494 [[32mINFO[0m] TradingAgent:   ⚪ WBTC: $3.58 (+0.0%)
+2025-11-29 08:42:35,494 [[32mINFO[0m] TradingAgent: ============================================================
+2025-11-29 08:42:35,495 [[32mINFO[0m] TradingAgent: ⏸️ HOLD: No opportunities meeting criteria
+2025-11-29 08:47:35,507 [[32mINFO[0m] TradingAgent: 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2025-11-29 08:47:35,508 [[32mINFO[0m] TradingAgent: 🔄 Trading cycle: 2025-11-29T03:17:35.508220+00:00
+2025-11-29 08:47:37,446 [[32mINFO[0m] TradingAgent: 📊 Fetched market data for 9 tokens
+2025-11-29 08:47:37,446 [[33mWARNING[0m] TradingAgent: [DEBUG] Raw CoinGecko data: {'WETH': {'price': 3032.2, 'change_24h_pct': 0.9086530173043897, 'volume_24h': 19640547261.496822, 'market_cap': 366418609516.40753, 'volume_surge_score': 0.5}, 'WBTC': {'price': 90845, 'change_24h_pct': -0.23712144291104875, 'volume_24h': 61054420278.9727, 'market_cap': 1813214099473.8503, 'volume_surge_score': 0.5}, 'UNI': {'price': 6.17, 'change_24h_pct': 0.9257420195011166, 'volume_24h': 295217401.3627346, 'market_cap': 3888801817.3384223, 'volume_surge_score': 0.5}, 'LINK': {'price': 13.12, 'change_24h_pct': -1.032615895983125, 'volume_24h': 449172504.66095585, 'market_cap': 9144390270.71692, 'volume_surge_score': 0.5}, 'DAI': {'price': 0.999548, 'change_24h_pct': -0.01171073512176562, 'volume_24h': 68422708.17640845, 'market_cap': 4428199606.727477, 'volume_surge_score': 0.5}, 'USDC': {'price': 0.999801, 'change_24h_pct': 0.00885391288850254, 'volume_24h': 5188281174.696108, 'market_cap': 76533672185.72183, 'volume_surge_score': 0.5}, 'AAVE': {'price': 185.19, 'change_24h_pct': 0.4643961442600424, 'volume_24h': 183670703.88487193, 'market_cap': 2806715759.409118, 'volume_surge_score': 0.5}, 'BONK': {'price': 9.82e-06, 'change_24h_pct': 0.7958424454371067, 'volume_24h': 103398932.46286605, 'market_cap': 809200073.0816157, 'volume_surge_score': 0.5}, 'FLOKI': {'price': 4.921e-05, 'change_24h_pct': -0.43947910278036684, 'volume_24h': 46194862.52026306, 'market_cap': 475005206.61498535, 'volume_surge_score': 0.5}}
+2025-11-29 08:47:37,447 [[32mINFO[0m] TradingAgent: ============================================================
+2025-11-29 08:47:37,447 [[32mINFO[0m] TradingAgent: 💰 Portfolio Value: $29,937.21
+2025-11-29 08:47:37,447 [[32mINFO[0m] TradingAgent: 📊 Positions: 5/8
+2025-11-29 08:47:37,447 [[32mINFO[0m] TradingAgent: 📈 Daily Trades: 0/3
+2025-11-29 08:47:37,447 [[32mINFO[0m] TradingAgent: ----------------------------------------
+2025-11-29 08:47:37,448 [[32mINFO[0m] TradingAgent:   ⚪ WBTC: $3.58 (+0.0%)
+2025-11-29 08:47:37,448 [[32mINFO[0m] TradingAgent: ============================================================
+2025-11-29 08:47:37,448 [[32mINFO[0m] TradingAgent: ⏸️ HOLD: No opportunities meeting criteria
+2025-11-29 08:48:09,386 [[32mINFO[0m] TradingAgent: 🛑 Initiating shutdown...
+2025-11-29 08:48:09,406 [[32mINFO[0m] TradingAgent: ✅ Shutdown complete
+2025-11-29 08:59:14,540 [[32mINFO[0m] TradingAgent: ✅ Recall API Client initialized (SANDBOX)
+2025-11-29 08:59:14,541 [[32mINFO[0m] TradingAgent: 🤖 Trading Agent v3.0 initialized
+2025-11-29 08:59:14,541 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-11-29 08:59:14,541 [[32mINFO[0m] TradingAgent: 🚀 ADVANCED PAPER TRADING AGENT v3.0 - PRODUCTION READY 🚀
+2025-11-29 08:59:14,542 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-11-29 08:59:14,542 [[32mINFO[0m] TradingAgent:    Environment: SANDBOX
+2025-11-29 08:59:14,543 [[32mINFO[0m] TradingAgent:    Strategy Mode: BALANCED
+2025-11-29 08:59:14,543 [[32mINFO[0m] TradingAgent:    Adaptive Mode: ENABLED
+2025-11-29 08:59:14,543 [[32mINFO[0m] TradingAgent:    Trading Interval: 300s
+2025-11-29 08:59:14,543 [[32mINFO[0m] TradingAgent:    Max Positions: 8
+2025-11-29 08:59:14,544 [[32mINFO[0m] TradingAgent:    Base Position Size: $300.0
+2025-11-29 08:59:14,544 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-11-29 08:59:14,559 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json
+2025-11-29 08:59:14,576 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.1
+2025-11-29 08:59:14,590 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.2
+2025-11-29 08:59:14,603 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.3
+2025-11-29 08:59:14,614 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.4
+2025-11-29 08:59:14,615 [[32mINFO[0m] TradingAgent: 💾 No state file found. Starting fresh.
+2025-11-29 08:59:18,375 [[32mINFO[0m] TradingAgent: ✅ Selected competition: Sandbox fake Competition
+2025-11-29 08:59:18,376 [[32mINFO[0m] TradingAgent: ✅ Agent initialized with 0 tracked positions
+2025-11-29 08:59:18,376 [[32mINFO[0m] TradingAgent: 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2025-11-29 08:59:18,377 [[32mINFO[0m] TradingAgent: 🔄 TRADING CYCLE: 2025-11-29 03:29:18 UTC
+2025-11-29 08:59:18,377 [[32mINFO[0m] TradingAgent: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2025-11-29 08:59:21,230 [[32mINFO[0m] TradingAgent: 📊 Fetched market data for 11 tokens
+2025-11-29 08:59:21,233 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: WBTC
+2025-11-29 08:59:21,234 [[32mINFO[0m] TradingAgent: 📅 New trading day: 2025-11-29
+2025-11-29 08:59:21,234 [[32mINFO[0m] TradingAgent: ======================================================================
+2025-11-29 08:59:21,234 [[32mINFO[0m] TradingAgent: 💰 PORTFOLIO SUMMARY
+2025-11-29 08:59:21,234 [[32mINFO[0m] TradingAgent: ======================================================================
+2025-11-29 08:59:21,235 [[32mINFO[0m] TradingAgent:    Total Value: $29,937.24
+2025-11-29 08:59:21,235 [[32mINFO[0m] TradingAgent:    Active Positions: 1/8
+2025-11-29 08:59:21,235 [[32mINFO[0m] TradingAgent:    Daily Trades: 0/3
+2025-11-29 08:59:21,235 [[32mINFO[0m] TradingAgent:    Daily P&L: 📈 +0.00% ($+0.00)
+2025-11-29 08:59:21,236 [[32mINFO[0m] TradingAgent:    Market Regime: SIDEWAYS
+2025-11-29 08:59:21,236 [[32mINFO[0m] TradingAgent:    Market Volatility: 0.63%
+2025-11-29 08:59:21,236 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
+2025-11-29 08:59:21,236 [[32mINFO[0m] TradingAgent: 📋 POSITIONS
+2025-11-29 08:59:21,237 [[32mINFO[0m] TradingAgent:    🟡 WBTC   | $      3.58 (  0.0%) | P&L:   +0.00% | Entry: $90751.0000
+2025-11-29 08:59:21,237 [[32mINFO[0m] TradingAgent:    💵 USDC   | $  4,999.02 ( 16.7%) | Available for trading
+2025-11-29 08:59:21,237 [[32mINFO[0m] TradingAgent: ======================================================================
+2025-11-29 08:59:21,238 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
+2025-11-29 08:59:21,238 [[32mINFO[0m] TradingAgent: 📈 MARKET OVERVIEW (Top Movers)
+2025-11-29 08:59:21,238 [[32mINFO[0m] TradingAgent:    📕 LINK   | $     13.1100 |   -1.11% | Vol: 0.62
+2025-11-29 08:59:21,239 [[32mINFO[0m] TradingAgent:    📕 SHIB   | $      0.0000 |   -1.01% | Vol: 0.00
+2025-11-29 08:59:21,239 [[32mINFO[0m] TradingAgent:    📕 FLOKI  | $      0.0000 |   -0.78% | Vol: 0.00
+2025-11-29 08:59:21,239 [[32mINFO[0m] TradingAgent:    📗 WETH   | $  3,027.4600 |   +0.68% | Vol: 0.77
+2025-11-29 08:59:21,240 [[32mINFO[0m] TradingAgent:    📗 UNI    | $      6.1500 |   +0.59% | Vol: 0.98
+2025-11-29 08:59:21,240 [[32mINFO[0m] TradingAgent:    📕 WBTC   | $ 90,751.0000 |   -0.46% | Vol: 2.00
+2025-11-29 08:59:21,240 [[32mINFO[0m] TradingAgent: 🔍 Analyzing 11 tokens for opportunities...
+2025-11-29 08:59:21,240 [[32mINFO[0m] TradingAgent:    Adaptive thresholds: vol_surge=0.16, momentum=0.7%, mean_rev=-3.0%
+2025-11-29 08:59:21,241 [[32mINFO[0m] TradingAgent: 📭 No opportunities found matching criteria
+2025-11-29 08:59:21,241 [[32mINFO[0m] TradingAgent: 📊 Market Summary:
+2025-11-29 08:59:21,242 [[32mINFO[0m] TradingAgent:    WETH: +0.68% (vol_surge: 0.77)
+2025-11-29 08:59:21,242 [[32mINFO[0m] TradingAgent:    UNI: +0.59% (vol_surge: 0.98)
+2025-11-29 08:59:21,242 [[32mINFO[0m] TradingAgent:    BONK: +0.39% (vol_surge: 0.00)
+2025-11-29 08:59:21,243 [[32mINFO[0m] TradingAgent:    AAVE: +0.29% (vol_surge: 0.72)
+2025-11-29 08:59:21,243 [[32mINFO[0m] TradingAgent:    DAI: +0.02% (vol_surge: 0.12)
+2025-11-29 08:59:21,243 [[32mINFO[0m] TradingAgent: ⏸️ HOLD: 📭 No opportunities meeting criteria
+2025-11-29 08:59:21,243 [[32mINFO[0m] TradingAgent: 
+⏱️ Cycle completed in 2.87s
+2025-11-29 09:01:11,010 [[32mINFO[0m] TradingAgent: 🛑 Initiating graceful shutdown...
+2025-11-29 09:01:11,036 [[32mINFO[0m] TradingAgent: 💾 Final state saved
+2025-11-29 09:01:11,036 [[32mINFO[0m] TradingAgent: 🔌 Connections closed
+2025-11-29 09:01:11,037 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-11-29 09:01:11,037 [[32mINFO[0m] TradingAgent: 📊 FINAL SESSION STATISTICS
+2025-11-29 09:01:11,037 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-11-29 09:01:11,038 [[32mINFO[0m] TradingAgent:    Total Trades: 0
+2025-11-29 09:01:11,038 [[32mINFO[0m] TradingAgent:    Win Rate: 0.0%
+2025-11-29 09:01:11,038 [[32mINFO[0m] TradingAgent:    Total P&L: $+0.00
+2025-11-29 09:01:11,038 [[32mINFO[0m] TradingAgent:    Max Drawdown: 0.00%
+2025-11-29 09:01:11,039 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-11-29 09:01:11,039 [[32mINFO[0m] TradingAgent: ✅ Shutdown complete
+2025-11-29 09:01:17,997 [[32mINFO[0m] TradingAgent: ✅ Recall API Client initialized (SANDBOX)
+2025-11-29 09:01:17,998 [[32mINFO[0m] TradingAgent: 🤖 Trading Agent v3.0 initialized
+2025-11-29 09:01:17,998 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-11-29 09:01:17,998 [[32mINFO[0m] TradingAgent: 🚀 ADVANCED PAPER TRADING AGENT v3.0 - PRODUCTION READY 🚀
+2025-11-29 09:01:17,999 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-11-29 09:01:17,999 [[32mINFO[0m] TradingAgent:    Environment: SANDBOX
+2025-11-29 09:01:17,999 [[32mINFO[0m] TradingAgent:    Strategy Mode: BALANCED
+2025-11-29 09:01:17,999 [[32mINFO[0m] TradingAgent:    Adaptive Mode: ENABLED
+2025-11-29 09:01:17,999 [[32mINFO[0m] TradingAgent:    Trading Interval: 300s
+2025-11-29 09:01:18,000 [[32mINFO[0m] TradingAgent:    Max Positions: 8
+2025-11-29 09:01:18,000 [[32mINFO[0m] TradingAgent:    Base Position Size: $300.0
+2025-11-29 09:01:18,000 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-11-29 09:01:18,024 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json
+2025-11-29 09:01:18,034 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.0
+2025-11-29 09:01:18,035 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.2
+2025-11-29 09:01:18,038 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.3
+2025-11-29 09:01:18,039 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.4
+2025-11-29 09:01:18,039 [[32mINFO[0m] TradingAgent: 💾 No state file found. Starting fresh.
+2025-11-29 09:01:21,771 [[32mINFO[0m] TradingAgent: ✅ Selected competition: Sandbox fake Competition
+2025-11-29 09:01:21,771 [[32mINFO[0m] TradingAgent: ✅ Agent initialized with 0 tracked positions
+2025-11-29 09:01:21,772 [[32mINFO[0m] TradingAgent: 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2025-11-29 09:01:21,772 [[32mINFO[0m] TradingAgent: 🔄 TRADING CYCLE: 2025-11-29 03:31:21 UTC
+2025-11-29 09:01:21,773 [[32mINFO[0m] TradingAgent: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2025-11-29 09:01:24,938 [[32mINFO[0m] TradingAgent: 📊 Fetched market data for 11 tokens
+2025-11-29 09:01:24,939 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: WBTC
+2025-11-29 09:01:24,940 [[32mINFO[0m] TradingAgent: 📅 New trading day: 2025-11-29
+2025-11-29 09:01:24,940 [[32mINFO[0m] TradingAgent: ======================================================================
+2025-11-29 09:01:24,940 [[32mINFO[0m] TradingAgent: 💰 PORTFOLIO SUMMARY
+2025-11-29 09:01:24,940 [[32mINFO[0m] TradingAgent: ======================================================================
+2025-11-29 09:01:24,941 [[32mINFO[0m] TradingAgent:    Total Value: $29,937.22
+2025-11-29 09:01:24,941 [[32mINFO[0m] TradingAgent:    Active Positions: 1/8
+2025-11-29 09:01:24,941 [[32mINFO[0m] TradingAgent:    Daily Trades: 0/3
+2025-11-29 09:01:24,942 [[32mINFO[0m] TradingAgent:    Daily P&L: 📈 +0.00% ($+0.00)
+2025-11-29 09:01:24,942 [[32mINFO[0m] TradingAgent:    Market Regime: SIDEWAYS
+2025-11-29 09:01:24,942 [[32mINFO[0m] TradingAgent:    Market Volatility: 0.62%
+2025-11-29 09:01:24,943 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
+2025-11-29 09:01:24,945 [[32mINFO[0m] TradingAgent: 📋 POSITIONS
+2025-11-29 09:01:24,947 [[32mINFO[0m] TradingAgent:    🟡 WBTC   | $      3.58 (  0.0%) | P&L:   +0.00% | Entry: $90739.0000
+2025-11-29 09:01:24,948 [[32mINFO[0m] TradingAgent:    💵 USDC   | $  4,999.01 ( 16.7%) | Available for trading
+2025-11-29 09:01:24,949 [[32mINFO[0m] TradingAgent: ======================================================================
+2025-11-29 09:01:24,951 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
+2025-11-29 09:01:24,952 [[32mINFO[0m] TradingAgent: 📈 MARKET OVERVIEW (Top Movers)
+2025-11-29 09:01:24,952 [[32mINFO[0m] TradingAgent:    📕 LINK   | $     13.1000 |   -1.14% | Vol: 0.62
+2025-11-29 09:01:24,953 [[32mINFO[0m] TradingAgent:    📕 SHIB   | $      0.0000 |   -1.01% | Vol: 0.00
+2025-11-29 09:01:24,968 [[32mINFO[0m] TradingAgent:    📕 FLOKI  | $      0.0000 |   -0.85% | Vol: 0.00
+2025-11-29 09:01:24,972 [[32mINFO[0m] TradingAgent:    📗 UNI    | $      6.1500 |   +0.56% | Vol: 0.98
+2025-11-29 09:01:24,973 [[32mINFO[0m] TradingAgent:    📗 WETH   | $  3,025.6600 |   +0.56% | Vol: 0.81
+2025-11-29 09:01:24,973 [[32mINFO[0m] TradingAgent:    📕 WBTC   | $ 90,739.0000 |   -0.47% | Vol: 2.00
+2025-11-29 09:01:24,974 [[32mINFO[0m] TradingAgent: 🔍 Analyzing 11 tokens for opportunities...
+2025-11-29 09:01:24,975 [[32mINFO[0m] TradingAgent:    Adaptive thresholds: vol_surge=0.16, momentum=0.7%, mean_rev=-3.0%
+2025-11-29 09:01:24,976 [[32mINFO[0m] TradingAgent: 📭 No opportunities found matching criteria
+2025-11-29 09:01:24,976 [[32mINFO[0m] TradingAgent: 📊 Market Summary:
+2025-11-29 09:01:24,977 [[32mINFO[0m] TradingAgent:    UNI: +0.56% (vol_surge: 0.98)
+2025-11-29 09:01:24,977 [[32mINFO[0m] TradingAgent:    WETH: +0.56% (vol_surge: 0.81)
+2025-11-29 09:01:24,978 [[32mINFO[0m] TradingAgent:    BONK: +0.39% (vol_surge: 0.00)
+2025-11-29 09:01:24,978 [[32mINFO[0m] TradingAgent:    AAVE: +0.27% (vol_surge: 0.72)
+2025-11-29 09:01:24,983 [[32mINFO[0m] TradingAgent:    DAI: +0.02% (vol_surge: 0.07)
+2025-11-29 09:01:24,984 [[32mINFO[0m] TradingAgent: ⏸️ HOLD: 📭 No opportunities meeting criteria
+2025-11-29 09:01:24,990 [[32mINFO[0m] TradingAgent: 
+⏱️ Cycle completed in 3.22s
+2025-11-29 09:06:24,997 [[32mINFO[0m] TradingAgent: 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2025-11-29 09:06:24,998 [[32mINFO[0m] TradingAgent: 🔄 TRADING CYCLE: 2025-11-29 03:36:24 UTC
+2025-11-29 09:06:24,998 [[32mINFO[0m] TradingAgent: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2025-11-29 09:06:27,058 [[32mINFO[0m] TradingAgent: 📊 Fetched market data for 11 tokens
+2025-11-29 09:06:27,059 [[32mINFO[0m] TradingAgent: ======================================================================
+2025-11-29 09:06:27,059 [[32mINFO[0m] TradingAgent: 💰 PORTFOLIO SUMMARY
+2025-11-29 09:06:27,059 [[32mINFO[0m] TradingAgent: ======================================================================
+2025-11-29 09:06:27,060 [[32mINFO[0m] TradingAgent:    Total Value: $29,937.20
+2025-11-29 09:06:27,060 [[32mINFO[0m] TradingAgent:    Active Positions: 1/8
+2025-11-29 09:06:27,060 [[32mINFO[0m] TradingAgent:    Daily Trades: 0/3
+2025-11-29 09:06:27,061 [[32mINFO[0m] TradingAgent:    Daily P&L: 📉 -0.00% ($-0.02)
+2025-11-29 09:06:27,061 [[32mINFO[0m] TradingAgent:    Market Regime: SIDEWAYS
+2025-11-29 09:06:27,061 [[32mINFO[0m] TradingAgent:    Market Volatility: 0.64%
+2025-11-29 09:06:27,062 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
+2025-11-29 09:06:27,062 [[32mINFO[0m] TradingAgent: 📋 POSITIONS
+2025-11-29 09:06:27,062 [[32mINFO[0m] TradingAgent:    🟡 WBTC   | $      3.58 (  0.0%) | P&L:   -0.01% | Entry: $90739.0000
+2025-11-29 09:06:27,063 [[32mINFO[0m] TradingAgent:    💵 USDC   | $  4,999.01 ( 16.7%) | Available for trading
+2025-11-29 09:06:27,063 [[32mINFO[0m] TradingAgent: ======================================================================
+2025-11-29 09:06:27,063 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
+2025-11-29 09:06:27,063 [[32mINFO[0m] TradingAgent: 📈 MARKET OVERVIEW (Top Movers)
+2025-11-29 09:06:27,064 [[32mINFO[0m] TradingAgent:    📕 LINK   | $     13.0700 |   -1.42% | Vol: 0.62
+2025-11-29 09:06:27,064 [[32mINFO[0m] TradingAgent:    📕 SHIB   | $      0.0000 |   -1.21% | Vol: 0.00
+2025-11-29 09:06:27,065 [[32mINFO[0m] TradingAgent:    📕 FLOKI  | $      0.0000 |   -1.13% | Vol: 0.00
+2025-11-29 09:06:27,065 [[32mINFO[0m] TradingAgent:    📕 WBTC   | $ 90,726.0000 |   -0.48% | Vol: 2.00
+2025-11-29 09:06:27,065 [[32mINFO[0m] TradingAgent:    📕 PEPE   | $      0.0000 |   -0.46% | Vol: 0.12
+2025-11-29 09:06:27,066 [[32mINFO[0m] TradingAgent:    📗 UNI    | $      6.1300 |   +0.45% | Vol: 0.98
+2025-11-29 09:06:27,066 [[32mINFO[0m] TradingAgent: 🔍 Analyzing 11 tokens for opportunities...
+2025-11-29 09:06:27,066 [[32mINFO[0m] TradingAgent:    Adaptive thresholds: vol_surge=0.16, momentum=0.7%, mean_rev=-3.0%
+2025-11-29 09:06:27,067 [[32mINFO[0m] TradingAgent: 📭 No opportunities found matching criteria
+2025-11-29 09:06:27,067 [[32mINFO[0m] TradingAgent: 📊 Market Summary:
+2025-11-29 09:06:27,067 [[32mINFO[0m] TradingAgent:    UNI: +0.45% (vol_surge: 0.98)
+2025-11-29 09:06:27,068 [[32mINFO[0m] TradingAgent:    WETH: +0.33% (vol_surge: 0.77)
+2025-11-29 09:06:27,068 [[32mINFO[0m] TradingAgent:    DAI: +0.03% (vol_surge: 0.32)
+2025-11-29 09:06:27,068 [[32mINFO[0m] TradingAgent:    USDC: +0.01% (vol_surge: 2.00)
+2025-11-29 09:06:27,069 [[32mINFO[0m] TradingAgent:    BONK: -0.00% (vol_surge: 0.00)
+2025-11-29 09:06:27,069 [[32mINFO[0m] TradingAgent: ⏸️ HOLD: 📭 No opportunities meeting criteria
+2025-11-29 09:06:27,069 [[32mINFO[0m] TradingAgent: 
+⏱️ Cycle completed in 2.07s
+2025-11-29 09:11:27,083 [[32mINFO[0m] TradingAgent: 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2025-11-29 09:11:27,084 [[32mINFO[0m] TradingAgent: 🔄 TRADING CYCLE: 2025-11-29 03:41:27 UTC
+2025-11-29 09:11:27,084 [[32mINFO[0m] TradingAgent: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2025-11-29 09:11:29,082 [[32mINFO[0m] TradingAgent: 📊 Fetched market data for 11 tokens
+2025-11-29 09:11:29,083 [[32mINFO[0m] TradingAgent: ======================================================================
+2025-11-29 09:11:29,083 [[32mINFO[0m] TradingAgent: 💰 PORTFOLIO SUMMARY
+2025-11-29 09:11:29,084 [[32mINFO[0m] TradingAgent: ======================================================================
+2025-11-29 09:11:29,084 [[32mINFO[0m] TradingAgent:    Total Value: $29,937.24
+2025-11-29 09:11:29,084 [[32mINFO[0m] TradingAgent:    Active Positions: 1/8
+2025-11-29 09:11:29,084 [[32mINFO[0m] TradingAgent:    Daily Trades: 0/3
+2025-11-29 09:11:29,085 [[32mINFO[0m] TradingAgent:    Daily P&L: 📈 +0.00% ($+0.02)
+2025-11-29 09:11:29,085 [[32mINFO[0m] TradingAgent:    Market Regime: SIDEWAYS
+2025-11-29 09:11:29,085 [[32mINFO[0m] TradingAgent:    Market Volatility: 0.64%
+2025-11-29 09:11:29,085 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
+2025-11-29 09:11:29,085 [[32mINFO[0m] TradingAgent: 📋 POSITIONS
+2025-11-29 09:11:29,086 [[32mINFO[0m] TradingAgent:    🔵 WBTC   | $      3.58 (  0.0%) | P&L:   +0.02% | Entry: $90739.0000
+2025-11-29 09:11:29,086 [[32mINFO[0m] TradingAgent:    💵 USDC   | $  4,999.02 ( 16.7%) | Available for trading
+2025-11-29 09:11:29,086 [[32mINFO[0m] TradingAgent: ======================================================================
+2025-11-29 09:11:29,086 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
+2025-11-29 09:11:29,087 [[32mINFO[0m] TradingAgent: 📈 MARKET OVERVIEW (Top Movers)
+2025-11-29 09:11:29,087 [[32mINFO[0m] TradingAgent:    📕 LINK   | $     13.0800 |   -1.32% | Vol: 0.62
+2025-11-29 09:11:29,087 [[32mINFO[0m] TradingAgent:    📕 SHIB   | $      0.0000 |   -1.27% | Vol: 0.00
+2025-11-29 09:11:29,088 [[32mINFO[0m] TradingAgent:    📕 FLOKI  | $      0.0000 |   -1.17% | Vol: 0.00
+2025-11-29 09:11:29,088 [[32mINFO[0m] TradingAgent:    📗 WETH   | $  3,022.8400 |   +0.54% | Vol: 0.77
+2025-11-29 09:11:29,088 [[32mINFO[0m] TradingAgent:    📕 WBTC   | $ 90,757.0000 |   -0.40% | Vol: 2.00
+2025-11-29 09:11:29,089 [[32mINFO[0m] TradingAgent:    📕 PEPE   | $      0.0000 |   -0.39% | Vol: 0.13
+2025-11-29 09:11:29,089 [[32mINFO[0m] TradingAgent: 🔍 Analyzing 11 tokens for opportunities...
+2025-11-29 09:11:29,089 [[32mINFO[0m] TradingAgent:    Adaptive thresholds: vol_surge=0.16, momentum=0.7%, mean_rev=-3.0%
+2025-11-29 09:11:29,090 [[32mINFO[0m] TradingAgent: 📭 No opportunities found matching criteria
+2025-11-29 09:11:29,090 [[32mINFO[0m] TradingAgent: 📊 Market Summary:
+2025-11-29 09:11:29,090 [[32mINFO[0m] TradingAgent:    WETH: +0.54% (vol_surge: 0.77)
+2025-11-29 09:11:29,090 [[32mINFO[0m] TradingAgent:    UNI: +0.34% (vol_surge: 0.98)
+2025-11-29 09:11:29,091 [[32mINFO[0m] TradingAgent:    DAI: +0.06% (vol_surge: 0.44)
+2025-11-29 09:11:29,091 [[32mINFO[0m] TradingAgent:    USDC: -0.00% (vol_surge: 2.00)
+2025-11-29 09:11:29,091 [[32mINFO[0m] TradingAgent:    BONK: -0.03% (vol_surge: 0.00)
+2025-11-29 09:11:29,092 [[32mINFO[0m] TradingAgent: ⏸️ HOLD: 📭 No opportunities meeting criteria
+2025-11-29 09:11:29,092 [[32mINFO[0m] TradingAgent: 
+⏱️ Cycle completed in 2.01s
+2025-11-29 09:15:16,523 [[32mINFO[0m] TradingAgent: 🛑 Initiating graceful shutdown...
+2025-11-29 09:15:16,545 [[32mINFO[0m] TradingAgent: 💾 Final state saved
+2025-11-29 09:15:16,546 [[32mINFO[0m] TradingAgent: 🔌 Connections closed
+2025-11-29 09:15:16,547 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-11-29 09:15:16,547 [[32mINFO[0m] TradingAgent: 📊 FINAL SESSION STATISTICS
+2025-11-29 09:15:16,547 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-11-29 09:15:16,548 [[32mINFO[0m] TradingAgent:    Total Trades: 0
+2025-11-29 09:15:16,548 [[32mINFO[0m] TradingAgent:    Win Rate: 0.0%
+2025-11-29 09:15:16,548 [[32mINFO[0m] TradingAgent:    Total P&L: $+0.00
+2025-11-29 09:15:16,548 [[32mINFO[0m] TradingAgent:    Max Drawdown: 0.00%
+2025-11-29 09:15:16,549 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-11-29 09:15:16,549 [[32mINFO[0m] TradingAgent: ✅ Shutdown complete
