@@ -1,987 +1,163 @@
-2025-12-03 15:19:15,912 [[32mINFO[0m] TradingAgent: ✅ Recall API Client initialized (SANDBOX)
-2025-12-03 15:19:15,912 [[32mINFO[0m] TradingAgent: 🤖 Trading Agent v3.0 initialized
-2025-12-03 15:19:15,912 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 15:19:15,913 [[32mINFO[0m] TradingAgent: 🚀 ADVANCED PAPER TRADING AGENT v3.0 - PRODUCTION READY 🚀
-2025-12-03 15:19:15,913 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 15:19:15,913 [[32mINFO[0m] TradingAgent:    Environment: SANDBOX
-2025-12-03 15:19:15,914 [[32mINFO[0m] TradingAgent:    Strategy Mode: BALANCED
-2025-12-03 15:19:15,914 [[32mINFO[0m] TradingAgent:    Adaptive Mode: ENABLED
-2025-12-03 15:19:15,914 [[32mINFO[0m] TradingAgent:    Trading Interval: 300s
-2025-12-03 15:19:15,914 [[32mINFO[0m] TradingAgent:    Max Positions: 8
-2025-12-03 15:19:15,914 [[32mINFO[0m] TradingAgent:    Base Position Size: $300.0
-2025-12-03 15:19:15,915 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 15:19:15,915 [[32mINFO[0m] TradingAgent: 💾 No state file found. Starting fresh.
-2025-12-03 15:19:19,830 [[32mINFO[0m] TradingAgent: ✅ Selected competition: Sandbox fake Competition
-2025-12-03 15:19:19,831 [[32mINFO[0m] TradingAgent: ✅ Agent initialized with 0 tracked positions
-2025-12-03 15:19:19,832 [[32mINFO[0m] TradingAgent: 
+2025-12-03 17:54:52,431 [[32mINFO[0m] TradingAgent: ✅ Recall API Client initialized (SANDBOX)
+2025-12-03 17:54:52,431 [[32mINFO[0m] TradingAgent: 🤖 Trading Agent v3.0 initialized
+2025-12-03 17:54:52,432 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-12-03 17:54:52,432 [[32mINFO[0m] TradingAgent: 🚀 ADVANCED PAPER TRADING AGENT v3.0 - PRODUCTION READY 🚀
+2025-12-03 17:54:52,432 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-12-03 17:54:52,432 [[32mINFO[0m] TradingAgent:    Environment: SANDBOX
+2025-12-03 17:54:52,433 [[32mINFO[0m] TradingAgent:    Strategy Mode: BALANCED
+2025-12-03 17:54:52,433 [[32mINFO[0m] TradingAgent:    Adaptive Mode: ENABLED
+2025-12-03 17:54:52,434 [[32mINFO[0m] TradingAgent:    Trading Interval: 300s
+2025-12-03 17:54:52,434 [[32mINFO[0m] TradingAgent:    Max Positions: 8
+2025-12-03 17:54:52,435 [[32mINFO[0m] TradingAgent:    Base Position Size: $300.0
+2025-12-03 17:54:52,436 [[35mCRITICAL[0m] TradingAgent: 💀 Fatal error: 'TradingAgent' object has no attribute '_max_consecutive_errors'
+2025-12-03 17:55:30,919 [[32mINFO[0m] TradingAgent: ✅ Recall API Client initialized (SANDBOX)
+2025-12-03 17:55:30,920 [[32mINFO[0m] TradingAgent: 🤖 Trading Agent v3.0 initialized
+2025-12-03 17:55:30,920 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-12-03 17:55:30,921 [[32mINFO[0m] TradingAgent: 🚀 ADVANCED PAPER TRADING AGENT v3.0 - PRODUCTION READY 🚀
+2025-12-03 17:55:30,921 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-12-03 17:55:30,921 [[32mINFO[0m] TradingAgent:    Environment: SANDBOX
+2025-12-03 17:55:30,922 [[32mINFO[0m] TradingAgent:    Strategy Mode: BALANCED
+2025-12-03 17:55:30,922 [[32mINFO[0m] TradingAgent:    Adaptive Mode: ENABLED
+2025-12-03 17:55:30,922 [[32mINFO[0m] TradingAgent:    Trading Interval: 300s
+2025-12-03 17:55:30,922 [[32mINFO[0m] TradingAgent:    Max Positions: 8
+2025-12-03 17:55:30,923 [[32mINFO[0m] TradingAgent:    Base Position Size: $300.0
+2025-12-03 17:55:30,924 [[35mCRITICAL[0m] TradingAgent: 💀 Fatal error: 'TradingAgent' object has no attribute '_max_consecutive_errors'
+2025-12-03 17:57:20,846 [[32mINFO[0m] TradingAgent: ✅ Recall API Client initialized (SANDBOX)
+2025-12-03 17:57:20,847 [[32mINFO[0m] TradingAgent: 🤖 Trading Agent v3.0 initialized
+2025-12-03 17:57:20,847 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-12-03 17:57:20,847 [[32mINFO[0m] TradingAgent: 🚀 ADVANCED PAPER TRADING AGENT v3.0 - PRODUCTION READY 🚀
+2025-12-03 17:57:20,848 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-12-03 17:57:20,848 [[32mINFO[0m] TradingAgent:    Environment: SANDBOX
+2025-12-03 17:57:20,848 [[32mINFO[0m] TradingAgent:    Strategy Mode: BALANCED
+2025-12-03 17:57:20,848 [[32mINFO[0m] TradingAgent:    Adaptive Mode: ENABLED
+2025-12-03 17:57:20,849 [[32mINFO[0m] TradingAgent:    Trading Interval: 300s
+2025-12-03 17:57:20,849 [[32mINFO[0m] TradingAgent:    Max Positions: 8
+2025-12-03 17:57:20,849 [[32mINFO[0m] TradingAgent:    Base Position Size: $300.0
+2025-12-03 17:57:20,850 [[32mINFO[0m] TradingAgent:    Max Consecutive Errors: 5
+2025-12-03 17:57:20,850 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-12-03 17:57:20,851 [[32mINFO[0m] TradingAgent: 💾 No state file found. Starting fresh.
+2025-12-03 17:57:25,357 [[32mINFO[0m] TradingAgent: ✅ Selected competition: Sandbox fake Competition
+2025-12-03 17:57:25,358 [[32mINFO[0m] TradingAgent: ✅ Agent initialized with 0 tracked positions
+2025-12-03 17:57:25,358 [[32mINFO[0m] TradingAgent: 🛑 Initiating graceful shutdown...
+2025-12-03 17:57:25,364 [[32mINFO[0m] TradingAgent: 💾 Final state saved
+2025-12-03 17:57:25,366 [[32mINFO[0m] TradingAgent: 🔌 Connections closed
+2025-12-03 17:57:25,366 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-12-03 17:57:25,367 [[32mINFO[0m] TradingAgent: 📊 FINAL SESSION STATISTICS
+2025-12-03 17:57:25,367 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-12-03 17:57:25,367 [[32mINFO[0m] TradingAgent:    Total Trades: 0
+2025-12-03 17:57:25,368 [[32mINFO[0m] TradingAgent:    Win Rate: 0.0%
+2025-12-03 17:57:25,368 [[32mINFO[0m] TradingAgent:    Total P&L: $+0.00
+2025-12-03 17:57:25,368 [[32mINFO[0m] TradingAgent:    Max Drawdown: 0.00%
+2025-12-03 17:57:25,369 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-12-03 17:57:25,369 [[32mINFO[0m] TradingAgent: ✅ Shutdown complete
+2025-12-03 17:57:25,370 [[35mCRITICAL[0m] TradingAgent: 💀 Fatal error: 'TradingAgent' object has no attribute '_cycle_lock'
+2025-12-03 17:58:43,570 [[32mINFO[0m] TradingAgent: ✅ Recall API Client initialized (SANDBOX)
+2025-12-03 17:58:43,571 [[32mINFO[0m] TradingAgent: 🤖 Trading Agent v3.0 initialized
+2025-12-03 17:58:43,571 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-12-03 17:58:43,571 [[32mINFO[0m] TradingAgent: 🚀 ADVANCED PAPER TRADING AGENT v3.0 - PRODUCTION READY 🚀
+2025-12-03 17:58:43,572 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-12-03 17:58:43,572 [[32mINFO[0m] TradingAgent:    Environment: SANDBOX
+2025-12-03 17:58:43,572 [[32mINFO[0m] TradingAgent:    Strategy Mode: BALANCED
+2025-12-03 17:58:43,573 [[32mINFO[0m] TradingAgent:    Adaptive Mode: ENABLED
+2025-12-03 17:58:43,573 [[32mINFO[0m] TradingAgent:    Trading Interval: 300s
+2025-12-03 17:58:43,573 [[32mINFO[0m] TradingAgent:    Max Positions: 8
+2025-12-03 17:58:43,574 [[32mINFO[0m] TradingAgent:    Base Position Size: $300.0
+2025-12-03 17:58:43,574 [[32mINFO[0m] TradingAgent:    Max Consecutive Errors: 5
+2025-12-03 17:58:43,574 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-12-03 17:58:43,593 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json
+2025-12-03 17:58:43,594 [[32mINFO[0m] TradingAgent: 💾 No state file found. Starting fresh.
+2025-12-03 17:58:46,903 [[32mINFO[0m] TradingAgent: ✅ Selected competition: Sandbox fake Competition
+2025-12-03 17:58:46,904 [[32mINFO[0m] TradingAgent: ✅ Agent initialized with 0 tracked positions
+2025-12-03 17:58:46,904 [[32mINFO[0m] TradingAgent: 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 15:19:19,833 [[32mINFO[0m] TradingAgent: 🔄 TRADING CYCLE: 2025-12-03 09:49:19 UTC
-2025-12-03 15:19:19,833 [[32mINFO[0m] TradingAgent: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 15:19:32,967 [[32mINFO[0m] TradingAgent: 📊 Fetched Dexscreener data for 12 tokens
-2025-12-03 15:19:32,969 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: LINK
-2025-12-03 15:19:32,969 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: MKR
-2025-12-03 15:19:32,969 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: PEPE
-2025-12-03 15:19:32,970 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: UNI
-2025-12-03 15:19:32,970 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: BONK
-2025-12-03 15:19:32,971 [[32mINFO[0m] TradingAgent: 📅 New trading day: 2025-12-03
-2025-12-03 15:19:32,971 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 15:19:32,971 [[32mINFO[0m] TradingAgent: 💰 PORTFOLIO SUMMARY
-2025-12-03 15:19:32,971 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 15:19:32,972 [[32mINFO[0m] TradingAgent:    Total Value: $29,876.07
-2025-12-03 15:19:32,972 [[32mINFO[0m] TradingAgent:    Active Positions: 5/8
-2025-12-03 15:19:32,972 [[32mINFO[0m] TradingAgent:    Daily Trades: 0/3
-2025-12-03 15:19:32,972 [[32mINFO[0m] TradingAgent:    Daily P&L: 📈 +0.00% ($+0.00)
-2025-12-03 15:19:32,973 [[32mINFO[0m] TradingAgent:    Market Regime: HIGH_VOLATILITY
-2025-12-03 15:19:32,973 [[32mINFO[0m] TradingAgent:    Market Volatility: 8.02%
-2025-12-03 15:19:32,973 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 15:19:32,973 [[32mINFO[0m] TradingAgent: 📋 POSITIONS
-2025-12-03 15:19:32,974 [[32mINFO[0m] TradingAgent:    🟡 BONK         | $  3,828.91 ( 12.8%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 15:19:32,974 [[32mINFO[0m] TradingAgent:    🟡 MKR          | $    956.20 (  3.2%) | P&L:   +0.00% | Entry: $1373.0960
-2025-12-03 15:19:32,975 [[32mINFO[0m] TradingAgent:    🟡 PEPE         | $    461.55 (  1.5%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 15:19:32,975 [[32mINFO[0m] TradingAgent:    🟡 LINK         | $    458.33 (  1.5%) | P&L:   +0.00% | Entry: $14.3300
-2025-12-03 15:19:32,976 [[32mINFO[0m] TradingAgent:    🟡 UNI          | $      7.89 (  0.0%) | P&L:   +0.00% | Entry: $6.0450
-2025-12-03 15:19:32,976 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 15:19:32,977 [[32mINFO[0m] TradingAgent: 💵 STABLECOINS (Available for Trading)
-2025-12-03 15:19:32,977 [[32mINFO[0m] TradingAgent:    💵 USDC         | $     19.26 (  0.1%) | Ethereum   | 23,943.005206
-2025-12-03 15:19:32,977 [[32mINFO[0m] TradingAgent:    💵 USDBC_BASE   | $      0.13 (  0.0%) | Base       | 0.125000
-2025-12-03 15:19:32,977 [[32mINFO[0m] TradingAgent:    ──────────────────────────────────────────────────────────────────
-2025-12-03 15:19:32,977 [[32mINFO[0m] TradingAgent:    TOTAL USDC   | $     19.39 | Available across all chains
-2025-12-03 15:19:32,977 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 15:19:32,978 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 15:19:32,978 [[32mINFO[0m] TradingAgent: 📈 MARKET OVERVIEW (Top Movers)
-2025-12-03 15:19:32,978 [[32mINFO[0m] TradingAgent:    🚀 LINK   | $     14.3300 |  +18.76% | Vol: 0.00
-2025-12-03 15:19:32,978 [[32mINFO[0m] TradingAgent:    🚀 PEPE   | $      0.0000 |  +18.44% | Vol: 0.00
-2025-12-03 15:19:32,979 [[32mINFO[0m] TradingAgent:    🚀 BONK   | $      0.0000 |  +14.84% | Vol: 0.00
-2025-12-03 15:19:32,979 [[32mINFO[0m] TradingAgent:    🚀 UNI    | $      6.0450 |  +11.42% | Vol: 0.00
-2025-12-03 15:19:32,979 [[32mINFO[0m] TradingAgent:    🚀 FLOKI  | $      0.0000 |  +10.59% | Vol: 0.00
-2025-12-03 15:19:32,980 [[32mINFO[0m] TradingAgent:    🚀 SNX    | $      0.5604 |  +10.51% | Vol: 0.00
-2025-12-03 15:19:32,980 [[32mINFO[0m] TradingAgent: 🔍 Analyzing 12 tokens for opportunities...
-2025-12-03 15:19:32,981 [[32mINFO[0m] TradingAgent:    Adaptive thresholds: vol_surge=0.14, momentum=1.5%, mean_rev=-4.5%
-2025-12-03 15:19:32,981 [[32mINFO[0m] TradingAgent:    ✅ UNI: MOMENTUM opportunity, score=1.78, conviction=HIGH
-2025-12-03 15:19:32,981 [[32mINFO[0m] TradingAgent:    ✅ LINK: MOMENTUM opportunity, score=2.93, conviction=HIGH
-2025-12-03 15:19:32,981 [[32mINFO[0m] TradingAgent:    ✅ SNX: MOMENTUM opportunity, score=1.64, conviction=HIGH
-2025-12-03 15:19:32,982 [[32mINFO[0m] TradingAgent:    ✅ BONK: MOMENTUM opportunity, score=2.32, conviction=HIGH
-2025-12-03 15:19:32,982 [[32mINFO[0m] TradingAgent:    ✅ FLOKI: MOMENTUM opportunity, score=1.65, conviction=HIGH
-2025-12-03 15:19:32,982 [[32mINFO[0m] TradingAgent:    ✅ PEPE: MOMENTUM opportunity, score=2.88, conviction=HIGH
-2025-12-03 15:19:32,983 [[32mINFO[0m] TradingAgent: 🎯 Found 6 total opportunities, returning top 5
-2025-12-03 15:19:32,983 [[32mINFO[0m] TradingAgent: 
+2025-12-03 17:58:46,904 [[32mINFO[0m] TradingAgent: 🔄 TRADING CYCLE: 2025-12-03 12:28:46 UTC
+2025-12-03 17:58:46,905 [[32mINFO[0m] TradingAgent: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2025-12-03 17:58:51,165 [[32mINFO[0m] TradingAgent: ✅ DexScreener fetched 15/16 tokens
+2025-12-03 17:58:51,166 [[32mINFO[0m] TradingAgent: 📊 DexScreener stats: 15 tokens, 100.0% success rate
+2025-12-03 17:58:51,168 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: LINK
+2025-12-03 17:58:51,168 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: MKR
+2025-12-03 17:58:51,169 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: WBTC
+2025-12-03 17:58:51,169 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: PEPE
+2025-12-03 17:58:51,170 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: UNI
+2025-12-03 17:58:51,170 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: BONK
+2025-12-03 17:58:51,170 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: SHIB
+2025-12-03 17:58:51,171 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: BONK_SOLANA
+2025-12-03 17:58:51,171 [[32mINFO[0m] TradingAgent: 📅 New trading day: 2025-12-03
+2025-12-03 17:58:51,172 [[32mINFO[0m] TradingAgent: ======================================================================
+2025-12-03 17:58:51,172 [[32mINFO[0m] TradingAgent: 💰 PORTFOLIO SUMMARY
+2025-12-03 17:58:51,173 [[32mINFO[0m] TradingAgent: ======================================================================
+2025-12-03 17:58:51,173 [[32mINFO[0m] TradingAgent:    Total Value: $29,840.74
+2025-12-03 17:58:51,173 [[32mINFO[0m] TradingAgent:    Active Positions: 8/8
+2025-12-03 17:58:51,174 [[32mINFO[0m] TradingAgent:    Daily Trades: 0/3
+2025-12-03 17:58:51,174 [[32mINFO[0m] TradingAgent:    Daily P&L: 📈 +0.00% ($+0.00)
+2025-12-03 17:58:51,174 [[32mINFO[0m] TradingAgent:    Market Regime: BULL
+2025-12-03 17:58:51,174 [[32mINFO[0m] TradingAgent:    Market Volatility: 3.75%
+2025-12-03 17:58:51,175 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
+2025-12-03 17:58:51,175 [[32mINFO[0m] TradingAgent: 📋 POSITIONS
+2025-12-03 17:58:51,175 [[32mINFO[0m] TradingAgent:    🟡 BONK         | $  3,811.62 ( 12.8%) | P&L:   +0.00% | Entry: $0.0000
+2025-12-03 17:58:51,176 [[32mINFO[0m] TradingAgent:    🟡 MKR          | $    920.82 (  3.1%) | P&L:   +0.00% | Entry: $1322.2900
+2025-12-03 17:58:51,176 [[32mINFO[0m] TradingAgent:    🟡 LINK         | $    462.81 (  1.6%) | P&L:   +0.00% | Entry: $14.4700
+2025-12-03 17:58:51,176 [[32mINFO[0m] TradingAgent:    🟡 PEPE         | $    461.84 (  1.5%) | P&L:   +0.00% | Entry: $0.0000
+2025-12-03 17:58:51,177 [[32mINFO[0m] TradingAgent:    🟡 BONK_SOLANA  | $    448.21 (  1.5%) | P&L:   +0.00% | Entry: $0.0000
+2025-12-03 17:58:51,177 [[32mINFO[0m] TradingAgent:    🟡 SHIB         | $    226.98 (  0.8%) | P&L:   +0.00% | Entry: $0.0000
+2025-12-03 17:58:51,178 [[32mINFO[0m] TradingAgent:    🟡 UNI          | $      7.91 (  0.0%) | P&L:   +0.00% | Entry: $6.0570
+2025-12-03 17:58:51,178 [[32mINFO[0m] TradingAgent:    🟡 WBTC         | $      3.66 (  0.0%) | P&L:   +0.00% | Entry: $92799.9300
+2025-12-03 17:58:51,178 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
+2025-12-03 17:58:51,178 [[32mINFO[0m] TradingAgent: 💵 STABLECOINS (Available for Trading)
+2025-12-03 17:58:51,179 [[32mINFO[0m] TradingAgent:    💵 USDC         | $ 23,483.43 ( 78.7%) | Ethereum   | 23,492.825134
+2025-12-03 17:58:51,179 [[32mINFO[0m] TradingAgent:    💵 USDBC_BASE   | $      0.13 (  0.0%) | Base       | 0.125000
+2025-12-03 17:58:51,179 [[32mINFO[0m] TradingAgent:    💵 USDC_POLYGON | $      0.12 (  0.0%) | Polygon    | 0.125000
+2025-12-03 17:58:51,180 [[32mINFO[0m] TradingAgent:    💵 USDC_SOLANA  | $      0.12 (  0.0%) | Solana     | 0.125000
+2025-12-03 17:58:51,180 [[32mINFO[0m] TradingAgent:    💵 USDC_OPTIMISM | $      0.12 (  0.0%) | Optimism   | 0.125000
+2025-12-03 17:58:51,181 [[32mINFO[0m] TradingAgent:    💵 USDC_ARBITRUM | $      0.12 (  0.0%) | Arbitrum   | 0.125000
+2025-12-03 17:58:51,181 [[32mINFO[0m] TradingAgent:    ──────────────────────────────────────────────────────────────────
+2025-12-03 17:58:51,181 [[32mINFO[0m] TradingAgent:    TOTAL USDC   | $ 23,484.05 | Available across all chains
+2025-12-03 17:58:51,181 [[32mINFO[0m] TradingAgent: ======================================================================
+2025-12-03 17:58:51,182 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
+2025-12-03 17:58:51,182 [[32mINFO[0m] TradingAgent: 📈 MARKET OVERVIEW (Top Movers)
+2025-12-03 17:58:51,182 [[32mINFO[0m] TradingAgent:    🚀 LINK   | $     14.4700 |  +18.62% | Vol: 0.10
+2025-12-03 17:58:51,183 [[32mINFO[0m] TradingAgent:    🚀 PEPE   | $      0.0000 |  +17.26% | Vol: 0.10
+2025-12-03 17:58:51,183 [[32mINFO[0m] TradingAgent:    🚀 BONK   | $      0.0000 |  +14.32% | Vol: 0.10
+2025-12-03 17:58:51,183 [[32mINFO[0m] TradingAgent:    🚀 AAVE   | $    192.5300 |  +13.40% | Vol: 0.10
+2025-12-03 17:58:51,184 [[32mINFO[0m] TradingAgent:    🚀 BONK_SOLANA | $      0.0000 |  +11.38% | Vol: 0.10
+2025-12-03 17:58:51,184 [[32mINFO[0m] TradingAgent:    🚀 FLOKI  | $      0.0000 |  +11.05% | Vol: 0.10
+2025-12-03 17:58:51,184 [[32mINFO[0m] TradingAgent: 🔍 Analyzing 15 tokens for opportunities...
+2025-12-03 17:58:51,185 [[32mINFO[0m] TradingAgent:    Adaptive thresholds: vol_surge=0.20, momentum=0.8%, mean_rev=-2.1%
+2025-12-03 17:58:51,185 [[32mINFO[0m] TradingAgent:    ✅ WETH: MOMENTUM opportunity, score=1.45, conviction=HIGH
+2025-12-03 17:58:51,185 [[32mINFO[0m] TradingAgent:    ✅ LINK: MOMENTUM opportunity, score=3.05, conviction=HIGH
+2025-12-03 17:58:51,186 [[32mINFO[0m] TradingAgent:    ✅ UNI: MOMENTUM opportunity, score=1.58, conviction=HIGH
+2025-12-03 17:58:51,187 [[32mINFO[0m] TradingAgent:    ✅ AAVE: MOMENTUM opportunity, score=2.19, conviction=HIGH
+2025-12-03 17:58:51,187 [[32mINFO[0m] TradingAgent:    ✅ SNX: MOMENTUM opportunity, score=1.33, conviction=HIGH
+2025-12-03 17:58:51,188 [[32mINFO[0m] TradingAgent:    ✅ MKR: MOMENTUM opportunity, score=0.46, conviction=MEDIUM
+2025-12-03 17:58:51,188 [[32mINFO[0m] TradingAgent:    ✅ PEPE: MOMENTUM opportunity, score=2.83, conviction=HIGH
+2025-12-03 17:58:51,189 [[32mINFO[0m] TradingAgent:    ✅ SHIB: MOMENTUM opportunity, score=1.78, conviction=HIGH
+2025-12-03 17:58:51,189 [[32mINFO[0m] TradingAgent:    ✅ BONK: MOMENTUM opportunity, score=2.35, conviction=HIGH
+2025-12-03 17:58:51,189 [[32mINFO[0m] TradingAgent:    ✅ FLOKI: MOMENTUM opportunity, score=1.81, conviction=HIGH
+2025-12-03 17:58:51,190 [[32mINFO[0m] TradingAgent:    ✅ WETH_POLYGON: MOMENTUM opportunity, score=1.44, conviction=HIGH
+2025-12-03 17:58:51,190 [[32mINFO[0m] TradingAgent:    ✅ WETH_ARBITRUM: MOMENTUM opportunity, score=1.48, conviction=HIGH
+2025-12-03 17:58:51,191 [[32mINFO[0m] TradingAgent:    ✅ WETH_BASE: MOMENTUM opportunity, score=1.48, conviction=HIGH
+2025-12-03 17:58:51,191 [[32mINFO[0m] TradingAgent:    ✅ SOL: MOMENTUM opportunity, score=1.66, conviction=HIGH
+2025-12-03 17:58:51,191 [[32mINFO[0m] TradingAgent:    ✅ BONK_SOLANA: MOMENTUM opportunity, score=1.86, conviction=HIGH
+2025-12-03 17:58:51,192 [[32mINFO[0m] TradingAgent: 🎯 Found 15 total opportunities, returning top 5
+2025-12-03 17:58:51,192 [[32mINFO[0m] TradingAgent: 
 🎯 TOP OPPORTUNITIES:
-2025-12-03 15:19:32,983 [[32mINFO[0m] TradingAgent:    1. LINK   | Score:   2.93 | MOMENTUM        | HIGH   | +18.76%
-2025-12-03 15:19:32,983 [[32mINFO[0m] TradingAgent:    2. PEPE   | Score:   2.88 | MOMENTUM        | HIGH   | +18.44%
-2025-12-03 15:19:32,984 [[32mINFO[0m] TradingAgent:    3. BONK   | Score:   2.32 | MOMENTUM        | HIGH   | +14.84%
-2025-12-03 15:19:32,984 [[32mINFO[0m] TradingAgent:    4. UNI    | Score:   1.78 | MOMENTUM        | HIGH   | +11.42%
-2025-12-03 15:19:32,985 [[32mINFO[0m] TradingAgent:    5. FLOKI  | Score:   1.65 | MOMENTUM        | HIGH   | +10.59%
-2025-12-03 15:19:32,985 [[32mINFO[0m] TradingAgent: ⏸️ HOLD: 💰 Insufficient USDC ($19 < $150 required)
-2025-12-03 15:19:32,986 [[32mINFO[0m] TradingAgent: 
-⏱️ Cycle completed in 13.15s
-2025-12-03 15:23:18,911 [[32mINFO[0m] TradingAgent: 🛑 Initiating graceful shutdown...
-2025-12-03 15:23:18,930 [[32mINFO[0m] TradingAgent: 💾 Final state saved
-2025-12-03 15:23:18,931 [[32mINFO[0m] TradingAgent: 🔌 Connections closed
-2025-12-03 15:23:18,932 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 15:23:18,932 [[32mINFO[0m] TradingAgent: 📊 FINAL SESSION STATISTICS
-2025-12-03 15:23:18,932 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 15:23:18,932 [[32mINFO[0m] TradingAgent:    Total Trades: 0
-2025-12-03 15:23:18,933 [[32mINFO[0m] TradingAgent:    Win Rate: 0.0%
-2025-12-03 15:23:18,935 [[32mINFO[0m] TradingAgent:    Total P&L: $+0.00
-2025-12-03 15:23:18,935 [[32mINFO[0m] TradingAgent:    Max Drawdown: 0.00%
-2025-12-03 15:23:18,936 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 15:23:18,936 [[32mINFO[0m] TradingAgent: ✅ Shutdown complete
-2025-12-03 15:23:21,314 [[32mINFO[0m] TradingAgent: ✅ Recall API Client initialized (SANDBOX)
-2025-12-03 15:23:21,314 [[32mINFO[0m] TradingAgent: 🤖 Trading Agent v3.0 initialized
-2025-12-03 15:23:21,315 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 15:23:21,315 [[32mINFO[0m] TradingAgent: 🚀 ADVANCED PAPER TRADING AGENT v3.0 - PRODUCTION READY 🚀
-2025-12-03 15:23:21,315 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 15:23:21,315 [[32mINFO[0m] TradingAgent:    Environment: SANDBOX
-2025-12-03 15:23:21,316 [[32mINFO[0m] TradingAgent:    Strategy Mode: BALANCED
-2025-12-03 15:23:21,316 [[32mINFO[0m] TradingAgent:    Adaptive Mode: ENABLED
-2025-12-03 15:23:21,316 [[32mINFO[0m] TradingAgent:    Trading Interval: 300s
-2025-12-03 15:23:21,317 [[32mINFO[0m] TradingAgent:    Max Positions: 8
-2025-12-03 15:23:21,317 [[32mINFO[0m] TradingAgent:    Base Position Size: $300.0
-2025-12-03 15:23:21,317 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 15:23:21,335 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json
-2025-12-03 15:23:21,336 [[32mINFO[0m] TradingAgent: 💾 No state file found. Starting fresh.
-2025-12-03 15:23:25,075 [[32mINFO[0m] TradingAgent: ✅ Selected competition: Sandbox fake Competition
-2025-12-03 15:23:25,076 [[32mINFO[0m] TradingAgent: ✅ Agent initialized with 0 tracked positions
-2025-12-03 15:23:25,077 [[32mINFO[0m] TradingAgent: 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 15:23:25,077 [[32mINFO[0m] TradingAgent: 🔄 TRADING CYCLE: 2025-12-03 09:53:25 UTC
-2025-12-03 15:23:25,077 [[32mINFO[0m] TradingAgent: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 15:23:36,012 [[32mINFO[0m] TradingAgent: 📊 Fetched Dexscreener data for 12 tokens
-2025-12-03 15:23:36,013 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: LINK
-2025-12-03 15:23:36,014 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: MKR
-2025-12-03 15:23:36,014 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: PEPE
-2025-12-03 15:23:36,014 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: UNI
-2025-12-03 15:23:36,015 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: BONK
-2025-12-03 15:23:36,015 [[32mINFO[0m] TradingAgent: 📅 New trading day: 2025-12-03
-2025-12-03 15:23:36,016 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 15:23:36,016 [[32mINFO[0m] TradingAgent: 💰 PORTFOLIO SUMMARY
-2025-12-03 15:23:36,017 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 15:23:36,018 [[32mINFO[0m] TradingAgent:    Total Value: $29,876.07
-2025-12-03 15:23:36,039 [[32mINFO[0m] TradingAgent:    Active Positions: 5/8
-2025-12-03 15:23:36,040 [[32mINFO[0m] TradingAgent:    Daily Trades: 0/3
-2025-12-03 15:23:36,040 [[32mINFO[0m] TradingAgent:    Daily P&L: 📈 +0.00% ($+0.00)
-2025-12-03 15:23:36,041 [[32mINFO[0m] TradingAgent:    Market Regime: HIGH_VOLATILITY
-2025-12-03 15:23:36,041 [[32mINFO[0m] TradingAgent:    Market Volatility: 8.05%
-2025-12-03 15:23:36,042 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 15:23:36,048 [[32mINFO[0m] TradingAgent: 📋 POSITIONS
-2025-12-03 15:23:36,049 [[32mINFO[0m] TradingAgent:    🟡 BONK         | $  3,828.91 ( 12.8%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 15:23:36,050 [[32mINFO[0m] TradingAgent:    🟡 MKR          | $    956.20 (  3.2%) | P&L:   +0.00% | Entry: $1373.0960
-2025-12-03 15:23:36,050 [[32mINFO[0m] TradingAgent:    🟡 PEPE         | $    461.94 (  1.5%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 15:23:36,051 [[32mINFO[0m] TradingAgent:    🟡 LINK         | $    458.33 (  1.5%) | P&L:   +0.00% | Entry: $14.3300
-2025-12-03 15:23:36,051 [[32mINFO[0m] TradingAgent:    🟡 UNI          | $      7.89 (  0.0%) | P&L:   +0.00% | Entry: $6.0450
-2025-12-03 15:23:36,051 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 15:23:36,052 [[32mINFO[0m] TradingAgent: 💵 STABLECOINS (Available for Trading)
-2025-12-03 15:23:36,052 [[31mERROR[0m] TradingAgent: ❌ Cycle error: 'TokenConfig' object has no attribute 'is_stable'
-2025-12-03 15:25:21,585 [[32mINFO[0m] TradingAgent: 🛑 Initiating graceful shutdown...
-2025-12-03 15:25:21,610 [[32mINFO[0m] TradingAgent: 💾 Final state saved
-2025-12-03 15:25:21,611 [[32mINFO[0m] TradingAgent: 🔌 Connections closed
-2025-12-03 15:25:21,612 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 15:25:21,613 [[32mINFO[0m] TradingAgent: 📊 FINAL SESSION STATISTICS
-2025-12-03 15:25:21,614 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 15:25:21,614 [[32mINFO[0m] TradingAgent:    Total Trades: 0
-2025-12-03 15:25:21,615 [[32mINFO[0m] TradingAgent:    Win Rate: 0.0%
-2025-12-03 15:25:21,615 [[32mINFO[0m] TradingAgent:    Total P&L: $+0.00
-2025-12-03 15:25:21,616 [[32mINFO[0m] TradingAgent:    Max Drawdown: 0.00%
-2025-12-03 15:25:21,616 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 15:25:21,617 [[32mINFO[0m] TradingAgent: ✅ Shutdown complete
-2025-12-03 15:25:26,759 [[32mINFO[0m] TradingAgent: ✅ Recall API Client initialized (SANDBOX)
-2025-12-03 15:25:26,759 [[32mINFO[0m] TradingAgent: 🤖 Trading Agent v3.0 initialized
-2025-12-03 15:25:26,759 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 15:25:26,759 [[32mINFO[0m] TradingAgent: 🚀 ADVANCED PAPER TRADING AGENT v3.0 - PRODUCTION READY 🚀
-2025-12-03 15:25:26,760 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 15:25:26,760 [[32mINFO[0m] TradingAgent:    Environment: SANDBOX
-2025-12-03 15:25:26,760 [[32mINFO[0m] TradingAgent:    Strategy Mode: BALANCED
-2025-12-03 15:25:26,760 [[32mINFO[0m] TradingAgent:    Adaptive Mode: ENABLED
-2025-12-03 15:25:26,761 [[32mINFO[0m] TradingAgent:    Trading Interval: 300s
-2025-12-03 15:25:26,761 [[32mINFO[0m] TradingAgent:    Max Positions: 8
-2025-12-03 15:25:26,761 [[32mINFO[0m] TradingAgent:    Base Position Size: $300.0
-2025-12-03 15:25:26,761 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 15:25:26,785 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json
-2025-12-03 15:25:26,795 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.0
-2025-12-03 15:25:26,797 [[32mINFO[0m] TradingAgent: 💾 No state file found. Starting fresh.
-2025-12-03 15:25:30,995 [[32mINFO[0m] TradingAgent: ✅ Selected competition: Sandbox fake Competition
-2025-12-03 15:25:30,996 [[32mINFO[0m] TradingAgent: ✅ Agent initialized with 0 tracked positions
-2025-12-03 15:25:30,996 [[32mINFO[0m] TradingAgent: 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 15:25:30,997 [[32mINFO[0m] TradingAgent: 🔄 TRADING CYCLE: 2025-12-03 09:55:30 UTC
-2025-12-03 15:25:30,997 [[32mINFO[0m] TradingAgent: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 15:25:41,552 [[32mINFO[0m] TradingAgent: 📊 Fetched Dexscreener data for 12 tokens
-2025-12-03 15:25:41,553 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: LINK
-2025-12-03 15:25:41,554 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: MKR
-2025-12-03 15:25:41,554 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: PEPE
-2025-12-03 15:25:41,554 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: UNI
-2025-12-03 15:25:41,555 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: BONK
-2025-12-03 15:25:41,555 [[32mINFO[0m] TradingAgent: 📅 New trading day: 2025-12-03
-2025-12-03 15:25:41,555 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 15:25:41,556 [[32mINFO[0m] TradingAgent: 💰 PORTFOLIO SUMMARY
-2025-12-03 15:25:41,556 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 15:25:41,556 [[32mINFO[0m] TradingAgent:    Total Value: $29,876.07
-2025-12-03 15:25:41,557 [[32mINFO[0m] TradingAgent:    Active Positions: 5/8
-2025-12-03 15:25:41,557 [[32mINFO[0m] TradingAgent:    Daily Trades: 0/3
-2025-12-03 15:25:41,557 [[32mINFO[0m] TradingAgent:    Daily P&L: 📈 +0.00% ($+0.00)
-2025-12-03 15:25:41,557 [[32mINFO[0m] TradingAgent:    Market Regime: HIGH_VOLATILITY
-2025-12-03 15:25:41,558 [[32mINFO[0m] TradingAgent:    Market Volatility: 7.95%
-2025-12-03 15:25:41,558 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 15:25:41,558 [[32mINFO[0m] TradingAgent: 📋 POSITIONS
-2025-12-03 15:25:41,558 [[32mINFO[0m] TradingAgent:    🟡 BONK         | $   3828.91 (+0.00%) | Entry: $0.0000
-2025-12-03 15:25:41,559 [[32mINFO[0m] TradingAgent:    🟡 MKR          | $    956.20 (+0.00%) | Entry: $1373.0960
-2025-12-03 15:25:41,559 [[32mINFO[0m] TradingAgent:    🟡 PEPE         | $    461.94 (+0.00%) | Entry: $0.0000
-2025-12-03 15:25:41,560 [[32mINFO[0m] TradingAgent:    🟡 LINK         | $    459.29 (+0.00%) | Entry: $14.3600
-2025-12-03 15:25:41,560 [[32mINFO[0m] TradingAgent:    🟡 UNI          | $      7.89 (+0.00%) | Entry: $6.0450
-2025-12-03 15:25:41,560 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 15:25:41,560 [[32mINFO[0m] TradingAgent: 💵 STABLECOINS (Available for Trading)
-2025-12-03 15:25:41,561 [[32mINFO[0m] TradingAgent:    💵 USDC         | $     19.35 | eth        | 23,943.005206
-2025-12-03 15:25:41,561 [[32mINFO[0m] TradingAgent:    💵 USDC_POLYGON | $      0.00 | polygon    | 0.125000
-2025-12-03 15:25:41,561 [[32mINFO[0m] TradingAgent:    💵 USDBC_BASE   | $      0.13 | base       | 0.125000
-2025-12-03 15:25:41,562 [[32mINFO[0m] TradingAgent:    💵 USDC_ARBITRUM | $      0.00 | arbitrum   | 0.125000
-2025-12-03 15:25:41,563 [[32mINFO[0m] TradingAgent:    💵 USDC_OPTIMISM | $      0.00 | optimism   | 0.125000
-2025-12-03 15:25:41,563 [[32mINFO[0m] TradingAgent:    💵 USDC_SOLANA  | $      0.00 | svm        | 0.125000
-2025-12-03 15:25:41,563 [[32mINFO[0m] TradingAgent:    ───────────────────────────────────────────────
-2025-12-03 15:25:41,564 [[32mINFO[0m] TradingAgent:    TOTAL USDC   | $19.47 | Across all chains
-2025-12-03 15:25:41,564 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 15:25:41,565 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 15:25:41,565 [[32mINFO[0m] TradingAgent: 📈 MARKET OVERVIEW (Top Movers)
-2025-12-03 15:25:41,565 [[32mINFO[0m] TradingAgent:    🚀 LINK   | $     14.3600 |  +19.08% | Vol: 0.00
-2025-12-03 15:25:41,566 [[32mINFO[0m] TradingAgent:    🚀 PEPE   | $      0.0000 |  +18.19% | Vol: 0.00
-2025-12-03 15:25:41,566 [[32mINFO[0m] TradingAgent:    🚀 BONK   | $      0.0000 |  +14.84% | Vol: 0.00
-2025-12-03 15:25:41,566 [[32mINFO[0m] TradingAgent:    🚀 UNI    | $      6.0450 |  +11.05% | Vol: 0.00
-2025-12-03 15:25:41,567 [[32mINFO[0m] TradingAgent:    🚀 FLOKI  | $      0.0000 |  +10.59% | Vol: 0.00
-2025-12-03 15:25:41,567 [[32mINFO[0m] TradingAgent:    🚀 SNX    | $      0.5609 |  +10.01% | Vol: 0.00
-2025-12-03 15:25:41,567 [[32mINFO[0m] TradingAgent: 🔍 Analyzing 12 tokens for opportunities...
-2025-12-03 15:25:41,568 [[32mINFO[0m] TradingAgent:    Adaptive thresholds: vol_surge=0.14, momentum=1.5%, mean_rev=-4.5%
-2025-12-03 15:25:41,569 [[32mINFO[0m] TradingAgent:    ✅ UNI: MOMENTUM opportunity, score=1.72, conviction=HIGH
-2025-12-03 15:25:41,569 [[32mINFO[0m] TradingAgent:    ✅ LINK: MOMENTUM opportunity, score=2.98, conviction=HIGH
-2025-12-03 15:25:41,571 [[32mINFO[0m] TradingAgent:    ✅ SNX: MOMENTUM opportunity, score=1.56, conviction=HIGH
-2025-12-03 15:25:41,571 [[32mINFO[0m] TradingAgent:    ✅ BONK: MOMENTUM opportunity, score=2.32, conviction=HIGH
-2025-12-03 15:25:41,572 [[32mINFO[0m] TradingAgent:    ✅ FLOKI: MOMENTUM opportunity, score=1.65, conviction=HIGH
-2025-12-03 15:25:41,572 [[32mINFO[0m] TradingAgent:    ✅ PEPE: MOMENTUM opportunity, score=2.84, conviction=HIGH
-2025-12-03 15:25:41,572 [[32mINFO[0m] TradingAgent: 🎯 Found 6 total opportunities, returning top 5
-2025-12-03 15:25:41,572 [[32mINFO[0m] TradingAgent: 
-🎯 TOP OPPORTUNITIES:
-2025-12-03 15:25:41,573 [[32mINFO[0m] TradingAgent:    1. LINK   | Score:   2.98 | MOMENTUM        | HIGH   | +19.08%
-2025-12-03 15:25:41,573 [[32mINFO[0m] TradingAgent:    2. PEPE   | Score:   2.84 | MOMENTUM        | HIGH   | +18.19%
-2025-12-03 15:25:41,574 [[32mINFO[0m] TradingAgent:    3. BONK   | Score:   2.32 | MOMENTUM        | HIGH   | +14.84%
-2025-12-03 15:25:41,574 [[32mINFO[0m] TradingAgent:    4. UNI    | Score:   1.72 | MOMENTUM        | HIGH   | +11.05%
-2025-12-03 15:25:41,574 [[32mINFO[0m] TradingAgent:    5. FLOKI  | Score:   1.65 | MOMENTUM        | HIGH   | +10.59%
-2025-12-03 15:25:41,575 [[32mINFO[0m] TradingAgent: ⏸️ HOLD: 💰 Insufficient USDC ($19 < $150 required)
-2025-12-03 15:25:41,576 [[32mINFO[0m] TradingAgent: 
-⏱️ Cycle completed in 10.58s
-2025-12-03 15:26:16,744 [[32mINFO[0m] TradingAgent: 🛑 Initiating graceful shutdown...
-2025-12-03 15:26:16,766 [[32mINFO[0m] TradingAgent: 💾 Final state saved
-2025-12-03 15:26:16,767 [[32mINFO[0m] TradingAgent: 🔌 Connections closed
-2025-12-03 15:26:16,767 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 15:26:16,768 [[32mINFO[0m] TradingAgent: 📊 FINAL SESSION STATISTICS
-2025-12-03 15:26:16,768 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 15:26:16,768 [[32mINFO[0m] TradingAgent:    Total Trades: 0
-2025-12-03 15:26:16,769 [[32mINFO[0m] TradingAgent:    Win Rate: 0.0%
-2025-12-03 15:26:16,769 [[32mINFO[0m] TradingAgent:    Total P&L: $+0.00
-2025-12-03 15:26:16,769 [[32mINFO[0m] TradingAgent:    Max Drawdown: 0.00%
-2025-12-03 15:26:16,769 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 15:26:16,770 [[32mINFO[0m] TradingAgent: ✅ Shutdown complete
-2025-12-03 16:10:29,187 [[32mINFO[0m] TradingAgent: ✅ Recall API Client initialized (SANDBOX)
-2025-12-03 16:10:29,187 [[32mINFO[0m] TradingAgent: 🤖 Trading Agent v3.0 initialized
-2025-12-03 16:10:29,187 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:10:29,188 [[32mINFO[0m] TradingAgent: 🚀 ADVANCED PAPER TRADING AGENT v3.0 - PRODUCTION READY 🚀
-2025-12-03 16:10:29,188 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:10:29,188 [[32mINFO[0m] TradingAgent:    Environment: SANDBOX
-2025-12-03 16:10:29,188 [[32mINFO[0m] TradingAgent:    Strategy Mode: BALANCED
-2025-12-03 16:10:29,188 [[32mINFO[0m] TradingAgent:    Adaptive Mode: ENABLED
-2025-12-03 16:10:29,189 [[32mINFO[0m] TradingAgent:    Trading Interval: 300s
-2025-12-03 16:10:29,189 [[32mINFO[0m] TradingAgent:    Max Positions: 8
-2025-12-03 16:10:29,189 [[32mINFO[0m] TradingAgent:    Base Position Size: $300.0
-2025-12-03 16:10:29,189 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:10:29,190 [[32mINFO[0m] TradingAgent: 💾 No state file found. Starting fresh.
-2025-12-03 16:10:32,972 [[32mINFO[0m] TradingAgent: ✅ Selected competition: Sandbox fake Competition
-2025-12-03 16:10:32,972 [[32mINFO[0m] TradingAgent: ✅ Agent initialized with 0 tracked positions
-2025-12-03 16:10:32,973 [[32mINFO[0m] TradingAgent: 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 16:10:32,973 [[32mINFO[0m] TradingAgent: 🔄 TRADING CYCLE: 2025-12-03 10:40:32 UTC
-2025-12-03 16:10:32,973 [[32mINFO[0m] TradingAgent: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 16:10:33,432 [[31mERROR[0m] TradingAgent:  DexScreener fetch failed: 'WMATIC_POLYGON'
-2025-12-03 16:10:33,441 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: LINK
-2025-12-03 16:10:33,442 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: MKR
-2025-12-03 16:10:33,442 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: WBTC
-2025-12-03 16:10:33,443 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: PEPE
-2025-12-03 16:10:33,443 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: UNI
-2025-12-03 16:10:33,444 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: BONK
-2025-12-03 16:10:33,444 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: SHIB
-2025-12-03 16:10:33,444 [[32mINFO[0m] TradingAgent: 📅 New trading day: 2025-12-03
-2025-12-03 16:10:33,445 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:10:33,445 [[32mINFO[0m] TradingAgent: 💰 PORTFOLIO SUMMARY
-2025-12-03 16:10:33,445 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:10:33,446 [[32mINFO[0m] TradingAgent:    Total Value: $29,873.73
-2025-12-03 16:10:33,446 [[32mINFO[0m] TradingAgent:    Active Positions: 7/8
-2025-12-03 16:10:33,446 [[32mINFO[0m] TradingAgent:    Daily Trades: 0/3
-2025-12-03 16:10:33,446 [[32mINFO[0m] TradingAgent:    Daily P&L: 📈 +0.00% ($+0.00)
-2025-12-03 16:10:33,447 [[32mINFO[0m] TradingAgent:    Market Regime: SIDEWAYS
-2025-12-03 16:10:33,447 [[32mINFO[0m] TradingAgent:    Market Volatility: 0.00%
-2025-12-03 16:10:33,448 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:10:33,448 [[32mINFO[0m] TradingAgent: 📋 POSITIONS
-2025-12-03 16:10:33,449 [[32mINFO[0m] TradingAgent:    🟡 BONK         | $  3,828.91 ( 12.8%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:10:33,449 [[32mINFO[0m] TradingAgent:    🟡 MKR          | $    956.20 (  3.2%) | P&L:   +0.00% | Entry: $1373.0960
-2025-12-03 16:10:33,449 [[32mINFO[0m] TradingAgent:    🟡 PEPE         | $    461.94 (  1.5%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:10:33,450 [[32mINFO[0m] TradingAgent:    🟡 LINK         | $    458.01 (  1.5%) | P&L:   +0.00% | Entry: $14.3200
-2025-12-03 16:10:33,450 [[32mINFO[0m] TradingAgent:    🟡 SHIB         | $    221.60 (  0.7%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:10:33,450 [[32mINFO[0m] TradingAgent:    🟡 UNI          | $      7.89 (  0.0%) | P&L:   +0.00% | Entry: $6.0460
-2025-12-03 16:10:33,450 [[32mINFO[0m] TradingAgent:    🟡 WBTC         | $      3.66 (  0.0%) | P&L:   +0.00% | Entry: $92954.4800
-2025-12-03 16:10:33,451 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:10:33,451 [[32mINFO[0m] TradingAgent: 💵 STABLECOINS (Available for Trading)
-2025-12-03 16:10:33,451 [[32mINFO[0m] TradingAgent:    💵 USDC         | $ 23,933.43 ( 80.1%) | Ethereum   | 23,943.005206
-2025-12-03 16:10:33,451 [[32mINFO[0m] TradingAgent:    💵 USDBC_BASE   | $      0.13 (  0.0%) | Base       | 0.125000
-2025-12-03 16:10:33,452 [[32mINFO[0m] TradingAgent:    💵 USDC_POLYGON | $      0.12 (  0.0%) | Polygon    | 0.125000
-2025-12-03 16:10:33,452 [[32mINFO[0m] TradingAgent:    💵 USDC_SOLANA  | $      0.12 (  0.0%) | Solana     | 0.125000
-2025-12-03 16:10:33,452 [[32mINFO[0m] TradingAgent:    💵 USDC_OPTIMISM | $      0.12 (  0.0%) | Optimism   | 0.125000
-2025-12-03 16:10:33,453 [[32mINFO[0m] TradingAgent:    💵 USDC_ARBITRUM | $      0.12 (  0.0%) | Arbitrum   | 0.125000
-2025-12-03 16:10:33,454 [[32mINFO[0m] TradingAgent:    ──────────────────────────────────────────────────────────────────
-2025-12-03 16:10:33,454 [[32mINFO[0m] TradingAgent:    TOTAL USDC   | $ 23,934.05 | Available across all chains
-2025-12-03 16:10:33,455 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:10:33,457 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:10:33,457 [[32mINFO[0m] TradingAgent: 📈 MARKET OVERVIEW (Top Movers)
-2025-12-03 16:10:33,458 [[32mINFO[0m] TradingAgent: 🔍 Analyzing 0 tokens for opportunities...
-2025-12-03 16:10:33,459 [[32mINFO[0m] TradingAgent:    Adaptive thresholds: vol_surge=0.16, momentum=0.7%, mean_rev=-3.0%
-2025-12-03 16:10:33,459 [[32mINFO[0m] TradingAgent: 📭 No opportunities found matching criteria
-2025-12-03 16:10:33,460 [[32mINFO[0m] TradingAgent: 📊 Market Summary:
-2025-12-03 16:10:33,460 [[32mINFO[0m] TradingAgent: ⏸️ HOLD: 📭 No opportunities meeting criteria
-2025-12-03 16:10:33,460 [[32mINFO[0m] TradingAgent: 
-⏱️ Cycle completed in 0.49s
-2025-12-03 16:12:19,283 [[32mINFO[0m] TradingAgent: 🛑 Initiating graceful shutdown...
-2025-12-03 16:12:19,301 [[32mINFO[0m] TradingAgent: 💾 Final state saved
-2025-12-03 16:12:19,302 [[32mINFO[0m] TradingAgent: 🔌 Connections closed
-2025-12-03 16:12:19,303 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:12:19,304 [[32mINFO[0m] TradingAgent: 📊 FINAL SESSION STATISTICS
-2025-12-03 16:12:19,305 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:12:19,305 [[32mINFO[0m] TradingAgent:    Total Trades: 0
-2025-12-03 16:12:19,305 [[32mINFO[0m] TradingAgent:    Win Rate: 0.0%
-2025-12-03 16:12:19,305 [[32mINFO[0m] TradingAgent:    Total P&L: $+0.00
-2025-12-03 16:12:19,306 [[32mINFO[0m] TradingAgent:    Max Drawdown: 0.00%
-2025-12-03 16:12:19,306 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:12:19,306 [[32mINFO[0m] TradingAgent: ✅ Shutdown complete
-2025-12-03 16:12:58,398 [[32mINFO[0m] TradingAgent: ✅ Recall API Client initialized (SANDBOX)
-2025-12-03 16:12:58,399 [[32mINFO[0m] TradingAgent: 🤖 Trading Agent v3.0 initialized
-2025-12-03 16:12:58,399 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:12:58,399 [[32mINFO[0m] TradingAgent: 🚀 ADVANCED PAPER TRADING AGENT v3.0 - PRODUCTION READY 🚀
-2025-12-03 16:12:58,400 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:12:58,400 [[32mINFO[0m] TradingAgent:    Environment: SANDBOX
-2025-12-03 16:12:58,400 [[32mINFO[0m] TradingAgent:    Strategy Mode: BALANCED
-2025-12-03 16:12:58,400 [[32mINFO[0m] TradingAgent:    Adaptive Mode: ENABLED
-2025-12-03 16:12:58,400 [[32mINFO[0m] TradingAgent:    Trading Interval: 300s
-2025-12-03 16:12:58,401 [[32mINFO[0m] TradingAgent:    Max Positions: 8
-2025-12-03 16:12:58,401 [[32mINFO[0m] TradingAgent:    Base Position Size: $300.0
-2025-12-03 16:12:58,401 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:12:58,417 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json
-2025-12-03 16:12:58,418 [[32mINFO[0m] TradingAgent: 💾 No state file found. Starting fresh.
-2025-12-03 16:13:02,159 [[32mINFO[0m] TradingAgent: ✅ Selected competition: Sandbox fake Competition
-2025-12-03 16:13:02,159 [[32mINFO[0m] TradingAgent: ✅ Agent initialized with 0 tracked positions
-2025-12-03 16:13:02,159 [[32mINFO[0m] TradingAgent: 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 16:13:02,160 [[32mINFO[0m] TradingAgent: 🔄 TRADING CYCLE: 2025-12-03 10:43:02 UTC
-2025-12-03 16:13:02,160 [[32mINFO[0m] TradingAgent: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 16:13:05,647 [[32mINFO[0m] TradingAgent: DexScreener fetched 15/16 tokens
-2025-12-03 16:13:05,648 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: LINK
-2025-12-03 16:13:05,648 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: MKR
-2025-12-03 16:13:05,649 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: WBTC
-2025-12-03 16:13:05,649 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: PEPE
-2025-12-03 16:13:05,649 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: UNI
-2025-12-03 16:13:05,650 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: BONK
-2025-12-03 16:13:05,650 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: SHIB
-2025-12-03 16:13:05,651 [[32mINFO[0m] TradingAgent: 📅 New trading day: 2025-12-03
-2025-12-03 16:13:05,651 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:13:05,651 [[32mINFO[0m] TradingAgent: 💰 PORTFOLIO SUMMARY
-2025-12-03 16:13:05,651 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:13:05,652 [[32mINFO[0m] TradingAgent:    Total Value: $29,873.73
-2025-12-03 16:13:05,653 [[32mINFO[0m] TradingAgent:    Active Positions: 7/8
-2025-12-03 16:13:05,653 [[32mINFO[0m] TradingAgent:    Daily Trades: 0/3
-2025-12-03 16:13:05,654 [[32mINFO[0m] TradingAgent:    Daily P&L: 📈 +0.00% ($+0.00)
-2025-12-03 16:13:05,655 [[32mINFO[0m] TradingAgent:    Market Regime: BULL
-2025-12-03 16:13:05,656 [[32mINFO[0m] TradingAgent:    Market Volatility: 3.50%
-2025-12-03 16:13:05,656 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:13:05,657 [[32mINFO[0m] TradingAgent: 📋 POSITIONS
-2025-12-03 16:13:05,657 [[32mINFO[0m] TradingAgent:    🟡 BONK         | $  3,828.91 ( 12.8%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:13:05,658 [[32mINFO[0m] TradingAgent:    🟡 MKR          | $    946.34 (  3.2%) | P&L:   +0.00% | Entry: $1358.9400
-2025-12-03 16:13:05,659 [[32mINFO[0m] TradingAgent:    🟡 PEPE         | $    461.94 (  1.5%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:13:05,661 [[32mINFO[0m] TradingAgent:    🟡 LINK         | $    459.93 (  1.5%) | P&L:   +0.00% | Entry: $14.3800
-2025-12-03 16:13:05,664 [[32mINFO[0m] TradingAgent:    🟡 SHIB         | $    223.12 (  0.7%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:13:05,669 [[32mINFO[0m] TradingAgent:    🟡 UNI          | $      7.90 (  0.0%) | P&L:   +0.00% | Entry: $6.0500
-2025-12-03 16:13:05,670 [[32mINFO[0m] TradingAgent:    🟡 WBTC         | $      3.66 (  0.0%) | P&L:   +0.00% | Entry: $92954.4800
-2025-12-03 16:13:05,674 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:13:05,674 [[32mINFO[0m] TradingAgent: 💵 STABLECOINS (Available for Trading)
-2025-12-03 16:13:05,676 [[32mINFO[0m] TradingAgent:    💵 USDC         | $ 23,933.43 ( 80.1%) | Ethereum   | 23,943.005206
-2025-12-03 16:13:05,704 [[32mINFO[0m] TradingAgent:    💵 USDBC_BASE   | $      0.13 (  0.0%) | Base       | 0.125000
-2025-12-03 16:13:05,704 [[32mINFO[0m] TradingAgent:    💵 USDC_POLYGON | $      0.12 (  0.0%) | Polygon    | 0.125000
-2025-12-03 16:13:05,705 [[32mINFO[0m] TradingAgent:    💵 USDC_SOLANA  | $      0.12 (  0.0%) | Solana     | 0.125000
-2025-12-03 16:13:05,708 [[32mINFO[0m] TradingAgent:    💵 USDC_OPTIMISM | $      0.12 (  0.0%) | Optimism   | 0.125000
-2025-12-03 16:13:05,709 [[32mINFO[0m] TradingAgent:    💵 USDC_ARBITRUM | $      0.12 (  0.0%) | Arbitrum   | 0.125000
-2025-12-03 16:13:05,715 [[32mINFO[0m] TradingAgent:    ──────────────────────────────────────────────────────────────────
-2025-12-03 16:13:05,716 [[32mINFO[0m] TradingAgent:    TOTAL USDC   | $ 23,934.05 | Available across all chains
-2025-12-03 16:13:05,717 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:13:05,717 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:13:05,718 [[32mINFO[0m] TradingAgent: 📈 MARKET OVERVIEW (Top Movers)
-2025-12-03 16:13:05,719 [[32mINFO[0m] TradingAgent:    🚀 LINK   | $     14.3800 |  +18.12% | Vol: 0.30
-2025-12-03 16:13:05,719 [[32mINFO[0m] TradingAgent:    🚀 PEPE   | $      0.0000 |  +17.74% | Vol: 0.30
-2025-12-03 16:13:05,720 [[32mINFO[0m] TradingAgent:    🚀 BONK   | $      0.0000 |  +14.84% | Vol: 0.30
-2025-12-03 16:13:05,720 [[32mINFO[0m] TradingAgent:    🚀 AAVE   | $    193.4700 |  +14.78% | Vol: 0.30
-2025-12-03 16:13:05,723 [[32mINFO[0m] TradingAgent:    🚀 BONK_SOLANA | $      0.0000 |  +12.28% | Vol: 0.30
-2025-12-03 16:13:05,723 [[32mINFO[0m] TradingAgent:    🚀 SOL    | $    141.4400 |  +10.98% | Vol: 0.30
-2025-12-03 16:13:05,724 [[32mINFO[0m] TradingAgent: 🔍 Analyzing 15 tokens for opportunities...
-2025-12-03 16:13:05,724 [[32mINFO[0m] TradingAgent:    Adaptive thresholds: vol_surge=0.20, momentum=0.8%, mean_rev=-2.1%
-2025-12-03 16:13:05,726 [[32mINFO[0m] TradingAgent:    ✅ WETH: MOMENTUM opportunity, score=1.64, conviction=HIGH
-2025-12-03 16:13:05,726 [[32mINFO[0m] TradingAgent:    ✅ LINK: MOMENTUM opportunity, score=3.25, conviction=HIGH
-2025-12-03 16:13:05,726 [[32mINFO[0m] TradingAgent:    ✅ UNI: MOMENTUM opportunity, score=1.96, conviction=HIGH
-2025-12-03 16:13:05,726 [[32mINFO[0m] TradingAgent:    ✅ AAVE: MOMENTUM opportunity, score=2.65, conviction=HIGH
-2025-12-03 16:13:05,727 [[32mINFO[0m] TradingAgent:    ✅ SNX: MOMENTUM opportunity, score=1.45, conviction=HIGH
-2025-12-03 16:13:05,732 [[32mINFO[0m] TradingAgent:    ✅ MKR: MOMENTUM opportunity, score=1.19, conviction=HIGH
-2025-12-03 16:13:05,733 [[32mINFO[0m] TradingAgent:    ✅ PEPE: MOMENTUM opportunity, score=3.18, conviction=HIGH
-2025-12-03 16:13:05,733 [[32mINFO[0m] TradingAgent:    ✅ SHIB: MOMENTUM opportunity, score=1.80, conviction=HIGH
-2025-12-03 16:13:05,734 [[32mINFO[0m] TradingAgent:    ✅ BONK: MOMENTUM opportunity, score=2.66, conviction=HIGH
-2025-12-03 16:13:05,734 [[32mINFO[0m] TradingAgent:    ✅ FLOKI: MOMENTUM opportunity, score=1.90, conviction=HIGH
-2025-12-03 16:13:05,735 [[32mINFO[0m] TradingAgent:    ✅ WETH_POLYGON: MOMENTUM opportunity, score=1.64, conviction=HIGH
-2025-12-03 16:13:05,735 [[32mINFO[0m] TradingAgent:    ✅ WETH_ARBITRUM: MOMENTUM opportunity, score=1.54, conviction=HIGH
-2025-12-03 16:13:05,737 [[32mINFO[0m] TradingAgent:    ✅ WETH_BASE: MOMENTUM opportunity, score=1.54, conviction=HIGH
-2025-12-03 16:13:05,740 [[32mINFO[0m] TradingAgent:    ✅ SOL: MOMENTUM opportunity, score=1.97, conviction=HIGH
-2025-12-03 16:13:05,740 [[32mINFO[0m] TradingAgent:    ✅ BONK_SOLANA: MOMENTUM opportunity, score=2.20, conviction=HIGH
-2025-12-03 16:13:05,741 [[32mINFO[0m] TradingAgent: 🎯 Found 15 total opportunities, returning top 5
-2025-12-03 16:13:05,741 [[32mINFO[0m] TradingAgent: 
-🎯 TOP OPPORTUNITIES:
-2025-12-03 16:13:05,741 [[32mINFO[0m] TradingAgent:    1. LINK   | Score:   3.25 | MOMENTUM        | HIGH   | +18.12%
-2025-12-03 16:13:05,742 [[32mINFO[0m] TradingAgent:    2. PEPE   | Score:   3.18 | MOMENTUM        | HIGH   | +17.74%
-2025-12-03 16:13:05,742 [[32mINFO[0m] TradingAgent:    3. BONK   | Score:   2.66 | MOMENTUM        | HIGH   | +14.84%
-2025-12-03 16:13:05,742 [[32mINFO[0m] TradingAgent:    4. AAVE   | Score:   2.65 | MOMENTUM        | HIGH   | +14.78%
-2025-12-03 16:13:05,742 [[32mINFO[0m] TradingAgent:    5. BONK_SOLANA | Score:   2.20 | MOMENTUM        | HIGH   | +12.28%
-2025-12-03 16:13:05,743 [[32mINFO[0m] TradingAgent: 🛡️ Correlation guard: Blocking AAVE (correlated with held UNI)
-2025-12-03 16:13:05,743 [[32mINFO[0m] TradingAgent: 💰 Selected USDC on eth ($23933.43 available)
-2025-12-03 16:13:05,747 [[32mINFO[0m] TradingAgent: 🌐 Multi-chain routing: USDC → BONK_SOLANA on eth
-2025-12-03 16:13:06,380 [[32mINFO[0m] TradingAgent: 💰 Balance: 23943.005206 USDC @ $0.9996 on eth
-2025-12-03 16:13:06,381 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:13:06,382 [[32mINFO[0m] TradingAgent: 📤 EXECUTING BUY
-2025-12-03 16:13:06,382 [[32mINFO[0m] TradingAgent:    Chain:    eth → svm
-2025-12-03 16:13:06,383 [[32mINFO[0m] TradingAgent:    From:     USDC (0xA0b869...)
-2025-12-03 16:13:06,383 [[32mINFO[0m] TradingAgent:    To:       BONK_SOLANA (DezXAZ8z...)
-2025-12-03 16:13:06,383 [[32mINFO[0m] TradingAgent:    Amount:   450.180072 USDC
-2025-12-03 16:13:06,383 [[32mINFO[0m] TradingAgent:    Value:    $450.00
-2025-12-03 16:13:06,384 [[32mINFO[0m] TradingAgent:    Signal:   MOMENTUM
-2025-12-03 16:13:06,384 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:13:07,238 [[32mINFO[0m] TradingAgent: ✅ TRADE SUCCESSFUL!
-2025-12-03 16:13:07,238 [[32mINFO[0m] TradingAgent: 📍 New position: BONK_SOLANA @ $0.0000
-2025-12-03 16:13:07,261 [[32mINFO[0m] TradingAgent: 📊 Daily trades: 1/3
-2025-12-03 16:13:07,266 [[32mINFO[0m] TradingAgent: 
-⏱️ Cycle completed in 5.11s
-2025-12-03 16:13:07,267 [[32mINFO[0m] TradingAgent: 🔄 Attempting additional trade to meet daily minimum...
-2025-12-03 16:13:09,656 [[32mINFO[0m] TradingAgent: ⏸️ HOLD: 📭 No opportunities meeting criteria
-2025-12-03 16:17:26,543 [[32mINFO[0m] TradingAgent: 🛑 Initiating graceful shutdown...
-2025-12-03 16:17:26,565 [[32mINFO[0m] TradingAgent: 💾 Final state saved
-2025-12-03 16:17:26,566 [[32mINFO[0m] TradingAgent: 🔌 Connections closed
-2025-12-03 16:17:26,566 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:17:26,566 [[32mINFO[0m] TradingAgent: 📊 FINAL SESSION STATISTICS
-2025-12-03 16:17:26,567 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:17:26,567 [[32mINFO[0m] TradingAgent:    Total Trades: 1
-2025-12-03 16:17:26,567 [[32mINFO[0m] TradingAgent:    Win Rate: 0.0%
-2025-12-03 16:17:26,567 [[32mINFO[0m] TradingAgent:    Total P&L: $+0.00
-2025-12-03 16:17:26,568 [[32mINFO[0m] TradingAgent:    Max Drawdown: 0.00%
-2025-12-03 16:17:26,568 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:17:26,568 [[32mINFO[0m] TradingAgent: ✅ Shutdown complete
-2025-12-03 16:23:02,785 [[32mINFO[0m] TradingAgent: ✅ Recall API Client initialized (SANDBOX)
-2025-12-03 16:23:02,786 [[32mINFO[0m] TradingAgent: 🤖 Trading Agent v3.0 initialized
-2025-12-03 16:23:02,786 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:23:02,786 [[32mINFO[0m] TradingAgent: 🚀 ADVANCED PAPER TRADING AGENT v3.0 - PRODUCTION READY 🚀
-2025-12-03 16:23:02,787 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:23:02,787 [[32mINFO[0m] TradingAgent:    Environment: SANDBOX
-2025-12-03 16:23:02,787 [[32mINFO[0m] TradingAgent:    Strategy Mode: BALANCED
-2025-12-03 16:23:02,787 [[32mINFO[0m] TradingAgent:    Adaptive Mode: ENABLED
-2025-12-03 16:23:02,787 [[32mINFO[0m] TradingAgent:    Trading Interval: 300s
-2025-12-03 16:23:02,788 [[32mINFO[0m] TradingAgent:    Max Positions: 8
-2025-12-03 16:23:02,788 [[32mINFO[0m] TradingAgent:    Base Position Size: $300.0
-2025-12-03 16:23:02,788 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:23:02,788 [[32mINFO[0m] TradingAgent: 💾 No state file found. Starting fresh.
-2025-12-03 16:23:06,829 [[32mINFO[0m] TradingAgent: ✅ Selected competition: Sandbox fake Competition
-2025-12-03 16:23:06,830 [[32mINFO[0m] TradingAgent: ✅ Agent initialized with 0 tracked positions
-2025-12-03 16:23:06,830 [[32mINFO[0m] TradingAgent: 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 16:23:06,830 [[32mINFO[0m] TradingAgent: 🔄 TRADING CYCLE: 2025-12-03 10:53:06 UTC
-2025-12-03 16:23:06,830 [[32mINFO[0m] TradingAgent: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 16:23:07,206 [[31mERROR[0m] TradingAgent: DexScreener failed: 'dogwifhat'
-2025-12-03 16:23:07,211 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: LINK
-2025-12-03 16:23:07,211 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: MKR
-2025-12-03 16:23:07,212 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: WBTC
-2025-12-03 16:23:07,212 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: PEPE
-2025-12-03 16:23:07,212 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: UNI
-2025-12-03 16:23:07,213 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: BONK
-2025-12-03 16:23:07,213 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: SHIB
-2025-12-03 16:23:07,213 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: BONK_SOLANA
-2025-12-03 16:23:07,214 [[32mINFO[0m] TradingAgent: 📅 New trading day: 2025-12-03
-2025-12-03 16:23:07,214 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:23:07,214 [[32mINFO[0m] TradingAgent: 💰 PORTFOLIO SUMMARY
-2025-12-03 16:23:07,215 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:23:07,215 [[32mINFO[0m] TradingAgent:    Total Value: $29,865.09
-2025-12-03 16:23:07,215 [[32mINFO[0m] TradingAgent:    Active Positions: 8/8
-2025-12-03 16:23:07,216 [[32mINFO[0m] TradingAgent:    Daily Trades: 0/3
-2025-12-03 16:23:07,216 [[32mINFO[0m] TradingAgent:    Daily P&L: 📈 +0.00% ($+0.00)
-2025-12-03 16:23:07,216 [[32mINFO[0m] TradingAgent:    Market Regime: SIDEWAYS
-2025-12-03 16:23:07,217 [[32mINFO[0m] TradingAgent:    Market Volatility: 0.00%
-2025-12-03 16:23:07,217 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:23:07,218 [[32mINFO[0m] TradingAgent: 📋 POSITIONS
-2025-12-03 16:23:07,218 [[32mINFO[0m] TradingAgent:    🟡 BONK         | $  3,828.91 ( 12.8%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:23:07,218 [[32mINFO[0m] TradingAgent:    🟡 MKR          | $    946.34 (  3.2%) | P&L:   +0.00% | Entry: $1358.9400
-2025-12-03 16:23:07,218 [[32mINFO[0m] TradingAgent:    🟡 PEPE         | $    461.94 (  1.5%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:23:07,219 [[32mINFO[0m] TradingAgent:    🟡 LINK         | $    459.93 (  1.5%) | P&L:   +0.00% | Entry: $14.3800
-2025-12-03 16:23:07,219 [[32mINFO[0m] TradingAgent:    🟡 BONK_SOLANA  | $    449.30 (  1.5%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:23:07,219 [[32mINFO[0m] TradingAgent:    🟡 SHIB         | $    221.60 (  0.7%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:23:07,220 [[32mINFO[0m] TradingAgent:    🟡 UNI          | $      7.89 (  0.0%) | P&L:   +0.00% | Entry: $6.0460
-2025-12-03 16:23:07,220 [[32mINFO[0m] TradingAgent:    🟡 WBTC         | $      3.66 (  0.0%) | P&L:   +0.00% | Entry: $92954.4800
-2025-12-03 16:23:07,220 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:23:07,220 [[32mINFO[0m] TradingAgent: 💵 STABLECOINS (Available for Trading)
-2025-12-03 16:23:07,221 [[32mINFO[0m] TradingAgent:    💵 USDC         | $ 23,483.43 ( 78.6%) | Ethereum   | 23,492.825134
-2025-12-03 16:23:07,221 [[32mINFO[0m] TradingAgent:    💵 USDBC_BASE   | $      0.13 (  0.0%) | Base       | 0.125000
-2025-12-03 16:23:07,221 [[32mINFO[0m] TradingAgent:    💵 USDC_ARBITRUM | $      0.13 (  0.0%) | Arbitrum   | 0.125000
-2025-12-03 16:23:07,222 [[32mINFO[0m] TradingAgent:    💵 USDC_POLYGON | $      0.12 (  0.0%) | Polygon    | 0.125000
-2025-12-03 16:23:07,223 [[32mINFO[0m] TradingAgent:    💵 USDC_SOLANA  | $      0.12 (  0.0%) | Solana     | 0.125000
-2025-12-03 16:23:07,223 [[32mINFO[0m] TradingAgent:    💵 USDC_OPTIMISM | $      0.12 (  0.0%) | Optimism   | 0.125000
-2025-12-03 16:23:07,223 [[32mINFO[0m] TradingAgent:    ──────────────────────────────────────────────────────────────────
-2025-12-03 16:23:07,224 [[32mINFO[0m] TradingAgent:    TOTAL USDC   | $ 23,484.05 | Available across all chains
-2025-12-03 16:23:07,224 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:23:07,224 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:23:07,224 [[32mINFO[0m] TradingAgent: 📈 MARKET OVERVIEW (Top Movers)
-2025-12-03 16:23:07,225 [[32mINFO[0m] TradingAgent: 🔍 Analyzing 0 tokens for opportunities...
-2025-12-03 16:23:07,225 [[32mINFO[0m] TradingAgent:    Adaptive thresholds: vol_surge=0.16, momentum=0.7%, mean_rev=-3.0%
-2025-12-03 16:23:07,225 [[32mINFO[0m] TradingAgent: 📭 No opportunities found matching criteria
-2025-12-03 16:23:07,225 [[32mINFO[0m] TradingAgent: 📊 Market Summary:
-2025-12-03 16:23:07,226 [[32mINFO[0m] TradingAgent: ⏸️ HOLD: 📭 No opportunities meeting criteria
-2025-12-03 16:23:07,226 [[32mINFO[0m] TradingAgent: 
-⏱️ Cycle completed in 0.40s
-2025-12-03 16:24:54,783 [[32mINFO[0m] TradingAgent: 🛑 Initiating graceful shutdown...
-2025-12-03 16:24:54,801 [[32mINFO[0m] TradingAgent: 💾 Final state saved
-2025-12-03 16:24:54,802 [[32mINFO[0m] TradingAgent: 🔌 Connections closed
-2025-12-03 16:24:54,803 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:24:54,803 [[32mINFO[0m] TradingAgent: 📊 FINAL SESSION STATISTICS
-2025-12-03 16:24:54,803 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:24:54,803 [[32mINFO[0m] TradingAgent:    Total Trades: 0
-2025-12-03 16:24:54,804 [[32mINFO[0m] TradingAgent:    Win Rate: 0.0%
-2025-12-03 16:24:54,804 [[32mINFO[0m] TradingAgent:    Total P&L: $+0.00
-2025-12-03 16:24:54,804 [[32mINFO[0m] TradingAgent:    Max Drawdown: 0.00%
-2025-12-03 16:24:54,805 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:24:54,805 [[32mINFO[0m] TradingAgent: ✅ Shutdown complete
-2025-12-03 16:25:00,457 [[32mINFO[0m] TradingAgent: ✅ Recall API Client initialized (SANDBOX)
-2025-12-03 16:25:00,458 [[32mINFO[0m] TradingAgent: 🤖 Trading Agent v3.0 initialized
-2025-12-03 16:25:00,458 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:25:00,458 [[32mINFO[0m] TradingAgent: 🚀 ADVANCED PAPER TRADING AGENT v3.0 - PRODUCTION READY 🚀
-2025-12-03 16:25:00,458 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:25:00,459 [[32mINFO[0m] TradingAgent:    Environment: SANDBOX
-2025-12-03 16:25:00,459 [[32mINFO[0m] TradingAgent:    Strategy Mode: BALANCED
-2025-12-03 16:25:00,459 [[32mINFO[0m] TradingAgent:    Adaptive Mode: ENABLED
-2025-12-03 16:25:00,459 [[32mINFO[0m] TradingAgent:    Trading Interval: 300s
-2025-12-03 16:25:00,460 [[32mINFO[0m] TradingAgent:    Max Positions: 8
-2025-12-03 16:25:00,460 [[32mINFO[0m] TradingAgent:    Base Position Size: $300.0
-2025-12-03 16:25:00,460 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:25:00,481 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json
-2025-12-03 16:25:00,481 [[32mINFO[0m] TradingAgent: 💾 No state file found. Starting fresh.
-2025-12-03 16:25:04,190 [[32mINFO[0m] TradingAgent: ✅ Selected competition: Sandbox fake Competition
-2025-12-03 16:25:04,191 [[32mINFO[0m] TradingAgent: ✅ Agent initialized with 0 tracked positions
-2025-12-03 16:25:04,191 [[32mINFO[0m] TradingAgent: 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 16:25:04,192 [[32mINFO[0m] TradingAgent: 🔄 TRADING CYCLE: 2025-12-03 10:55:04 UTC
-2025-12-03 16:25:04,192 [[32mINFO[0m] TradingAgent: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 16:25:08,874 [[32mINFO[0m] TradingAgent: DexScreener fetched 13/19 tokens
-2025-12-03 16:25:08,876 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: LINK
-2025-12-03 16:25:08,876 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: MKR
-2025-12-03 16:25:08,877 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: WBTC
-2025-12-03 16:25:08,877 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: PEPE
-2025-12-03 16:25:08,878 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: UNI
-2025-12-03 16:25:08,878 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: BONK
-2025-12-03 16:25:08,878 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: SHIB
-2025-12-03 16:25:08,879 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: BONK_SOLANA
-2025-12-03 16:25:08,880 [[32mINFO[0m] TradingAgent: 📅 New trading day: 2025-12-03
-2025-12-03 16:25:08,880 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:25:08,880 [[32mINFO[0m] TradingAgent: 💰 PORTFOLIO SUMMARY
-2025-12-03 16:25:08,881 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:25:08,881 [[32mINFO[0m] TradingAgent:    Total Value: $29,865.09
-2025-12-03 16:25:08,881 [[32mINFO[0m] TradingAgent:    Active Positions: 8/8
-2025-12-03 16:25:08,883 [[32mINFO[0m] TradingAgent:    Daily Trades: 0/3
-2025-12-03 16:25:08,884 [[32mINFO[0m] TradingAgent:    Daily P&L: 📈 +0.00% ($+0.00)
-2025-12-03 16:25:08,884 [[32mINFO[0m] TradingAgent:    Market Regime: BULL
-2025-12-03 16:25:08,884 [[32mINFO[0m] TradingAgent:    Market Volatility: 3.75%
-2025-12-03 16:25:08,885 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:25:08,885 [[32mINFO[0m] TradingAgent: 📋 POSITIONS
-2025-12-03 16:25:08,886 [[32mINFO[0m] TradingAgent:    🟡 BONK         | $  3,828.91 ( 12.8%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:25:08,888 [[32mINFO[0m] TradingAgent:    🟡 MKR          | $    943.11 (  3.2%) | P&L:   +0.00% | Entry: $1354.3000
-2025-12-03 16:25:08,888 [[32mINFO[0m] TradingAgent:    🟡 PEPE         | $    462.33 (  1.5%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:25:08,889 [[32mINFO[0m] TradingAgent:    🟡 LINK         | $    459.93 (  1.5%) | P&L:   +0.00% | Entry: $14.3800
-2025-12-03 16:25:08,889 [[32mINFO[0m] TradingAgent:    🟡 BONK_SOLANA  | $    449.30 (  1.5%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:25:08,889 [[32mINFO[0m] TradingAgent:    🟡 SHIB         | $    223.35 (  0.7%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:25:08,891 [[32mINFO[0m] TradingAgent:    🟡 UNI          | $      7.88 (  0.0%) | P&L:   +0.00% | Entry: $6.0380
-2025-12-03 16:25:08,892 [[32mINFO[0m] TradingAgent:    🟡 WBTC         | $      3.66 (  0.0%) | P&L:   +0.00% | Entry: $92954.4800
-2025-12-03 16:25:08,899 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:25:08,900 [[32mINFO[0m] TradingAgent: 💵 STABLECOINS (Available for Trading)
-2025-12-03 16:25:08,901 [[32mINFO[0m] TradingAgent:    💵 USDC         | $ 23,483.43 ( 78.6%) | Ethereum   | 23,492.825134
-2025-12-03 16:25:08,902 [[32mINFO[0m] TradingAgent:    💵 USDBC_BASE   | $      0.13 (  0.0%) | Base       | 0.125000
-2025-12-03 16:25:08,902 [[32mINFO[0m] TradingAgent:    💵 USDC_ARBITRUM | $      0.13 (  0.0%) | Arbitrum   | 0.125000
-2025-12-03 16:25:08,903 [[32mINFO[0m] TradingAgent:    💵 USDC_POLYGON | $      0.12 (  0.0%) | Polygon    | 0.125000
-2025-12-03 16:25:08,903 [[32mINFO[0m] TradingAgent:    💵 USDC_SOLANA  | $      0.12 (  0.0%) | Solana     | 0.125000
-2025-12-03 16:25:08,903 [[32mINFO[0m] TradingAgent:    💵 USDC_OPTIMISM | $      0.12 (  0.0%) | Optimism   | 0.125000
-2025-12-03 16:25:08,904 [[32mINFO[0m] TradingAgent:    ──────────────────────────────────────────────────────────────────
-2025-12-03 16:25:08,904 [[32mINFO[0m] TradingAgent:    TOTAL USDC   | $ 23,484.05 | Available across all chains
-2025-12-03 16:25:08,904 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:25:08,904 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:25:08,905 [[32mINFO[0m] TradingAgent: 📈 MARKET OVERVIEW (Top Movers)
-2025-12-03 16:25:08,906 [[32mINFO[0m] TradingAgent:    🚀 LINK   | $     14.3800 |  +18.12% | Vol: 0.30
-2025-12-03 16:25:08,906 [[32mINFO[0m] TradingAgent:    🚀 PEPE   | $      0.0000 |  +17.13% | Vol: 0.30
-2025-12-03 16:25:08,907 [[32mINFO[0m] TradingAgent:    🚀 WIF    | $      0.3973 |  +15.09% | Vol: 0.30
-2025-12-03 16:25:08,912 [[32mINFO[0m] TradingAgent:    🚀 BONK   | $      0.0000 |  +14.84% | Vol: 0.30
-2025-12-03 16:25:08,913 [[32mINFO[0m] TradingAgent:    🚀 AAVE   | $    193.4700 |  +14.55% | Vol: 0.30
-2025-12-03 16:25:08,913 [[32mINFO[0m] TradingAgent:    🚀 BONK_SOLANA | $      0.0000 |  +12.28% | Vol: 0.30
-2025-12-03 16:25:08,914 [[32mINFO[0m] TradingAgent: 🔍 Analyzing 13 tokens for opportunities...
-2025-12-03 16:25:08,914 [[32mINFO[0m] TradingAgent:    Adaptive thresholds: vol_surge=0.20, momentum=0.8%, mean_rev=-2.1%
-2025-12-03 16:25:08,915 [[32mINFO[0m] TradingAgent:    ✅ WETH: MOMENTUM opportunity, score=1.52, conviction=HIGH
-2025-12-03 16:25:08,918 [[32mINFO[0m] TradingAgent:    ✅ LINK: MOMENTUM opportunity, score=3.25, conviction=HIGH
-2025-12-03 16:25:08,918 [[32mINFO[0m] TradingAgent:    ✅ UNI: MOMENTUM opportunity, score=1.77, conviction=HIGH
-2025-12-03 16:25:08,919 [[32mINFO[0m] TradingAgent:    ✅ AAVE: MOMENTUM opportunity, score=2.61, conviction=HIGH
-2025-12-03 16:25:08,919 [[32mINFO[0m] TradingAgent:    ✅ SNX: MOMENTUM opportunity, score=1.45, conviction=HIGH
-2025-12-03 16:25:08,920 [[32mINFO[0m] TradingAgent:    ✅ MKR: MOMENTUM opportunity, score=1.01, conviction=HIGH
-2025-12-03 16:25:08,920 [[32mINFO[0m] TradingAgent:    ✅ PEPE: MOMENTUM opportunity, score=3.07, conviction=HIGH
-2025-12-03 16:25:08,920 [[32mINFO[0m] TradingAgent:    ✅ SHIB: MOMENTUM opportunity, score=1.82, conviction=HIGH
-2025-12-03 16:25:08,921 [[32mINFO[0m] TradingAgent:    ✅ BONK: MOMENTUM opportunity, score=2.66, conviction=HIGH
-2025-12-03 16:25:08,921 [[32mINFO[0m] TradingAgent:    ✅ FLOKI: MOMENTUM opportunity, score=1.90, conviction=HIGH
-2025-12-03 16:25:08,921 [[32mINFO[0m] TradingAgent:    ✅ SOL: MOMENTUM opportunity, score=1.88, conviction=HIGH
-2025-12-03 16:25:08,921 [[32mINFO[0m] TradingAgent:    ✅ BONK_SOLANA: MOMENTUM opportunity, score=2.20, conviction=HIGH
-2025-12-03 16:25:08,922 [[32mINFO[0m] TradingAgent:    ✅ WIF: MOMENTUM opportunity, score=2.71, conviction=HIGH
-2025-12-03 16:25:08,922 [[32mINFO[0m] TradingAgent: 🎯 Found 13 total opportunities, returning top 5
-2025-12-03 16:25:08,922 [[32mINFO[0m] TradingAgent: 
-🎯 TOP OPPORTUNITIES:
-2025-12-03 16:25:08,923 [[32mINFO[0m] TradingAgent:    1. LINK   | Score:   3.25 | MOMENTUM        | HIGH   | +18.12%
-2025-12-03 16:25:08,923 [[32mINFO[0m] TradingAgent:    2. PEPE   | Score:   3.07 | MOMENTUM        | HIGH   | +17.13%
-2025-12-03 16:25:08,929 [[32mINFO[0m] TradingAgent:    3. WIF    | Score:   2.71 | MOMENTUM        | HIGH   | +15.09%
-2025-12-03 16:25:08,930 [[32mINFO[0m] TradingAgent:    4. BONK   | Score:   2.66 | MOMENTUM        | HIGH   | +14.84%
-2025-12-03 16:25:08,930 [[32mINFO[0m] TradingAgent:    5. AAVE   | Score:   2.61 | MOMENTUM        | HIGH   | +14.55%
-2025-12-03 16:25:08,931 [[32mINFO[0m] TradingAgent: ⏸️ HOLD: 📊 Max positions (8) reached
-2025-12-03 16:25:08,931 [[32mINFO[0m] TradingAgent: 
-⏱️ Cycle completed in 4.74s
-2025-12-03 16:26:45,193 [[32mINFO[0m] TradingAgent: 🛑 Initiating graceful shutdown...
-2025-12-03 16:26:45,203 [[32mINFO[0m] TradingAgent: 💾 Final state saved
-2025-12-03 16:26:45,204 [[32mINFO[0m] TradingAgent: 🔌 Connections closed
-2025-12-03 16:26:45,204 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:26:45,205 [[32mINFO[0m] TradingAgent: 📊 FINAL SESSION STATISTICS
-2025-12-03 16:26:45,205 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:26:45,206 [[32mINFO[0m] TradingAgent:    Total Trades: 0
-2025-12-03 16:26:45,207 [[32mINFO[0m] TradingAgent:    Win Rate: 0.0%
-2025-12-03 16:26:45,207 [[32mINFO[0m] TradingAgent:    Total P&L: $+0.00
-2025-12-03 16:26:45,208 [[32mINFO[0m] TradingAgent:    Max Drawdown: 0.00%
-2025-12-03 16:26:45,208 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:26:45,208 [[32mINFO[0m] TradingAgent: ✅ Shutdown complete
-2025-12-03 16:26:59,698 [[32mINFO[0m] TradingAgent: ✅ Recall API Client initialized (SANDBOX)
-2025-12-03 16:26:59,698 [[32mINFO[0m] TradingAgent: 🤖 Trading Agent v3.0 initialized
-2025-12-03 16:26:59,699 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:26:59,699 [[32mINFO[0m] TradingAgent: 🚀 ADVANCED PAPER TRADING AGENT v3.0 - PRODUCTION READY 🚀
-2025-12-03 16:26:59,699 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:26:59,699 [[32mINFO[0m] TradingAgent:    Environment: SANDBOX
-2025-12-03 16:26:59,700 [[32mINFO[0m] TradingAgent:    Strategy Mode: BALANCED
-2025-12-03 16:26:59,700 [[32mINFO[0m] TradingAgent:    Adaptive Mode: ENABLED
-2025-12-03 16:26:59,700 [[32mINFO[0m] TradingAgent:    Trading Interval: 300s
-2025-12-03 16:26:59,701 [[32mINFO[0m] TradingAgent:    Max Positions: 8
-2025-12-03 16:26:59,701 [[32mINFO[0m] TradingAgent:    Base Position Size: $300.0
-2025-12-03 16:26:59,701 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:26:59,732 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json
-2025-12-03 16:26:59,735 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.0
-2025-12-03 16:26:59,735 [[32mINFO[0m] TradingAgent: 💾 No state file found. Starting fresh.
-2025-12-03 16:27:03,736 [[32mINFO[0m] TradingAgent: ✅ Selected competition: Sandbox fake Competition
-2025-12-03 16:27:03,736 [[32mINFO[0m] TradingAgent: ✅ Agent initialized with 0 tracked positions
-2025-12-03 16:27:03,737 [[32mINFO[0m] TradingAgent: 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 16:27:03,737 [[32mINFO[0m] TradingAgent: 🔄 TRADING CYCLE: 2025-12-03 10:57:03 UTC
-2025-12-03 16:27:03,737 [[32mINFO[0m] TradingAgent: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 16:27:07,390 [[32mINFO[0m] TradingAgent: DexScreener fetched 13/19 tokens
-2025-12-03 16:27:07,391 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: LINK
-2025-12-03 16:27:07,391 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: MKR
-2025-12-03 16:27:07,391 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: WBTC
-2025-12-03 16:27:07,392 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: PEPE
-2025-12-03 16:27:07,392 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: UNI
-2025-12-03 16:27:07,392 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: BONK
-2025-12-03 16:27:07,392 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: SHIB
-2025-12-03 16:27:07,393 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: BONK_SOLANA
-2025-12-03 16:27:07,393 [[32mINFO[0m] TradingAgent: 📅 New trading day: 2025-12-03
-2025-12-03 16:27:07,394 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:27:07,394 [[32mINFO[0m] TradingAgent: 💰 PORTFOLIO SUMMARY
-2025-12-03 16:27:07,394 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:27:07,394 [[32mINFO[0m] TradingAgent:    Total Value: $29,865.09
-2025-12-03 16:27:07,394 [[32mINFO[0m] TradingAgent:    Active Positions: 8/8
-2025-12-03 16:27:07,395 [[32mINFO[0m] TradingAgent:    Daily Trades: 0/3
-2025-12-03 16:27:07,395 [[32mINFO[0m] TradingAgent:    Daily P&L: 📈 +0.00% ($+0.00)
-2025-12-03 16:27:07,395 [[32mINFO[0m] TradingAgent:    Market Regime: BULL
-2025-12-03 16:27:07,396 [[32mINFO[0m] TradingAgent:    Market Volatility: 3.83%
-2025-12-03 16:27:07,396 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:27:07,396 [[32mINFO[0m] TradingAgent: 📋 POSITIONS
-2025-12-03 16:27:07,397 [[32mINFO[0m] TradingAgent:    🟡 BONK         | $  3,828.91 ( 12.8%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:27:07,397 [[32mINFO[0m] TradingAgent:    🟡 MKR          | $    941.15 (  3.2%) | P&L:   +0.00% | Entry: $1351.4900
-2025-12-03 16:27:07,397 [[32mINFO[0m] TradingAgent:    🟡 PEPE         | $    462.33 (  1.5%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:27:07,397 [[32mINFO[0m] TradingAgent:    🟡 LINK         | $    459.93 (  1.5%) | P&L:   +0.00% | Entry: $14.3800
-2025-12-03 16:27:07,398 [[32mINFO[0m] TradingAgent:    🟡 BONK_SOLANA  | $    449.30 (  1.5%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:27:07,398 [[32mINFO[0m] TradingAgent:    🟡 SHIB         | $    223.22 (  0.7%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:27:07,398 [[32mINFO[0m] TradingAgent:    🟡 UNI          | $      7.88 (  0.0%) | P&L:   +0.00% | Entry: $6.0380
-2025-12-03 16:27:07,398 [[32mINFO[0m] TradingAgent:    🟡 WBTC         | $      3.66 (  0.0%) | P&L:   +0.00% | Entry: $92954.4800
-2025-12-03 16:27:07,399 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:27:07,399 [[32mINFO[0m] TradingAgent: 💵 STABLECOINS (Available for Trading)
-2025-12-03 16:27:07,399 [[32mINFO[0m] TradingAgent:    💵 USDC         | $ 23,483.43 ( 78.6%) | Ethereum   | 23,492.825134
-2025-12-03 16:27:07,399 [[32mINFO[0m] TradingAgent:    💵 USDBC_BASE   | $      0.13 (  0.0%) | Base       | 0.125000
-2025-12-03 16:27:07,400 [[32mINFO[0m] TradingAgent:    💵 USDC_ARBITRUM | $      0.13 (  0.0%) | Arbitrum   | 0.125000
-2025-12-03 16:27:07,400 [[32mINFO[0m] TradingAgent:    💵 USDC_POLYGON | $      0.12 (  0.0%) | Polygon    | 0.125000
-2025-12-03 16:27:07,400 [[32mINFO[0m] TradingAgent:    💵 USDC_SOLANA  | $      0.12 (  0.0%) | Solana     | 0.125000
-2025-12-03 16:27:07,400 [[32mINFO[0m] TradingAgent:    💵 USDC_OPTIMISM | $      0.12 (  0.0%) | Optimism   | 0.125000
-2025-12-03 16:27:07,401 [[32mINFO[0m] TradingAgent:    ──────────────────────────────────────────────────────────────────
-2025-12-03 16:27:07,401 [[32mINFO[0m] TradingAgent:    TOTAL USDC   | $ 23,484.05 | Available across all chains
-2025-12-03 16:27:07,401 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:27:07,402 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:27:07,402 [[32mINFO[0m] TradingAgent: 📈 MARKET OVERVIEW (Top Movers)
-2025-12-03 16:27:07,402 [[32mINFO[0m] TradingAgent:    🚀 LINK   | $     14.3800 |  +18.12% | Vol: 0.30
-2025-12-03 16:27:07,402 [[32mINFO[0m] TradingAgent:    🚀 PEPE   | $      0.0000 |  +17.10% | Vol: 0.30
-2025-12-03 16:27:07,402 [[32mINFO[0m] TradingAgent:    🚀 WIF    | $      0.3986 |  +15.47% | Vol: 0.30
-2025-12-03 16:27:07,403 [[32mINFO[0m] TradingAgent:    🚀 BONK   | $      0.0000 |  +14.84% | Vol: 0.30
-2025-12-03 16:27:07,403 [[32mINFO[0m] TradingAgent:    🚀 AAVE   | $    193.4700 |  +14.55% | Vol: 0.30
-2025-12-03 16:27:07,403 [[32mINFO[0m] TradingAgent:    🚀 BONK_SOLANA | $      0.0000 |  +12.28% | Vol: 0.30
-2025-12-03 16:27:07,404 [[32mINFO[0m] TradingAgent: 🔍 Analyzing 13 tokens for opportunities...
-2025-12-03 16:27:07,404 [[32mINFO[0m] TradingAgent:    Adaptive thresholds: vol_surge=0.20, momentum=0.8%, mean_rev=-2.1%
-2025-12-03 16:27:07,404 [[32mINFO[0m] TradingAgent:    ✅ WETH: MOMENTUM opportunity, score=1.52, conviction=HIGH
-2025-12-03 16:27:07,405 [[32mINFO[0m] TradingAgent:    ✅ LINK: MOMENTUM opportunity, score=3.25, conviction=HIGH
-2025-12-03 16:27:07,405 [[32mINFO[0m] TradingAgent:    ✅ UNI: MOMENTUM opportunity, score=1.72, conviction=HIGH
-2025-12-03 16:27:07,405 [[32mINFO[0m] TradingAgent:    ✅ AAVE: MOMENTUM opportunity, score=2.61, conviction=HIGH
-2025-12-03 16:27:07,406 [[32mINFO[0m] TradingAgent:    ✅ SNX: MOMENTUM opportunity, score=1.45, conviction=HIGH
-2025-12-03 16:27:07,406 [[32mINFO[0m] TradingAgent:    ✅ MKR: MOMENTUM opportunity, score=0.97, conviction=HIGH
-2025-12-03 16:27:07,406 [[32mINFO[0m] TradingAgent:    ✅ PEPE: MOMENTUM opportunity, score=3.07, conviction=HIGH
-2025-12-03 16:27:07,406 [[32mINFO[0m] TradingAgent:    ✅ SHIB: MOMENTUM opportunity, score=1.80, conviction=HIGH
-2025-12-03 16:27:07,407 [[32mINFO[0m] TradingAgent:    ✅ BONK: MOMENTUM opportunity, score=2.66, conviction=HIGH
-2025-12-03 16:27:07,407 [[32mINFO[0m] TradingAgent:    ✅ FLOKI: MOMENTUM opportunity, score=1.90, conviction=HIGH
-2025-12-03 16:27:07,407 [[32mINFO[0m] TradingAgent:    ✅ SOL: MOMENTUM opportunity, score=1.84, conviction=HIGH
-2025-12-03 16:27:07,407 [[32mINFO[0m] TradingAgent:    ✅ BONK_SOLANA: MOMENTUM opportunity, score=2.20, conviction=HIGH
-2025-12-03 16:27:07,408 [[32mINFO[0m] TradingAgent:    ✅ WIF: MOMENTUM opportunity, score=2.78, conviction=HIGH
-2025-12-03 16:27:07,408 [[32mINFO[0m] TradingAgent: 🎯 Found 13 total opportunities, returning top 5
-2025-12-03 16:27:07,408 [[32mINFO[0m] TradingAgent: 
-🎯 TOP OPPORTUNITIES:
-2025-12-03 16:27:07,409 [[32mINFO[0m] TradingAgent:    1. LINK   | Score:   3.25 | MOMENTUM        | HIGH   | +18.12%
-2025-12-03 16:27:07,409 [[32mINFO[0m] TradingAgent:    2. PEPE   | Score:   3.07 | MOMENTUM        | HIGH   | +17.10%
-2025-12-03 16:27:07,409 [[32mINFO[0m] TradingAgent:    3. WIF    | Score:   2.78 | MOMENTUM        | HIGH   | +15.47%
-2025-12-03 16:27:07,409 [[32mINFO[0m] TradingAgent:    4. BONK   | Score:   2.66 | MOMENTUM        | HIGH   | +14.84%
-2025-12-03 16:27:07,409 [[32mINFO[0m] TradingAgent:    5. AAVE   | Score:   2.61 | MOMENTUM        | HIGH   | +14.55%
-2025-12-03 16:27:07,410 [[32mINFO[0m] TradingAgent: ⏸️ HOLD: 📊 Max positions (8) reached
-2025-12-03 16:27:07,410 [[32mINFO[0m] TradingAgent: 
-⏱️ Cycle completed in 3.67s
-2025-12-03 16:27:19,089 [[32mINFO[0m] TradingAgent: 🛑 Initiating graceful shutdown...
-2025-12-03 16:27:19,100 [[32mINFO[0m] TradingAgent: 💾 Final state saved
-2025-12-03 16:27:19,110 [[32mINFO[0m] TradingAgent: 🔌 Connections closed
-2025-12-03 16:27:19,112 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:27:19,112 [[32mINFO[0m] TradingAgent: 📊 FINAL SESSION STATISTICS
-2025-12-03 16:27:19,113 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:27:19,113 [[32mINFO[0m] TradingAgent:    Total Trades: 0
-2025-12-03 16:27:19,115 [[32mINFO[0m] TradingAgent:    Win Rate: 0.0%
-2025-12-03 16:27:19,115 [[32mINFO[0m] TradingAgent:    Total P&L: $+0.00
-2025-12-03 16:27:19,116 [[32mINFO[0m] TradingAgent:    Max Drawdown: 0.00%
-2025-12-03 16:27:19,117 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:27:19,117 [[32mINFO[0m] TradingAgent: ✅ Shutdown complete
-2025-12-03 16:28:01,285 [[32mINFO[0m] TradingAgent: ✅ Recall API Client initialized (SANDBOX)
-2025-12-03 16:28:01,285 [[32mINFO[0m] TradingAgent: 🤖 Trading Agent v3.0 initialized
-2025-12-03 16:28:01,285 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:28:01,286 [[32mINFO[0m] TradingAgent: 🚀 ADVANCED PAPER TRADING AGENT v3.0 - PRODUCTION READY 🚀
-2025-12-03 16:28:01,286 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:28:01,286 [[32mINFO[0m] TradingAgent:    Environment: SANDBOX
-2025-12-03 16:28:01,286 [[32mINFO[0m] TradingAgent:    Strategy Mode: BALANCED
-2025-12-03 16:28:01,287 [[32mINFO[0m] TradingAgent:    Adaptive Mode: ENABLED
-2025-12-03 16:28:01,287 [[32mINFO[0m] TradingAgent:    Trading Interval: 300s
-2025-12-03 16:28:01,287 [[32mINFO[0m] TradingAgent:    Max Positions: 8
-2025-12-03 16:28:01,288 [[32mINFO[0m] TradingAgent:    Base Position Size: $300.0
-2025-12-03 16:28:01,288 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:28:01,305 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json
-2025-12-03 16:28:01,307 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.0
-2025-12-03 16:28:01,308 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.1
-2025-12-03 16:28:01,309 [[32mINFO[0m] TradingAgent: 💾 No state file found. Starting fresh.
-2025-12-03 16:28:05,141 [[32mINFO[0m] TradingAgent: ✅ Selected competition: Sandbox fake Competition
-2025-12-03 16:28:05,141 [[32mINFO[0m] TradingAgent: ✅ Agent initialized with 0 tracked positions
-2025-12-03 16:28:05,142 [[32mINFO[0m] TradingAgent: 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 16:28:05,142 [[32mINFO[0m] TradingAgent: 🔄 TRADING CYCLE: 2025-12-03 10:58:05 UTC
-2025-12-03 16:28:05,142 [[32mINFO[0m] TradingAgent: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 16:28:06,245 [[31mERROR[0m] TradingAgent: DexScreener failed: 'dogwifhat'
-2025-12-03 16:28:06,250 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: LINK
-2025-12-03 16:28:06,250 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: MKR
-2025-12-03 16:28:06,251 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: WBTC
-2025-12-03 16:28:06,251 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: PEPE
-2025-12-03 16:28:06,252 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: UNI
-2025-12-03 16:28:06,252 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: BONK
-2025-12-03 16:28:06,254 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: SHIB
-2025-12-03 16:28:06,255 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: BONK_SOLANA
-2025-12-03 16:28:06,255 [[32mINFO[0m] TradingAgent: 📅 New trading day: 2025-12-03
-2025-12-03 16:28:06,257 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:28:06,257 [[32mINFO[0m] TradingAgent: 💰 PORTFOLIO SUMMARY
-2025-12-03 16:28:06,258 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:28:06,259 [[32mINFO[0m] TradingAgent:    Total Value: $29,867.00
-2025-12-03 16:28:06,259 [[32mINFO[0m] TradingAgent:    Active Positions: 8/8
-2025-12-03 16:28:06,259 [[32mINFO[0m] TradingAgent:    Daily Trades: 0/3
-2025-12-03 16:28:06,260 [[32mINFO[0m] TradingAgent:    Daily P&L: 📈 +0.00% ($+0.00)
-2025-12-03 16:28:06,260 [[32mINFO[0m] TradingAgent:    Market Regime: SIDEWAYS
-2025-12-03 16:28:06,261 [[32mINFO[0m] TradingAgent:    Market Volatility: 0.00%
-2025-12-03 16:28:06,262 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:28:06,264 [[32mINFO[0m] TradingAgent: 📋 POSITIONS
-2025-12-03 16:28:06,264 [[32mINFO[0m] TradingAgent:    🟡 BONK         | $  3,828.91 ( 12.8%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:28:06,265 [[32mINFO[0m] TradingAgent:    🟡 MKR          | $    946.34 (  3.2%) | P&L:   +0.00% | Entry: $1358.9400
-2025-12-03 16:28:06,267 [[32mINFO[0m] TradingAgent:    🟡 PEPE         | $    462.23 (  1.5%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:28:06,268 [[32mINFO[0m] TradingAgent:    🟡 LINK         | $    459.93 (  1.5%) | P&L:   +0.00% | Entry: $14.3800
-2025-12-03 16:28:06,268 [[32mINFO[0m] TradingAgent:    🟡 BONK_SOLANA  | $    449.30 (  1.5%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:28:06,269 [[32mINFO[0m] TradingAgent:    🟡 SHIB         | $    223.22 (  0.7%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:28:06,270 [[32mINFO[0m] TradingAgent:    🟡 UNI          | $      7.89 (  0.0%) | P&L:   +0.00% | Entry: $6.0460
-2025-12-03 16:28:06,271 [[32mINFO[0m] TradingAgent:    🟡 WBTC         | $      3.66 (  0.0%) | P&L:   +0.00% | Entry: $92954.4800
-2025-12-03 16:28:06,271 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:28:06,272 [[32mINFO[0m] TradingAgent: 💵 STABLECOINS (Available for Trading)
-2025-12-03 16:28:06,272 [[32mINFO[0m] TradingAgent:    💵 USDC         | $ 23,483.43 ( 78.6%) | Ethereum   | 23,492.825134
-2025-12-03 16:28:06,273 [[32mINFO[0m] TradingAgent:    💵 USDBC_BASE   | $      0.13 (  0.0%) | Base       | 0.125000
-2025-12-03 16:28:06,274 [[32mINFO[0m] TradingAgent:    💵 USDC_ARBITRUM | $      0.13 (  0.0%) | Arbitrum   | 0.125000
-2025-12-03 16:28:06,274 [[32mINFO[0m] TradingAgent:    💵 USDC_POLYGON | $      0.12 (  0.0%) | Polygon    | 0.125000
-2025-12-03 16:28:06,275 [[32mINFO[0m] TradingAgent:    💵 USDC_SOLANA  | $      0.12 (  0.0%) | Solana     | 0.125000
-2025-12-03 16:28:06,275 [[32mINFO[0m] TradingAgent:    💵 USDC_OPTIMISM | $      0.12 (  0.0%) | Optimism   | 0.125000
-2025-12-03 16:28:06,276 [[32mINFO[0m] TradingAgent:    ──────────────────────────────────────────────────────────────────
-2025-12-03 16:28:06,279 [[32mINFO[0m] TradingAgent:    TOTAL USDC   | $ 23,484.05 | Available across all chains
-2025-12-03 16:28:06,281 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:28:06,281 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:28:06,282 [[32mINFO[0m] TradingAgent: 📈 MARKET OVERVIEW (Top Movers)
-2025-12-03 16:28:06,282 [[32mINFO[0m] TradingAgent: 🔍 Analyzing 0 tokens for opportunities...
-2025-12-03 16:28:06,283 [[32mINFO[0m] TradingAgent:    Adaptive thresholds: vol_surge=0.16, momentum=0.7%, mean_rev=-3.0%
-2025-12-03 16:28:06,284 [[32mINFO[0m] TradingAgent: 📭 No opportunities found matching criteria
-2025-12-03 16:28:06,284 [[32mINFO[0m] TradingAgent: 📊 Market Summary:
-2025-12-03 16:28:06,285 [[32mINFO[0m] TradingAgent: ⏸️ HOLD: 📭 No opportunities meeting criteria
-2025-12-03 16:28:06,285 [[32mINFO[0m] TradingAgent: 
-⏱️ Cycle completed in 1.14s
-2025-12-03 16:28:23,578 [[32mINFO[0m] TradingAgent: 🛑 Initiating graceful shutdown...
-2025-12-03 16:28:23,593 [[32mINFO[0m] TradingAgent: 💾 Final state saved
-2025-12-03 16:28:23,595 [[32mINFO[0m] TradingAgent: 🔌 Connections closed
-2025-12-03 16:28:23,595 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:28:23,596 [[32mINFO[0m] TradingAgent: 📊 FINAL SESSION STATISTICS
-2025-12-03 16:28:23,596 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:28:23,597 [[32mINFO[0m] TradingAgent:    Total Trades: 0
-2025-12-03 16:28:23,597 [[32mINFO[0m] TradingAgent:    Win Rate: 0.0%
-2025-12-03 16:28:23,597 [[32mINFO[0m] TradingAgent:    Total P&L: $+0.00
-2025-12-03 16:28:23,597 [[32mINFO[0m] TradingAgent:    Max Drawdown: 0.00%
-2025-12-03 16:28:23,598 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:28:23,598 [[32mINFO[0m] TradingAgent: ✅ Shutdown complete
-2025-12-03 16:28:27,794 [[32mINFO[0m] TradingAgent: ✅ Recall API Client initialized (SANDBOX)
-2025-12-03 16:28:27,794 [[32mINFO[0m] TradingAgent: 🤖 Trading Agent v3.0 initialized
-2025-12-03 16:28:27,794 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:28:27,795 [[32mINFO[0m] TradingAgent: 🚀 ADVANCED PAPER TRADING AGENT v3.0 - PRODUCTION READY 🚀
-2025-12-03 16:28:27,795 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:28:27,795 [[32mINFO[0m] TradingAgent:    Environment: SANDBOX
-2025-12-03 16:28:27,795 [[32mINFO[0m] TradingAgent:    Strategy Mode: BALANCED
-2025-12-03 16:28:27,796 [[32mINFO[0m] TradingAgent:    Adaptive Mode: ENABLED
-2025-12-03 16:28:27,796 [[32mINFO[0m] TradingAgent:    Trading Interval: 300s
-2025-12-03 16:28:27,796 [[32mINFO[0m] TradingAgent:    Max Positions: 8
-2025-12-03 16:28:27,797 [[32mINFO[0m] TradingAgent:    Base Position Size: $300.0
-2025-12-03 16:28:27,798 [[32mINFO[0m] TradingAgent: ================================================================================
-2025-12-03 16:28:27,826 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json
-2025-12-03 16:28:27,829 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.0
-2025-12-03 16:28:27,830 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.1
-2025-12-03 16:28:27,831 [[33mWARNING[0m] TradingAgent: ⚠️ Checksum mismatch in agent_state.json.backup.2
-2025-12-03 16:28:27,832 [[32mINFO[0m] TradingAgent: 💾 No state file found. Starting fresh.
-2025-12-03 16:28:31,610 [[32mINFO[0m] TradingAgent: ✅ Selected competition: Sandbox fake Competition
-2025-12-03 16:28:31,610 [[32mINFO[0m] TradingAgent: ✅ Agent initialized with 0 tracked positions
-2025-12-03 16:28:31,611 [[32mINFO[0m] TradingAgent: 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 16:28:31,611 [[32mINFO[0m] TradingAgent: 🔄 TRADING CYCLE: 2025-12-03 10:58:31 UTC
-2025-12-03 16:28:31,611 [[32mINFO[0m] TradingAgent: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 16:28:34,818 [[32mINFO[0m] TradingAgent: DexScreener fetched 15/16 tokens
-2025-12-03 16:28:34,819 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: LINK
-2025-12-03 16:28:34,819 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: MKR
-2025-12-03 16:28:34,820 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: WBTC
-2025-12-03 16:28:34,820 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: PEPE
-2025-12-03 16:28:34,820 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: UNI
-2025-12-03 16:28:34,821 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: BONK
-2025-12-03 16:28:34,821 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: SHIB
-2025-12-03 16:28:34,821 [[32mINFO[0m] TradingAgent: 📍 Creating tracker for existing position: BONK_SOLANA
-2025-12-03 16:28:34,822 [[32mINFO[0m] TradingAgent: 📅 New trading day: 2025-12-03
-2025-12-03 16:28:34,822 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:28:34,822 [[32mINFO[0m] TradingAgent: 💰 PORTFOLIO SUMMARY
-2025-12-03 16:28:34,823 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:28:34,823 [[32mINFO[0m] TradingAgent:    Total Value: $29,867.00
-2025-12-03 16:28:34,823 [[32mINFO[0m] TradingAgent:    Active Positions: 8/8
-2025-12-03 16:28:34,824 [[32mINFO[0m] TradingAgent:    Daily Trades: 0/3
-2025-12-03 16:28:34,824 [[32mINFO[0m] TradingAgent:    Daily P&L: 📈 +0.00% ($+0.00)
-2025-12-03 16:28:34,824 [[32mINFO[0m] TradingAgent:    Market Regime: BULL
-2025-12-03 16:28:34,825 [[32mINFO[0m] TradingAgent:    Market Volatility: 3.66%
-2025-12-03 16:28:34,826 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:28:34,827 [[32mINFO[0m] TradingAgent: 📋 POSITIONS
-2025-12-03 16:28:34,827 [[32mINFO[0m] TradingAgent:    🟡 BONK         | $  3,828.91 ( 12.8%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:28:34,828 [[32mINFO[0m] TradingAgent:    🟡 MKR          | $    941.15 (  3.2%) | P&L:   +0.00% | Entry: $1351.4900
-2025-12-03 16:28:34,828 [[32mINFO[0m] TradingAgent:    🟡 PEPE         | $    462.23 (  1.5%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:28:34,831 [[32mINFO[0m] TradingAgent:    🟡 LINK         | $    459.93 (  1.5%) | P&L:   +0.00% | Entry: $14.3800
-2025-12-03 16:28:34,831 [[32mINFO[0m] TradingAgent:    🟡 BONK_SOLANA  | $    449.30 (  1.5%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:28:34,832 [[32mINFO[0m] TradingAgent:    🟡 SHIB         | $    223.22 (  0.7%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:28:34,832 [[32mINFO[0m] TradingAgent:    🟡 UNI          | $      7.88 (  0.0%) | P&L:   +0.00% | Entry: $6.0380
-2025-12-03 16:28:34,833 [[32mINFO[0m] TradingAgent:    🟡 WBTC         | $      3.66 (  0.0%) | P&L:   +0.00% | Entry: $92954.4800
-2025-12-03 16:28:34,834 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:28:34,834 [[32mINFO[0m] TradingAgent: 💵 STABLECOINS (Available for Trading)
-2025-12-03 16:28:34,835 [[32mINFO[0m] TradingAgent:    💵 USDC         | $ 23,483.43 ( 78.6%) | Ethereum   | 23,492.825134
-2025-12-03 16:28:34,842 [[32mINFO[0m] TradingAgent:    💵 USDBC_BASE   | $      0.13 (  0.0%) | Base       | 0.125000
-2025-12-03 16:28:34,843 [[32mINFO[0m] TradingAgent:    💵 USDC_ARBITRUM | $      0.13 (  0.0%) | Arbitrum   | 0.125000
-2025-12-03 16:28:34,844 [[32mINFO[0m] TradingAgent:    💵 USDC_POLYGON | $      0.12 (  0.0%) | Polygon    | 0.125000
-2025-12-03 16:28:34,844 [[32mINFO[0m] TradingAgent:    💵 USDC_SOLANA  | $      0.12 (  0.0%) | Solana     | 0.125000
-2025-12-03 16:28:34,845 [[32mINFO[0m] TradingAgent:    💵 USDC_OPTIMISM | $      0.12 (  0.0%) | Optimism   | 0.125000
-2025-12-03 16:28:34,845 [[32mINFO[0m] TradingAgent:    ──────────────────────────────────────────────────────────────────
-2025-12-03 16:28:34,845 [[32mINFO[0m] TradingAgent:    TOTAL USDC   | $ 23,484.05 | Available across all chains
-2025-12-03 16:28:34,846 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:28:34,846 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:28:34,846 [[32mINFO[0m] TradingAgent: 📈 MARKET OVERVIEW (Top Movers)
-2025-12-03 16:28:34,847 [[32mINFO[0m] TradingAgent:    🚀 LINK   | $     14.3800 |  +18.12% | Vol: 0.30
-2025-12-03 16:28:34,847 [[32mINFO[0m] TradingAgent:    🚀 PEPE   | $      0.0000 |  +17.08% | Vol: 0.30
-2025-12-03 16:28:34,847 [[32mINFO[0m] TradingAgent:    🚀 BONK   | $      0.0000 |  +14.84% | Vol: 0.30
-2025-12-03 16:28:34,848 [[32mINFO[0m] TradingAgent:    🚀 AAVE   | $    193.4700 |  +14.32% | Vol: 0.30
-2025-12-03 16:28:34,849 [[32mINFO[0m] TradingAgent:    🚀 BONK_SOLANA | $      0.0000 |  +12.28% | Vol: 0.30
-2025-12-03 16:28:34,849 [[32mINFO[0m] TradingAgent:    🚀 FLOKI  | $      0.0000 |  +10.59% | Vol: 0.30
-2025-12-03 16:28:34,850 [[32mINFO[0m] TradingAgent: 🔍 Analyzing 15 tokens for opportunities...
-2025-12-03 16:28:34,850 [[32mINFO[0m] TradingAgent:    Adaptive thresholds: vol_surge=0.20, momentum=0.8%, mean_rev=-2.1%
-2025-12-03 16:28:34,851 [[32mINFO[0m] TradingAgent:    ✅ WETH: MOMENTUM opportunity, score=1.52, conviction=HIGH
-2025-12-03 16:28:34,851 [[32mINFO[0m] TradingAgent:    ✅ LINK: MOMENTUM opportunity, score=3.25, conviction=HIGH
-2025-12-03 16:28:34,851 [[32mINFO[0m] TradingAgent:    ✅ UNI: MOMENTUM opportunity, score=1.72, conviction=HIGH
-2025-12-03 16:28:34,855 [[32mINFO[0m] TradingAgent:    ✅ AAVE: MOMENTUM opportunity, score=2.57, conviction=HIGH
-2025-12-03 16:28:34,856 [[32mINFO[0m] TradingAgent:    ✅ SNX: MOMENTUM opportunity, score=1.45, conviction=HIGH
-2025-12-03 16:28:34,856 [[32mINFO[0m] TradingAgent:    ✅ MKR: MOMENTUM opportunity, score=0.97, conviction=HIGH
-2025-12-03 16:28:34,857 [[32mINFO[0m] TradingAgent:    ✅ PEPE: MOMENTUM opportunity, score=3.06, conviction=HIGH
-2025-12-03 16:28:34,857 [[32mINFO[0m] TradingAgent:    ✅ SHIB: MOMENTUM opportunity, score=1.80, conviction=HIGH
-2025-12-03 16:28:34,858 [[32mINFO[0m] TradingAgent:    ✅ BONK: MOMENTUM opportunity, score=2.66, conviction=HIGH
-2025-12-03 16:28:34,858 [[32mINFO[0m] TradingAgent:    ✅ FLOKI: MOMENTUM opportunity, score=1.90, conviction=HIGH
-2025-12-03 16:28:34,862 [[32mINFO[0m] TradingAgent:    ✅ WETH_POLYGON: MOMENTUM opportunity, score=1.49, conviction=HIGH
-2025-12-03 16:28:34,863 [[32mINFO[0m] TradingAgent:    ✅ WETH_ARBITRUM: MOMENTUM opportunity, score=1.47, conviction=HIGH
-2025-12-03 16:28:34,863 [[32mINFO[0m] TradingAgent:    ✅ WETH_BASE: MOMENTUM opportunity, score=1.47, conviction=HIGH
-2025-12-03 16:28:34,864 [[32mINFO[0m] TradingAgent:    ✅ SOL: MOMENTUM opportunity, score=1.85, conviction=HIGH
-2025-12-03 16:28:34,864 [[32mINFO[0m] TradingAgent:    ✅ BONK_SOLANA: MOMENTUM opportunity, score=2.20, conviction=HIGH
-2025-12-03 16:28:34,864 [[32mINFO[0m] TradingAgent: 🎯 Found 15 total opportunities, returning top 5
-2025-12-03 16:28:34,865 [[32mINFO[0m] TradingAgent: 
-🎯 TOP OPPORTUNITIES:
-2025-12-03 16:28:34,865 [[32mINFO[0m] TradingAgent:    1. LINK   | Score:   3.25 | MOMENTUM        | HIGH   | +18.12%
-2025-12-03 16:28:34,865 [[32mINFO[0m] TradingAgent:    2. PEPE   | Score:   3.06 | MOMENTUM        | HIGH   | +17.08%
-2025-12-03 16:28:34,866 [[32mINFO[0m] TradingAgent:    3. BONK   | Score:   2.66 | MOMENTUM        | HIGH   | +14.84%
-2025-12-03 16:28:34,866 [[32mINFO[0m] TradingAgent:    4. AAVE   | Score:   2.57 | MOMENTUM        | HIGH   | +14.32%
-2025-12-03 16:28:34,866 [[32mINFO[0m] TradingAgent:    5. BONK_SOLANA | Score:   2.20 | MOMENTUM        | HIGH   | +12.28%
-2025-12-03 16:28:34,867 [[32mINFO[0m] TradingAgent: ⏸️ HOLD: 📊 Max positions (8) reached
-2025-12-03 16:28:34,871 [[32mINFO[0m] TradingAgent: 
-⏱️ Cycle completed in 3.26s
-2025-12-03 16:33:34,876 [[32mINFO[0m] TradingAgent: 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 16:33:34,879 [[32mINFO[0m] TradingAgent: 🔄 TRADING CYCLE: 2025-12-03 11:03:34 UTC
-2025-12-03 16:33:34,879 [[32mINFO[0m] TradingAgent: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2025-12-03 16:33:38,512 [[32mINFO[0m] TradingAgent: DexScreener fetched 15/16 tokens
-2025-12-03 16:33:38,513 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:33:38,513 [[32mINFO[0m] TradingAgent: 💰 PORTFOLIO SUMMARY
-2025-12-03 16:33:38,514 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:33:38,514 [[32mINFO[0m] TradingAgent:    Total Value: $29,867.00
-2025-12-03 16:33:38,514 [[32mINFO[0m] TradingAgent:    Active Positions: 8/8
-2025-12-03 16:33:38,515 [[32mINFO[0m] TradingAgent:    Daily Trades: 0/3
-2025-12-03 16:33:38,515 [[32mINFO[0m] TradingAgent:    Daily P&L: 📈 +0.00% ($+0.00)
-2025-12-03 16:33:38,515 [[32mINFO[0m] TradingAgent:    Market Regime: BULL
-2025-12-03 16:33:38,516 [[32mINFO[0m] TradingAgent:    Market Volatility: 3.71%
-2025-12-03 16:33:38,516 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:33:38,516 [[32mINFO[0m] TradingAgent: 📋 POSITIONS
-2025-12-03 16:33:38,516 [[32mINFO[0m] TradingAgent:    🟡 BONK         | $  3,828.91 ( 12.8%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:33:38,517 [[32mINFO[0m] TradingAgent:    🟡 MKR          | $    938.69 (  3.1%) | P&L:   -0.26% | Entry: $1351.4900
-2025-12-03 16:33:38,517 [[32mINFO[0m] TradingAgent:    🟡 PEPE         | $    461.75 (  1.5%) | P&L:   -0.11% | Entry: $0.0000
-2025-12-03 16:33:38,517 [[32mINFO[0m] TradingAgent:    🟡 LINK         | $    459.93 (  1.5%) | P&L:   +0.00% | Entry: $14.3800
-2025-12-03 16:33:38,518 [[32mINFO[0m] TradingAgent:    🟡 BONK_SOLANA  | $    449.30 (  1.5%) | P&L:   +0.00% | Entry: $0.0000
-2025-12-03 16:33:38,518 [[32mINFO[0m] TradingAgent:    🟡 SHIB         | $    223.00 (  0.7%) | P&L:   -0.10% | Entry: $0.0000
-2025-12-03 16:33:38,518 [[32mINFO[0m] TradingAgent:    🟡 UNI          | $      7.88 (  0.0%) | P&L:   +0.00% | Entry: $6.0380
-2025-12-03 16:33:38,519 [[32mINFO[0m] TradingAgent:    🟡 WBTC         | $      3.66 (  0.0%) | P&L:   +0.00% | Entry: $92954.4800
-2025-12-03 16:33:38,519 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:33:38,519 [[32mINFO[0m] TradingAgent: 💵 STABLECOINS (Available for Trading)
-2025-12-03 16:33:38,519 [[32mINFO[0m] TradingAgent:    💵 USDC         | $ 23,483.43 ( 78.6%) | Ethereum   | 23,492.825134
-2025-12-03 16:33:38,520 [[32mINFO[0m] TradingAgent:    💵 USDBC_BASE   | $      0.13 (  0.0%) | Base       | 0.125000
-2025-12-03 16:33:38,520 [[32mINFO[0m] TradingAgent:    💵 USDC_ARBITRUM | $      0.13 (  0.0%) | Arbitrum   | 0.125000
-2025-12-03 16:33:38,520 [[32mINFO[0m] TradingAgent:    💵 USDC_POLYGON | $      0.12 (  0.0%) | Polygon    | 0.125000
-2025-12-03 16:33:38,521 [[32mINFO[0m] TradingAgent:    💵 USDC_SOLANA  | $      0.12 (  0.0%) | Solana     | 0.125000
-2025-12-03 16:33:38,521 [[32mINFO[0m] TradingAgent:    💵 USDC_OPTIMISM | $      0.12 (  0.0%) | Optimism   | 0.125000
-2025-12-03 16:33:38,521 [[32mINFO[0m] TradingAgent:    ──────────────────────────────────────────────────────────────────
-2025-12-03 16:33:38,521 [[32mINFO[0m] TradingAgent:    TOTAL USDC   | $ 23,484.05 | Available across all chains
-2025-12-03 16:33:38,522 [[32mINFO[0m] TradingAgent: ======================================================================
-2025-12-03 16:33:38,522 [[32mINFO[0m] TradingAgent: ----------------------------------------------------------------------
-2025-12-03 16:33:38,522 [[32mINFO[0m] TradingAgent: 📈 MARKET OVERVIEW (Top Movers)
-2025-12-03 16:33:38,522 [[32mINFO[0m] TradingAgent:    🚀 LINK   | $     14.3800 |  +18.39% | Vol: 0.30
-2025-12-03 16:33:38,523 [[32mINFO[0m] TradingAgent:    🚀 PEPE   | $      0.0000 |  +17.11% | Vol: 0.30
-2025-12-03 16:33:38,523 [[32mINFO[0m] TradingAgent:    🚀 BONK   | $      0.0000 |  +14.84% | Vol: 0.30
-2025-12-03 16:33:38,523 [[32mINFO[0m] TradingAgent:    🚀 AAVE   | $    192.9900 |  +14.29% | Vol: 0.30
-2025-12-03 16:33:38,524 [[32mINFO[0m] TradingAgent:    🚀 BONK_SOLANA | $      0.0000 |  +11.08% | Vol: 0.30
-2025-12-03 16:33:38,524 [[32mINFO[0m] TradingAgent:    🚀 FLOKI  | $      0.0000 |  +10.59% | Vol: 0.30
-2025-12-03 16:33:38,524 [[32mINFO[0m] TradingAgent: 🔍 Analyzing 15 tokens for opportunities...
-2025-12-03 16:33:38,524 [[32mINFO[0m] TradingAgent:    Adaptive thresholds: vol_surge=0.20, momentum=0.8%, mean_rev=-2.1%
-2025-12-03 16:33:38,525 [[32mINFO[0m] TradingAgent:    ✅ WETH: MOMENTUM opportunity, score=1.52, conviction=HIGH
-2025-12-03 16:33:38,525 [[32mINFO[0m] TradingAgent:    ✅ LINK: MOMENTUM opportunity, score=3.30, conviction=HIGH
-2025-12-03 16:33:38,525 [[32mINFO[0m] TradingAgent:    ✅ UNI: MOMENTUM opportunity, score=1.72, conviction=HIGH
-2025-12-03 16:33:38,526 [[32mINFO[0m] TradingAgent:    ✅ AAVE: MOMENTUM opportunity, score=2.56, conviction=HIGH
-2025-12-03 16:33:38,526 [[32mINFO[0m] TradingAgent:    ✅ SNX: MOMENTUM opportunity, score=1.45, conviction=HIGH
-2025-12-03 16:33:38,526 [[32mINFO[0m] TradingAgent:    ✅ MKR: MOMENTUM opportunity, score=0.92, conviction=HIGH
-2025-12-03 16:33:38,526 [[32mINFO[0m] TradingAgent:    ✅ PEPE: MOMENTUM opportunity, score=3.07, conviction=HIGH
-2025-12-03 16:33:38,527 [[32mINFO[0m] TradingAgent:    ✅ SHIB: MOMENTUM opportunity, score=1.78, conviction=HIGH
-2025-12-03 16:33:38,527 [[32mINFO[0m] TradingAgent:    ✅ BONK: MOMENTUM opportunity, score=2.66, conviction=HIGH
-2025-12-03 16:33:38,527 [[32mINFO[0m] TradingAgent:    ✅ FLOKI: MOMENTUM opportunity, score=1.90, conviction=HIGH
-2025-12-03 16:33:38,528 [[32mINFO[0m] TradingAgent:    ✅ WETH_POLYGON: MOMENTUM opportunity, score=1.49, conviction=HIGH
-2025-12-03 16:33:38,528 [[32mINFO[0m] TradingAgent:    ✅ WETH_ARBITRUM: MOMENTUM opportunity, score=1.49, conviction=HIGH
-2025-12-03 16:33:38,528 [[32mINFO[0m] TradingAgent:    ✅ WETH_BASE: MOMENTUM opportunity, score=1.48, conviction=HIGH
-2025-12-03 16:33:38,529 [[32mINFO[0m] TradingAgent:    ✅ SOL: MOMENTUM opportunity, score=1.82, conviction=HIGH
-2025-12-03 16:33:38,529 [[32mINFO[0m] TradingAgent:    ✅ BONK_SOLANA: MOMENTUM opportunity, score=1.99, conviction=HIGH
-2025-12-03 16:33:38,529 [[32mINFO[0m] TradingAgent: 🎯 Found 15 total opportunities, returning top 5
-2025-12-03 16:33:38,529 [[32mINFO[0m] TradingAgent: 
-🎯 TOP OPPORTUNITIES:
-2025-12-03 16:33:38,530 [[32mINFO[0m] TradingAgent:    1. LINK   | Score:   3.30 | MOMENTUM        | HIGH   | +18.39%
-2025-12-03 16:33:38,530 [[32mINFO[0m] TradingAgent:    2. PEPE   | Score:   3.07 | MOMENTUM        | HIGH   | +17.11%
-2025-12-03 16:33:38,530 [[32mINFO[0m] TradingAgent:    3. BONK   | Score:   2.66 | MOMENTUM        | HIGH   | +14.84%
-2025-12-03 16:33:38,531 [[32mINFO[0m] TradingAgent:    4. AAVE   | Score:   2.56 | MOMENTUM        | HIGH   | +14.29%
-2025-12-03 16:33:38,531 [[32mINFO[0m] TradingAgent:    5. BONK_SOLANA | Score:   1.99 | MOMENTUM        | HIGH   | +11.08%
-2025-12-03 16:33:38,531 [[32mINFO[0m] TradingAgent: ⏸️ HOLD: 📊 Max positions (8) reached
-2025-12-03 16:33:38,532 [[32mINFO[0m] TradingAgent: 
-⏱️ Cycle completed in 3.66s
+2025-12-03 17:58:51,192 [[32mINFO[0m] TradingAgent:    1. LINK   | Score:   3.05 | MOMENTUM        | HIGH   | +18.62%
+2025-12-03 17:58:51,193 [[32mINFO[0m] TradingAgent:    2. PEPE   | Score:   2.83 | MOMENTUM        | HIGH   | +17.26%
+2025-12-03 17:58:51,193 [[32mINFO[0m] TradingAgent:    3. BONK   | Score:   2.35 | MOMENTUM        | HIGH   | +14.32%
+2025-12-03 17:58:51,193 [[32mINFO[0m] TradingAgent:    4. AAVE   | Score:   2.19 | MOMENTUM        | HIGH   | +13.40%
+2025-12-03 17:58:51,194 [[32mINFO[0m] TradingAgent:    5. BONK_SOLANA | Score:   1.86 | MOMENTUM        | HIGH   | +11.38%
+2025-12-03 17:58:51,194 [[32mINFO[0m] TradingAgent: ⸻ HOLD: 📊 Max positions (8) reached
+2025-12-03 17:58:51,194 [[32mINFO[0m] TradingAgent: 
+⏱️ Cycle completed in 4.29s
+2025-12-03 17:59:52,459 [[32mINFO[0m] TradingAgent: 🛑 Initiating graceful shutdown...
+2025-12-03 17:59:52,461 [[31mERROR[0m] TradingAgent: ❌ Failed to save final state: sequence index must be integer, not 'slice'
+2025-12-03 17:59:52,462 [[32mINFO[0m] TradingAgent: 🔌 Connections closed
+2025-12-03 17:59:52,462 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-12-03 17:59:52,462 [[32mINFO[0m] TradingAgent: 📊 FINAL SESSION STATISTICS
+2025-12-03 17:59:52,463 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-12-03 17:59:52,463 [[32mINFO[0m] TradingAgent:    Total Trades: 0
+2025-12-03 17:59:52,463 [[32mINFO[0m] TradingAgent:    Win Rate: 0.0%
+2025-12-03 17:59:52,463 [[32mINFO[0m] TradingAgent:    Total P&L: $+0.00
+2025-12-03 17:59:52,464 [[32mINFO[0m] TradingAgent:    Max Drawdown: 0.00%
+2025-12-03 17:59:52,464 [[32mINFO[0m] TradingAgent: ================================================================================
+2025-12-03 17:59:52,464 [[32mINFO[0m] TradingAgent: ✅ Shutdown complete

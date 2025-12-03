@@ -1,24 +1,3 @@
-# 🚀 Advanced Paper Trading Agent - Production Ready (Fixed & Optimized)
-#!/usr/bin/env python3
-"""
-Advanced Paper Trading Agent - Production Ready (v3.0)
-=======================================================
-A robust, fault-tolerant trading agent for the Recall Network competition.
-
-Features:
-- Persistent state management with atomic writes
-- Circuit breaker pattern for API resilience
-- Weighted position tracking for partial exits
-- Advanced risk management with correlation guards
-- Comprehensive metrics and observability
-- Graceful shutdown handling
-- FIXED: Volume surge calculation
-- FIXED: Mean reversion bounds
-- FIXED: Opportunity detection sensitivity
-- ADDED: Enhanced debugging and diagnostics
-- ADDED: Adaptive thresholds based on market conditions
-"""
-
 import os
 import sys
 import json
@@ -370,13 +349,24 @@ class TrackedPosition:
     
     def update_for_partial_exit(self, amount_sold: float):
         """Update position for partial exit (maintains entry price)"""
-        if amount_sold >= self.entry_amount:
+        # FIXED: Use tolerance for floating-point comparison
+        DUST_THRESHOLD = float(os.getenv("DUST_THRESHOLD", "0.000001"))
+        
+        remaining_amount = self.entry_amount - amount_sold
+        
+        # If remaining is dust or negative, consider it a full exit
+        if remaining_amount <= DUST_THRESHOLD:
+            logger.debug(f"Full exit detected: remaining={remaining_amount:.10f} <= {DUST_THRESHOLD}")
             return None  # Full exit
         
-        ratio_remaining = (self.entry_amount - amount_sold) / self.entry_amount
-        self.entry_amount -= amount_sold
+        # Partial exit
+        ratio_remaining = remaining_amount / self.entry_amount
+        self.entry_amount = remaining_amount
         self.total_cost_basis *= ratio_remaining
         self.entry_value_usd = self.total_cost_basis
+        
+        logger.debug(f"Partial exit: {amount_sold:.6f} sold, {remaining_amount:.6f} remaining ({ratio_remaining*100:.1f}%)")
+        
         return self
     
     def update_price_tracking(self, current_price: float):
@@ -758,9 +748,12 @@ class PersistenceManager:
             metrics = state['metrics']
             serialized['metrics'] = metrics.to_dict() if isinstance(metrics, TradingMetrics) else metrics
         
-        # Price history
+        # Price history - FIXED: Handle deque
         if 'price_history' in state:
-            serialized['price_history'] = state['price_history']
+            serialized['price_history'] = {
+                symbol: list(history) if isinstance(history, deque) else history
+                for symbol, history in state['price_history'].items()
+            }
         
         # Simple types
         for key in ['position_history', 'trade_history', 'trades_today', 'daily_start_value']:
@@ -789,9 +782,13 @@ class PersistenceManager:
         if 'metrics' in data:
             state['metrics'] = TradingMetrics.from_dict(data['metrics'])
         
-        # Price history
+        # Price history - FIXED: Convert lists back to deque
         if 'price_history' in data:
-            state['price_history'] = data['price_history']
+            MAX_HISTORY_LENGTH = int(os.getenv("MAX_PRICE_HISTORY", "288"))
+            state['price_history'] = {
+                symbol: deque(history_list, maxlen=MAX_HISTORY_LENGTH)
+                for symbol, history_list in data['price_history'].items()
+            }
         
         # Simple types
         for key in ['position_history', 'trade_history', 'trades_today', 'daily_start_value']:
@@ -1062,18 +1059,84 @@ class MarketDataProvider:
         self._cache_ttl = timedelta(seconds=config.MARKET_DATA_CACHE_TTL)
         self._session: Optional[aiohttp.ClientSession] = None
         self._volume_history: Dict[str, deque] = {}
+        
+        # ADDED: Semaphore for rate limiting
+        self._max_concurrent_requests = int(os.getenv("DEXSCREENER_MAX_CONCURRENT", "10"))
+        self._semaphore = asyncio.Semaphore(self._max_concurrent_requests)
+        self._request_count = 0
+        self._request_errors = 0
 
     async def _get_session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession(timeout=ClientTimeout(total=20))
+            # IMPROVED: Better connection pooling
+            connector = TCPConnector(
+                limit=self._max_concurrent_requests * 2,
+                limit_per_host=self._max_concurrent_requests,
+                ttl_dns_cache=300,
+                enable_cleanup_closed=True
+            )
+            self._session = aiohttp.ClientSession(
+                timeout=ClientTimeout(total=20),
+                connector=connector
+            )
         return self._session
 
     async def close(self):
         if self._session and not self._session.closed:
             await self._session.close()
 
+    def _calc_volume_surge(self, symbol: str, volume: float) -> float:
+        """
+        Calculate volume surge using EMA instead of simple average.
+        More responsive to volume changes.
+        """
+        if volume <= 0:
+            return 0.0
+
+        if symbol not in self._volume_history:
+            self._volume_history[symbol] = deque(maxlen=20)
+
+        hist = self._volume_history[symbol]
+        hist.append(volume)
+
+        # Not enough history yet
+        if len(hist) < 3:
+            return 0.1
+
+        # Warm-up phase
+        if len(hist) < 7:
+            avg = sum(hist) / len(hist)
+            if avg == 0:
+                return 0.3
+            ratio = volume / avg
+            return max(0.0, (ratio - 0.5) * 0.5)
+
+        # Full history → EMA
+        ema_alpha = 0.3
+
+        ema = hist[0]
+        for v in list(hist)[1:]:
+            ema = ema_alpha * v + (1 - ema_alpha) * ema
+
+        if ema == 0:
+            return 0.5
+
+        ratio = volume / ema
+
+        # Normalize surge score
+        surge_score = max(0.0, ratio - 0.7)
+
+        # Log significant surges
+        if surge_score > 1.5:
+            logger.debug(
+                f"🔥 Volume surge detected for {symbol}: {surge_score:.2f}x "
+                f"({volume:,.0f} vs EMA {ema:,.0f})"
+            )
+
+        return surge_score
+
     async def get_market_data(self) -> Dict[str, Dict]:
-        # Cache
+        # Cache check
         if "data" in self._cache:
             data, ts = self._cache["data"]
             if datetime.now(timezone.utc) - ts < self._cache_ttl:
@@ -1082,18 +1145,48 @@ class MarketDataProvider:
 
         try:
             data = await self._fetch_all_tokens()
+            
+            if not data:
+                # If fetch completely failed, try to use stale cache
+                if "data" in self._cache:
+                    logger.warning("⚠️ Fetch failed, using stale cache")
+                    return self._cache["data"][0]
+                else:
+                    logger.error("❌ No data available and no cache")
+                    return {}
+            
+            # Update cache
             self._cache["data"] = (data, datetime.now(timezone.utc))
+            
+            # Log stats
+            success_rate = (1 - self._request_errors / max(self._request_count, 1)) * 100
+            logger.info(f"📊 DexScreener stats: {len(data)} tokens, {success_rate:.1f}% success rate")
+            
             return data
+            
         except Exception as e:
             logger.error(f"DexScreener failed: {e}")
             if "data" in self._cache:
-                logger.warning("Falling back to stale cache")
-                return self._cache["data"][0]
+                cache_data, cache_ts = self._cache["data"]
+                cache_age = (datetime.now(timezone.utc) - cache_ts).total_seconds()
+                
+                # Only use cache if it's less than 5 minutes old
+                if cache_age < 300:
+                    logger.warning(f"⚠️ Falling back to {cache_age:.0f}s old cache")
+                    return cache_data
+                else:
+                    logger.error(f"❌ Cache too stale ({cache_age:.0f}s old), returning empty")
+                    return {}
             return {}
 
     async def _fetch_all_tokens(self) -> Dict[str, Dict]:
+        """Fetch all tokens with rate limiting and error handling"""
         session = await self._get_session()
         tasks = []
+        
+        # Reset stats
+        self._request_count = 0
+        self._request_errors = 0
 
         for symbol, address in self.TOKEN_PAIRS.items():
             chain = config.TOKENS[symbol].chain
@@ -1108,6 +1201,7 @@ class MarketDataProvider:
 
             tasks.append(self._fetch_token(session, symbol, url, chain_id))
 
+        # Execute with gather (will use semaphore internally)
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         market_data: Dict[str, Dict] = {}
@@ -1117,74 +1211,90 @@ class MarketDataProvider:
             if isinstance(result, dict) and result:
                 market_data.update(result)
                 success_count += 1
+            elif isinstance(result, Exception):
+                self._request_errors += 1
+                logger.debug(f"Token fetch error: {result}")
 
-        logger.info(f"DexScreener fetched {success_count}/{len(self.TOKEN_PAIRS)} tokens")
+        if success_count == 0:
+            logger.error("❌ All DexScreener requests failed")
+        elif success_count < len(self.TOKEN_PAIRS) * 0.5:
+            logger.warning(f"⚠️ Low success rate: {success_count}/{len(self.TOKEN_PAIRS)} tokens")
+        else:
+            logger.info(f"✅ DexScreener fetched {success_count}/{len(self.TOKEN_PAIRS)} tokens")
+
         return market_data
 
     async def _fetch_token(self, session: aiohttp.ClientSession, symbol: str, url: str, chain_id: str) -> Dict[str, Dict]:
-        try:
-            async with session.get(url, timeout=10) as resp:
-                if resp.status != 200:
+        """Fetch single token with semaphore-based rate limiting"""
+        # ADDED: Use semaphore to limit concurrent requests
+        async with self._semaphore:
+            self._request_count += 1
+            
+            try:
+                # Small delay between requests to be nice to the API
+                await asyncio.sleep(0.05)  # 50ms between requests = max 20 req/s
+                
+                async with session.get(url, timeout=10) as resp:
+                    if resp.status == 429:  # Rate limited
+                        retry_after = int(resp.headers.get('Retry-After', 5))
+                        logger.warning(f"⏳ DexScreener rate limit for {symbol}, waiting {retry_after}s")
+                        await asyncio.sleep(retry_after)
+                        # Retry once
+                        async with session.get(url, timeout=10) as retry_resp:
+                            if retry_resp.status != 200:
+                                self._request_errors += 1
+                                return {}
+                            raw = await retry_resp.json()
+                    elif resp.status != 200:
+                        self._request_errors += 1
+                        logger.debug(f"DexScreener error {resp.status} for {symbol}")
+                        return {}
+                    else:
+                        raw = await resp.json()
+
+                pairs = raw.get("pairs", [])
+                if not pairs:
                     return {}
-                raw = await resp.json()
 
-            pairs = raw.get("pairs", [])
-            if not pairs:
-                return {}
+                # Filter correct chain + decent liquidity
+                valid = [p for p in pairs
+                         if p.get("chainId", "").lower() == chain_id.lower()
+                         and p.get("liquidity", {}).get("usd", 0) > 5_000]
 
-            # Filter correct chain + decent liquidity
-            valid = [p for p in pairs
-                     if p.get("chainId", "").lower() == chain_id.lower()
-                     and p.get("liquidity", {}).get("usd", 0) > 5_000]
+                if not valid:
+                    valid = pairs[:3]  # fallback
 
-            if not valid:
-                valid = pairs[:3]  # fallback
+                best = max(valid, key=lambda x: x.get("liquidity", {}).get("usd", 0))
 
-            best = max(valid, key=lambda x: x.get("liquidity", {}).get("usd", 0))
+                price = float(best.get("priceUsd", 0))
+                if price <= 0:
+                    return {}
 
-            price = float(best.get("priceUsd", 0))
-            if price <= 0:
-                return {}
+                change_24h = float(best.get("priceChange", {}).get("h24", 0)) or 0.0
+                volume_24h = float(best.get("volume", {}).get("h24", 0)) or 0.0
 
-            change_24h = float(best.get("priceChange", {}).get("h24", 0)) or 0.0
-            volume_24h = float(best.get("volume", {}).get("h24", 0)) or 0.0
+                # Volume surge detection
+                surge = self._calc_volume_surge(symbol, volume_24h)
 
-            # Volume surge detection
-            surge = self._calc_volume_surge(symbol, volume_24h)
-
-            return {
-                symbol: {
-                    "price": price,
-                    "change_24h_pct": change_24h,
-                    "volume_24h": volume_24h,
-                    "volume_surge_score": surge,
-                    "volatility_score": min(abs(change_24h) / 10, 1.0),
+                return {
+                    symbol: {
+                        "price": price,
+                        "change_24h_pct": change_24h,
+                        "volume_24h": volume_24h,
+                        "volume_surge_score": surge,
+                        "volatility_score": min(abs(change_24h) / 10, 1.0),
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    }
                 }
-            }
-        except Exception as e:
-            logger.debug(f"DexScreener failed for {symbol}: {e}")
-            return {}
-
-    def _calc_volume_surge(self, symbol: str, volume: float) -> float:
-        if volume <= 0:
-            return 0.0
-
-        if symbol not in self._volume_history:
-            self._volume_history[symbol] = deque(maxlen=20)
-
-        hist = self._volume_history[symbol]
-        hist.append(volume)
-
-        if len(hist) < 5:
-            return 0.3  # warmup
-
-        avg = sum(hist) / len(hist)
-        if avg == 0:
-            return 0.5
-        ratio = volume / avg
-        return max(0.0, ratio - 0.7)   # 70% above average = surge starts
-
-
+            except asyncio.TimeoutError:
+                self._request_errors += 1
+                logger.debug(f"DexScreener timeout for {symbol}")
+                return {}
+            except Exception as e:
+                self._request_errors += 1
+                logger.debug(f"DexScreener failed for {symbol}: {e}")
+                return {}
+            
 # ============================================================================
 # MARKET ANALYZER
 # ============================================================================
@@ -1760,6 +1870,10 @@ class TradingAgent:
             for error in errors:
                 logger.error(f"❌ Config error: {error}")
             raise ValueError("Invalid configuration")
+
+        self._max_consecutive_errors = 5   # or whatever limit you want
+        self._consecutive_errors = 0       # also needed for tracking
+
         
         # Initialize components
         self.client = RecallAPIClient(config.RECALL_API_KEY, config.base_url)
@@ -1781,7 +1895,7 @@ class TradingAgent:
         self.last_trade_date: Optional[date] = None
         self.daily_start_value: float = 0
         self.price_history: Dict[str, List[Dict]] = {}
-        
+        self._cycle_lock = asyncio.Lock()
         # Shutdown handling
         self._shutdown_event = asyncio.Event()
         self._running = False
@@ -1990,13 +2104,18 @@ class TradingAgent:
             return {}
     
     def _update_price_history(self, market_data: Dict[str, Dict]):
-        """Update price history for trend analysis"""
+        """Update price history for trend analysis (bounded with deque)"""
         timestamp = datetime.now(timezone.utc).isoformat()
+        
+        # FIXED: Use deque for automatic size limiting
+        MAX_HISTORY_LENGTH = int(os.getenv("MAX_PRICE_HISTORY", "288"))  # 24h at 5min intervals
         
         for symbol, data in market_data.items():
             if symbol not in self.price_history:
-                self.price_history[symbol] = []
+                # Initialize with deque for automatic size limiting
+                self.price_history[symbol] = deque(maxlen=MAX_HISTORY_LENGTH)
             
+            # Deque automatically removes oldest when maxlen is reached
             self.price_history[symbol].append({
                 "timestamp": timestamp,
                 "price": data.get("price", 0),
@@ -2009,10 +2128,14 @@ class TradingAgent:
                 self.price_history[symbol] = self.price_history[symbol][-288:]
     
     async def execute_trade(self, decision: TradeDecision, portfolio: Dict) -> bool:
-        """Execute trade with MULTI-CHAIN support - uses ANY chain with USDC"""
+        """Execute trade with MULTI-CHAIN support and SLIPPAGE PROTECTION"""
         if decision.action == TradingAction.HOLD:
-            logger.info(f"⏸️ HOLD: {decision.reason}")
+            logger.info(f"⸻ HOLD: {decision.reason}")
             return False
+        
+        # Configuration
+        SLIPPAGE_TOLERANCE = float(os.getenv("SLIPPAGE_TOLERANCE", "0.02"))  # 2%
+        PRICE_STALENESS_SECONDS = int(os.getenv("PRICE_STALENESS_SECONDS", "30"))
         
         base_from_symbol = decision.from_token.upper()
         base_to_symbol = decision.to_token.upper()
@@ -2027,7 +2150,7 @@ class TradingAgent:
             portfolio
         )
         
-        logger.info(f"🌐 Multi-chain routing: {from_symbol} → {to_symbol} on {trade_chain}")
+        logger.info(f"🌍 Multi-chain routing: {from_symbol} → {to_symbol} on {trade_chain}")
         
         # Validate tokens
         if from_symbol not in config.TOKENS or to_symbol not in config.TOKENS:
@@ -2038,7 +2161,7 @@ class TradingAgent:
         to_token = config.TOKENS[to_symbol]
         
         # =====================================================================
-        # Get fresh balance
+        # Get fresh balance with price staleness check
         # =====================================================================
         try:
             fresh_portfolio = await self.client.get_portfolio(self.competition_id)
@@ -2070,6 +2193,32 @@ class TradingAgent:
             return False
         
         # =====================================================================
+        # Get fresh market price for slippage calculation
+        # =====================================================================
+        try:
+            market_data = await self.analyzer.get_market_data()
+            base_to_symbol_clean = to_symbol.replace("_POLYGON", "").replace("_ARBITRUM", "").replace("_OPTIMISM", "").replace("_BASE", "").replace("_SOLANA", "").replace("BC", "")
+            
+            to_market_price = market_data.get(base_to_symbol_clean, {}).get("price", 0)
+            
+            if to_market_price <= 0:
+                logger.warning(f"⚠️ Cannot get market price for {to_symbol}, proceeding without slippage check")
+                to_market_price = None
+            else:
+                # Check price staleness
+                price_timestamp = market_data.get(base_to_symbol_clean, {}).get("timestamp")
+                if price_timestamp:
+                    price_age = (datetime.now(timezone.utc) - datetime.fromisoformat(price_timestamp.replace('Z', '+00:00'))).total_seconds()
+                    if price_age > PRICE_STALENESS_SECONDS:
+                        logger.warning(f"⚠️ Price data is {price_age:.0f}s old (stale)")
+                        to_market_price = None
+                
+                logger.info(f"📊 Market price for {to_symbol}: ${to_market_price:.6f}")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to get market price: {e}, proceeding without slippage check")
+            to_market_price = None
+        
+        # =====================================================================
         # Calculate trade amount (98% of available for safety)
         # =====================================================================
         max_safe_amount = available_amount * 0.98
@@ -2095,6 +2244,22 @@ class TradingAgent:
         if final_amount > available_amount:
             final_amount = available_amount * 0.98
             amount_str = f"{final_amount:.{decimals}f}"
+            trade_value = final_amount * from_price
+        
+        # =====================================================================
+        # Calculate expected output and minimum acceptable (slippage protection)
+        # =====================================================================
+        if to_market_price and to_market_price > 0:
+            expected_to_amount = trade_value / to_market_price
+            min_acceptable_amount = expected_to_amount * (1 - SLIPPAGE_TOLERANCE)
+            
+            logger.info(f"🎯 Slippage Protection:")
+            logger.info(f"   Expected to receive: {expected_to_amount:.6f} {to_symbol}")
+            logger.info(f"   Minimum acceptable: {min_acceptable_amount:.6f} {to_symbol} ({SLIPPAGE_TOLERANCE*100:.1f}% slippage)")
+        else:
+            expected_to_amount = None
+            min_acceptable_amount = None
+            logger.info(f"⚠️ Trading without slippage protection (price unavailable)")
         
         # =====================================================================
         # Execute trade
@@ -2122,6 +2287,52 @@ class TradingAgent:
             
             if result.get("success"):
                 logger.info("✅ TRADE SUCCESSFUL!")
+                
+                # =====================================================================
+                # POST-TRADE SLIPPAGE VERIFICATION
+                # =====================================================================
+                if expected_to_amount:
+                    # Give API time to update balances
+                    await asyncio.sleep(2)
+                    
+                    try:
+                        post_portfolio = await self.client.get_portfolio(self.competition_id)
+                        post_balances = post_portfolio.get("balances", [])
+                        
+                        # Find the new balance
+                        to_balance = None
+                        for balance in post_balances:
+                            if (balance.get("tokenAddress", "").lower() == to_token.address.lower() and 
+                                balance.get("specificChain", "") == to_token.chain):
+                                to_balance = balance
+                                break
+                        
+                        if to_balance:
+                            received_amount = float(to_balance.get("amount", 0))
+                            
+                            # Calculate actual slippage
+                            if received_amount > 0:
+                                actual_slippage = (expected_to_amount - received_amount) / expected_to_amount
+                                
+                                logger.info(f"📊 Post-Trade Verification:")
+                                logger.info(f"   Expected: {expected_to_amount:.6f} {to_symbol}")
+                                logger.info(f"   Received: {received_amount:.6f} {to_symbol}")
+                                logger.info(f"   Slippage: {actual_slippage*100:+.2f}%")
+                                
+                                if actual_slippage > SLIPPAGE_TOLERANCE:
+                                    logger.warning(f"⚠️ HIGH SLIPPAGE DETECTED: {actual_slippage*100:.1f}% (limit: {SLIPPAGE_TOLERANCE*100:.1f}%)")
+                                    # Log for analysis but don't revert (trade already executed)
+                                elif actual_slippage < 0:
+                                    logger.info(f"🎉 FAVORABLE SLIPPAGE: Got {abs(actual_slippage)*100:.2f}% MORE than expected!")
+                            else:
+                                logger.warning(f"⚠️ Cannot verify slippage: received_amount is 0")
+                        else:
+                            logger.warning(f"⚠️ Cannot verify slippage: {to_symbol} balance not found")
+                            
+                    except Exception as e:
+                        logger.warning(f"⚠️ Failed to verify slippage: {e}")
+                
+                # Record trade
                 await self._record_trade(decision, portfolio, trade_value, final_amount)
                 return True
             else:
@@ -2130,6 +2341,7 @@ class TradingAgent:
                 
         except Exception as e:
             logger.error(f"❌ Trade error: {e}")
+            logger.debug(traceback.format_exc())
             return False
 
     
@@ -2517,7 +2729,7 @@ class TradingAgent:
                     await self.execute_trade(decision, portfolio)
     
     async def run(self):
-        """Main trading loop"""
+        """Main trading loop with error recovery"""
         logger.info("=" * 80)
         logger.info("🚀 ADVANCED PAPER TRADING AGENT v3.0 - PRODUCTION READY 🚀")
         logger.info("=" * 80)
@@ -2527,6 +2739,7 @@ class TradingAgent:
         logger.info(f"   Trading Interval: {config.TRADING_INTERVAL}s")
         logger.info(f"   Max Positions: {config.MAX_POSITIONS}")
         logger.info(f"   Base Position Size: ${config.BASE_POSITION_SIZE}")
+        logger.info(f"   Max Consecutive Errors: {self._max_consecutive_errors}")
         logger.info("=" * 80)
         
         try:
@@ -2537,26 +2750,67 @@ class TradingAgent:
             return
         
         self._running = True
+        self._consecutive_errors = 0
         
         while self._running and not self._shutdown_event.is_set():
-            try:
-                await self.run_cycle()
-            except CircuitBreakerOpenError as e:
-                logger.warning(f"⚠️ Circuit breaker open: {e}")
-            except Exception as e:
-                logger.error(f"❌ Cycle error: {e}")
-                logger.debug(traceback.format_exc())
-            
-            # Wait for next cycle or shutdown
-            try:
-                await asyncio.wait_for(
-                    self._shutdown_event.wait(),
-                    timeout=config.TRADING_INTERVAL
+            # Check if we've hit error limit
+            if self._consecutive_errors >= self._max_consecutive_errors:
+                logger.critical(
+                    f"💀 FATAL: {self._consecutive_errors} consecutive errors. "
+                    "Shutting down to prevent damage."
                 )
-            except asyncio.TimeoutError:
-                pass  # Normal timeout, continue loop
+                break
+            
+            # Use lock to prevent concurrent cycles
+            async with self._cycle_lock:
+                try:
+                    await self.run_cycle()
+                    # Reset error counter on success
+                    self._consecutive_errors = 0
+                    
+                except CircuitBreakerOpenError as e:
+                    logger.warning(f"⚠️ Circuit breaker open: {e}")
+                    # Circuit breaker errors don't count toward consecutive errors
+                    # (they're expected during recovery)
+                    
+                except Exception as e:
+                    self._consecutive_errors += 1
+                    logger.error(
+                        f"❌ Cycle error ({self._consecutive_errors}/{self._max_consecutive_errors}): {e}"
+                    )
+                    logger.debug(traceback.format_exc())
+                    
+                    # Exponential backoff on errors
+                    if self._consecutive_errors > 3:
+                        backoff_time = min(60 * (2 ** (self._consecutive_errors - 3)), 300)
+                        logger.warning(f"⏳ Backing off for {backoff_time}s due to repeated errors")
+                        try:
+                            await asyncio.wait_for(
+                                self._shutdown_event.wait(),
+                                timeout=backoff_time
+                            )
+                        except asyncio.TimeoutError:
+                            pass
+            
+            # Wait for next cycle or shutdown (only if not already backing off)
+            if self._consecutive_errors <= 3:
+                try:
+                    await asyncio.wait_for(
+                        self._shutdown_event.wait(),
+                        timeout=config.TRADING_INTERVAL
+                    )
+                except asyncio.TimeoutError:
+                    pass  # Normal timeout, continue loop
         
         logger.info("🛑 Trading loop stopped")
+        
+        # Log reason for shutdown
+        if self._consecutive_errors >= self._max_consecutive_errors:
+            logger.critical("🚨 Shutdown reason: Too many consecutive errors")
+        elif not self._running:
+            logger.info("✅ Shutdown reason: Graceful stop requested")
+        else:
+            logger.info("✅ Shutdown reason: Shutdown event triggered")
     
     async def shutdown(self):
         """Graceful shutdown"""
