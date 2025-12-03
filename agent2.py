@@ -1026,163 +1026,181 @@ class RecallAPIClient:
 # MARKET DATA PROVIDER
 # ============================================================================
 
-# ============================================================================
-# MARKET DATA PROVIDER - DEXSCREENER (FIXED & BULLETPROOF)
-# ============================================================================
-
 class MarketDataProvider:
     """
-    DexScreener-powered market data – free, unlimited, multi-chain, no rate limits.
-    Works perfectly with Recall Sandbox + Production.
+    Market data provider with caching and multiple source support.
+    FIXED: Better volume estimation and data handling
     """
-    # Token → DexScreener pair address (most liquid pool)
-    TOKEN_PAIRS = {
-        "WETH":        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",  # WETH/USDT
-        "WBTC":        "0x2260fac5e5542a773aa44fbcfdfe2f6c0c599",    # WBTC/USDT
-        "LINK":        "0x514910771af9ca656af840dff83e8264ecf986ca",  # LINK/USDT
-        "UNI":         "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",  # UNI/USDT
-        "AAVE":        "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",  # AAVE/USDT
-        "SNX":         "0xc011a73ee8576fb46f5e1c5751ca3b9fe0af2a6f",   # SNX/USDT
-        "MKR":         "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2",   # MKR/USDT
-        "PEPE":        "0x6982508145454ce325ddbe47a25d4ec3d2311933",  # PEPE/WETH
-        "SHIB":        "0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce",   # SHIB/WETH
-        "BONK":        "0x1151cb3d861920e07a38e03eead12c32178567f6",   # BONK/WETH (ETH)
-        "FLOKI":       "0xcf0c122c6b73ff809c693db761e7baebe62b6a2e",   # FLOKI/WETH
-        "WETH_POLYGON":"0x7ceb23fd6bc0add59e62ac25578270cff1b9f619", # Polygon WETH
-        "WETH_ARBITRUM":"0x82af49447d8a07e3bd95bd0d56f35241523fbab1", # Arb WETH
-        "WETH_BASE":   "0x4200000000000000000000000000000000000006", # Base WETH
-        "SOL":         "So11111111111111111111111111111111111111112", # Raydium SOL
-        "BONK_SOLANA": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", # BONK/SOL
+    
+    COINGECKO_IDS = {
+        "WETH": "weth",
+        "WBTC": "wrapped-bitcoin",
+        "UNI": "uniswap",
+        "LINK": "chainlink",
+        "DAI": "dai",
+        "USDC": "usd-coin",
+        "AAVE": "aave",
+        "SNX": "synthetix-network-token",
+        "BONK": "bonk",
+        "FLOKI": "floki",
+        "PEPE": "pepe",
+        "SHIB": "shiba-inu",
     }
-
-    BASE_URL = "https://api.dexscreener.com/latest/dex"
-
+    
+    # Historical average volumes for volume surge calculation (in millions USD)
+    HISTORICAL_AVG_VOLUMES = {
+        "WETH": 15000,
+        "WBTC": 8000,
+        "UNI": 200,
+        "LINK": 400,
+        "AAVE": 150,
+        "SNX": 50,
+        "BONK": 300,
+        "FLOKI": 100,
+        "PEPE": 500,
+        "SHIB": 300,
+    }
+    
     def __init__(self):
-        self._cache: Dict[str, Any] = {}
+        self._cache: Dict[str, Tuple[Dict, datetime]] = {}
         self._cache_ttl = timedelta(seconds=config.MARKET_DATA_CACHE_TTL)
         self._session: Optional[aiohttp.ClientSession] = None
-        self._volume_history: Dict[str, deque] = {}
-
+        self._volume_history: Dict[str, List[float]] = {}  # Track volume history
+    
     async def _get_session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession(timeout=ClientTimeout(total=20))
+            self._session = aiohttp.ClientSession(
+                timeout=ClientTimeout(total=15)
+            )
         return self._session
-
+    
     async def close(self):
         if self._session and not self._session.closed:
             await self._session.close()
-
+    
     async def get_market_data(self) -> Dict[str, Dict]:
-        # Cache
-        if "data" in self._cache:
-            data, ts = self._cache["data"]
-            if datetime.now(timezone.utc) - ts < self._cache_ttl:
-                logger.debug("Using cached DexScreener data")
+        """
+        Get market data with caching.
+        Returns dict of symbol -> market data.
+        """
+        cache_key = "market_data"
+        
+        # Check cache
+        if cache_key in self._cache:
+            data, timestamp = self._cache[cache_key]
+            if datetime.now(timezone.utc) - timestamp < self._cache_ttl:
+                logger.debug("📊 Using cached market data")
                 return data
-
+        
+        # Fetch fresh data
         try:
-            data = await self._fetch_all_tokens()
-            self._cache["data"] = (data, datetime.now(timezone.utc))
+            data = await self._fetch_coingecko_data()
+            self._cache[cache_key] = (data, datetime.now(timezone.utc))
             return data
         except Exception as e:
-            logger.error(f"DexScreener failed: {e}")
-            if "data" in self._cache:
-                logger.warning("Falling back to stale cache")
-                return self._cache["data"][0]
+            logger.error(f"❌ Failed to fetch market data: {e}")
+            # Return stale cache if available
+            if cache_key in self._cache:
+                logger.warning("⚠️ Using stale cached data")
+                return self._cache[cache_key][0]
             return {}
-
-    async def _fetch_all_tokens(self) -> Dict[str, Dict]:
+    
+    async def _fetch_coingecko_data(self) -> Dict[str, Dict]:
+        """Fetch data from CoinGecko API"""
+        ids = ",".join(self.COINGECKO_IDS.values())
+        url = "https://api.coingecko.com/api/v3/simple/price"
+        params = {
+            "ids": ids,
+            "vs_currencies": "usd",
+            "include_24hr_change": "true",
+            "include_24hr_vol": "true",
+            "include_market_cap": "true"
+        }
+        
         session = await self._get_session()
-        tasks = []
-
-        for symbol, address in self.TOKEN_PAIRS.items():
-            chain = config.TOKENS[symbol].chain
-            chain_id = {
-                "eth": "ethereum", "polygon": "polygon", "arbitrum": "arbitrum",
-                "base": "base", "optimism": "optimism", "svm": "solana"
-            }.get(chain, "ethereum")
-
-            url = f"{self.BASE_URL}/tokens/{address}"
-            if chain_id != "ethereum":
-                url = f"{self.BASE_URL}/search?q={address}"
-
-            tasks.append(self._fetch_token(session, symbol, url, chain_id))
-
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        market_data: Dict[str, Dict] = {}
-        success_count = 0
-
-        for result in results:
-            if isinstance(result, dict) and result:
-                market_data.update(result)
-                success_count += 1
-
-        logger.info(f"DexScreener fetched {success_count}/{len(self.TOKEN_PAIRS)} tokens")
-        return market_data
-
-    async def _fetch_token(self, session: aiohttp.ClientSession, symbol: str, url: str, chain_id: str) -> Dict[str, Dict]:
-        try:
-            async with session.get(url, timeout=10) as resp:
-                if resp.status != 200:
-                    return {}
-                raw = await resp.json()
-
-            pairs = raw.get("pairs", [])
-            if not pairs:
-                return {}
-
-            # Filter correct chain + decent liquidity
-            valid = [p for p in pairs
-                     if p.get("chainId", "").lower() == chain_id.lower()
-                     and p.get("liquidity", {}).get("usd", 0) > 5_000]
-
-            if not valid:
-                valid = pairs[:3]  # fallback
-
-            best = max(valid, key=lambda x: x.get("liquidity", {}).get("usd", 0))
-
-            price = float(best.get("priceUsd", 0))
-            if price <= 0:
-                return {}
-
-            change_24h = float(best.get("priceChange", {}).get("h24", 0)) or 0.0
-            volume_24h = float(best.get("volume", {}).get("h24", 0)) or 0.0
-
-            # Volume surge detection
-            surge = self._calc_volume_surge(symbol, volume_24h)
-
-            return {
-                symbol: {
+        async with session.get(url, params=params) as response:
+            response.raise_for_status()
+            data = await response.json()
+        
+        market_data = {}
+        for symbol, cg_id in self.COINGECKO_IDS.items():
+            if cg_id in data and "usd" in data[cg_id]:
+                token_data = data[cg_id]
+                
+                price = token_data.get("usd", 0)
+                change_24h = token_data.get("usd_24h_change", 0.0) or 0.0
+                volume_24h = token_data.get("usd_24h_vol", 0.0) or 0.0
+                market_cap = token_data.get("usd_market_cap", 0.0) or 0.0
+                
+                # Calculate volume surge score
+                volume_surge = self._calculate_volume_surge(symbol, volume_24h)
+                
+                # Update volume history
+                self._update_volume_history(symbol, volume_24h)
+                
+                market_data[symbol] = {
                     "price": price,
                     "change_24h_pct": change_24h,
                     "volume_24h": volume_24h,
-                    "volume_surge_score": surge,
-                    "volatility_score": min(abs(change_24h) / 10, 1.0),
+                    "market_cap": market_cap,
+                    "volume_surge_score": volume_surge,
+                    "volatility_score": self._estimate_volatility(change_24h),
                 }
-            }
-        except Exception as e:
-            logger.debug(f"DexScreener failed for {symbol}: {e}")
-            return {}
-
-    def _calc_volume_surge(self, symbol: str, volume: float) -> float:
-        if volume <= 0:
+        
+        logger.info(f"📊 Fetched market data for {len(market_data)} tokens")
+        return market_data
+    
+    def _calculate_volume_surge(self, symbol: str, current_volume: float) -> float:
+        """
+        Calculate volume surge score (0.0 to 1.0+).
+        FIXED: More accurate volume surge calculation
+        """
+        if current_volume <= 0:
             return 0.0
-
+        
+        # Get historical average (in millions, convert to actual)
+        hist_avg = self.HISTORICAL_AVG_VOLUMES.get(symbol, 100) * 1_000_000
+        
+        # Also check our tracked history
+        if symbol in self._volume_history and len(self._volume_history[symbol]) >= 3:
+            recent_avg = statistics.mean(self._volume_history[symbol][-10:])
+            # Use the more conservative of the two
+            hist_avg = min(hist_avg, recent_avg) if recent_avg > 0 else hist_avg
+        
+        # Calculate surge ratio
+        if hist_avg > 0:
+            surge_ratio = current_volume / hist_avg
+        else:
+            surge_ratio = 0.5
+        
+        # Normalize to 0-1 scale (1.0 = normal, >1.0 = surge)
+        # A 50% increase in volume = 0.5 score, 100% = 1.0, 200% = 1.5
+        normalized_score = max(0, surge_ratio - 0.5)
+        
+        return min(normalized_score, 2.0)  # Cap at 2.0
+    
+    def _update_volume_history(self, symbol: str, volume: float):
+        """Track volume history for better surge detection"""
         if symbol not in self._volume_history:
-            self._volume_history[symbol] = deque(maxlen=20)
-
-        hist = self._volume_history[symbol]
-        hist.append(volume)
-
-        if len(hist) < 5:
-            return 0.3  # warmup
-
-        avg = sum(hist) / len(hist)
-        if avg == 0:
-            return 0.5
-        ratio = volume / avg
-        return max(0.0, ratio - 0.7)   # 70% above average = surge starts
+            self._volume_history[symbol] = []
+        
+        self._volume_history[symbol].append(volume)
+        
+        # Keep only last 24 data points
+        if len(self._volume_history[symbol]) > 24:
+            self._volume_history[symbol] = self._volume_history[symbol][-24:]
+    
+    def _estimate_volatility(self, change_24h: float) -> float:
+        """Estimate volatility score based on price change"""
+        abs_change = abs(change_24h)
+        if abs_change > 10:
+            return 1.0
+        elif abs_change > 5:
+            return 0.7
+        elif abs_change > 2:
+            return 0.4
+        else:
+            return 0.2
 
 
 # ============================================================================
