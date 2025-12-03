@@ -2480,7 +2480,7 @@ class TradingAgent:
             "trades_today": self.trades_today,
             "last_trade_date": self.last_trade_date,
             "daily_start_value": self.daily_start_value,
-            "price_history": {k: v[-100:] for k, v in self.price_history.items()}  # Keep last 100 per token
+            "price_history": {k: list(v)[-100:] for k, v in self.price_history.items()}  # Keep last 100 per token
         }
         await self.persistence.save_state(state)
     
