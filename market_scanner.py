@@ -21,25 +21,64 @@ logger = get_logger("MarketScanner")
 
 class MarketScanner:
     """
-    Autonomous market scanner that discovers tokens and opportunities
-    WITHOUT manual token selection
+    Autonomous market scanner with auto-blacklist learning
     """
     
     BASE_URL = "https://api.dexscreener.com/latest/dex"
+    
+    # Chain-specific tuning (different chains have different characteristics)
+    CHAIN_CONFIGS = {
+        "ethereum": {
+            "min_liquidity": 500_000,  # ETH = expensive, needs more liquidity
+            "min_volume": 1_000_000,
+            "gas_cost_weight": 1.0,    # Highest gas
+            "quality_bonus": 1.5       # Most established tokens
+        },
+        "polygon": {
+            "min_liquidity": 100_000,  # Cheap gas, can trade smaller
+            "min_volume": 200_000,
+            "gas_cost_weight": 0.1,
+            "quality_bonus": 1.0
+        },
+        "arbitrum": {
+            "min_liquidity": 150_000,
+            "min_volume": 300_000,
+            "gas_cost_weight": 0.2,
+            "quality_bonus": 1.2
+        },
+        "base": {
+            "min_liquidity": 100_000,  # Newer chain, lower requirements
+            "min_volume": 200_000,
+            "gas_cost_weight": 0.15,
+            "quality_bonus": 0.9       # Less established
+        },
+        "optimism": {
+            "min_liquidity": 150_000,
+            "min_volume": 300_000,
+            "gas_cost_weight": 0.2,
+            "quality_bonus": 1.1
+        }
+    }
     
     def __init__(self):
         self._session: Optional[aiohttp.ClientSession] = None
         self._cache: Dict[str, any] = {}
         self._discovered_tokens: Dict[str, DiscoveredToken] = {}
         self._volume_history: Dict[str, deque] = {}
-        self._blacklist: Set[str] = set()  # Tokens to avoid
+        
+        # AUTO-BLACKLIST SYSTEM
+        self._blacklist: Set[str] = set()  # Addresses to avoid
+        self._token_performance: Dict[str, Dict] = {}  # Track how tokens perform
+        self._failed_trades: Dict[str, int] = {}  # Count failures per token
         
         # Rate limiting
         self._semaphore = asyncio.Semaphore(10)
         self._last_request_time = datetime.now()
         self._request_count = 0
         
-        logger.info("🔍 Self-Thinking Market Scanner initialized")
+        logger.info("🔍 Advanced Market Scanner initialized")
+        logger.info("   ✅ Auto-blacklist learning enabled")
+        logger.info("   ✅ Chain-specific tuning active")
     
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create HTTP session"""
@@ -67,33 +106,44 @@ class MarketScanner:
         min_volume: Optional[float] = None
     ) -> List[DiscoveredToken]:
         """
-        Scan market for trading opportunities
-        
-        Args:
-            chains: List of chains to scan (default: all major chains)
-            min_liquidity: Minimum liquidity in USD
-            min_volume: Minimum 24h volume in USD
-        
-        Returns:
-            List of discovered tokens meeting criteria
+        Scan market for trading opportunities with chain-specific tuning
         """
         if chains is None:
             chains = ["ethereum", "polygon", "arbitrum", "base", "optimism"]
         
-        min_liquidity = min_liquidity or config.MIN_LIQUIDITY_USD
-        min_volume = min_volume or config.MIN_VOLUME_24H_USD
+        # Use global minimums as fallback, but chains have their own configs
+        global_min_liquidity = min_liquidity or config.MIN_LIQUIDITY_USD
+        global_min_volume = min_volume or config.MIN_VOLUME_24H_USD
         
         logger.info(f"🔍 Scanning {len(chains)} chains for opportunities...")
-        logger.info(f"   Min Liquidity: ${min_liquidity:,.0f}")
-        logger.info(f"   Min Volume: ${min_volume:,.0f}")
+        logger.info(f"   Global Min Liquidity: ${global_min_liquidity:,.0f}")
+        logger.info(f"   Global Min Volume: ${global_min_volume:,.0f}")
+        logger.info(f"   Blacklist size: {len(self._blacklist)} tokens")
         
         all_tokens = []
         
         for chain in chains:
             try:
-                tokens = await self._scan_chain(chain, min_liquidity, min_volume)
+                # Get chain-specific config
+                chain_config = self.CHAIN_CONFIGS.get(chain, {
+                    "min_liquidity": global_min_liquidity,
+                    "min_volume": global_min_volume,
+                    "gas_cost_weight": 0.5,
+                    "quality_bonus": 1.0
+                })
+                
+                tokens = await self._scan_chain(
+                    chain, 
+                    chain_config["min_liquidity"],
+                    chain_config["min_volume"]
+                )
+                
+                # Apply chain-specific quality bonus
+                for token in tokens:
+                    token.opportunity_score *= chain_config["quality_bonus"]
+                
                 all_tokens.extend(tokens)
-                logger.info(f"   ✅ {chain}: Found {len(tokens)} tokens")
+                logger.info(f"   ✅ {chain}: Found {len(tokens)} tokens (bonus: {chain_config['quality_bonus']}x)")
             except Exception as e:
                 logger.warning(f"   ⚠️ {chain}: Failed to scan - {e}")
         
@@ -198,51 +248,53 @@ class MarketScanner:
                 return []
     
     def _filter_tokens(self, tokens: List[DiscoveredToken]) -> List[DiscoveredToken]:
-        """Apply strict filters to discovered tokens - PRODUCTION SAFETY"""
+        """Apply filters with auto-blacklist learning"""
         filtered = []
         
         for token in tokens:
-            # Skip blacklisted
+            # Skip auto-blacklisted tokens
             if token.address in self._blacklist:
+                logger.debug(f"⏭️ Auto-blacklisted: {token.symbol} ({self._get_blacklist_reason(token.address)})")
                 continue
             
-            # ENHANCED: More comprehensive scam detection
+            # ENHANCED: More comprehensive scam detection (relaxed slightly)
             suspicious_patterns = [
-                "test", "xxx", "scam", "rug", "fake", "moon", "safe",
-                "elon", "doge", "shib", "floki", "inu", "pepe",  # High-risk meme patterns
-                "token", "coin", "swap", "finance",  # Generic names
+                "test", "xxx", "scam", "rug", "fake",
+                "elon", "moon", "safe",  # Removed some aggressive filters
+                "token", "coin",  # Generic names
                 "v2", "2.0", "new"  # Fork indicators
             ]
             symbol_lower = token.symbol.lower()
             if any(pattern in symbol_lower for pattern in suspicious_patterns):
                 logger.debug(f"⏭️ Skipping suspicious token: {token.symbol}")
+                self._soft_blacklist(token.address, "suspicious_pattern")
                 continue
             
-            # Check liquidity/volume ratio (prevents wash trading)
+            # Check liquidity/volume ratio (RELAXED from 0.1 to 0.05)
             if token.volume_24h > 0:
                 lv_ratio = token.liquidity_usd / token.volume_24h
                 
-                # TIGHTENED: More conservative ratio
-                if lv_ratio < 0.1:  # Volume is 10x liquidity (suspicious)
-                    logger.debug(f"⏭️ {token.symbol}: Suspicious liquidity/volume ratio ({lv_ratio:.3f})")
+                if lv_ratio < 0.05:  # RELAXED: Volume is 20x liquidity (was 10x)
+                    logger.debug(f"⏭️ {token.symbol}: Suspicious L/V ratio ({lv_ratio:.3f})")
+                    self._soft_blacklist(token.address, "wash_trading")
                     continue
                 
-                # Also check if liquidity is TOO high vs volume (stale pool)
-                if lv_ratio > 20:  # Liquidity 20x volume (no trading activity)
+                # Also check if liquidity is TOO high vs volume
+                if lv_ratio > 20:
                     logger.debug(f"⏭️ {token.symbol}: Stale pool (high liquidity, low volume)")
                     continue
             
-            # NEW: Minimum market cap check (avoid micro-caps)
-            if token.market_cap and token.market_cap < 1_000_000:  # $1M minimum
+            # Market cap check (RELAXED from $1M to $500k)
+            if token.market_cap and token.market_cap < 500_000:  # RELAXED
                 logger.debug(f"⏭️ {token.symbol}: Market cap too low (${token.market_cap:,.0f})")
                 continue
             
-            # NEW: Symbol length check (scam tokens often have long symbols)
+            # Symbol length check
             if len(token.symbol) > 10:
                 logger.debug(f"⏭️ {token.symbol}: Symbol too long")
                 continue
             
-            # NEW: Price sanity check
+            # Price sanity check
             if token.price <= 0 or token.price > 1_000_000:
                 logger.debug(f"⏭️ {token.symbol}: Invalid price (${token.price})")
                 continue
@@ -253,69 +305,82 @@ class MarketScanner:
     
     def _score_opportunities(self, tokens: List[DiscoveredToken]) -> List[DiscoveredToken]:
         """
-        Score tokens based on opportunity potential
-        PRODUCTION: More conservative scoring
+        Score tokens with chain-specific adjustments (RELAXED thresholds)
         """
         for token in tokens:
             score = 0.0
             
-            # Volume surge component (REDUCED weight for safety)
+            # Get chain config for bonus
+            chain_config = self.CHAIN_CONFIGS.get(token.chain, {"quality_bonus": 1.0})
+            
+            # Volume surge component (REDUCED weight)
             volume_surge = self._calc_volume_surge(
                 f"{token.symbol}_{token.chain}", 
                 token.volume_24h
             )
-            score += volume_surge * 2.0  # Reduced from 3.0
+            score += volume_surge * 1.5  # REDUCED from 2.0
             
-            # Price momentum component (MORE SELECTIVE)
+            # Price momentum component (MORE LENIENT - lowered from 5% to 3%)
             abs_change = abs(token.change_24h_pct)
-            if abs_change > 5:  # Only significant moves
-                score += abs_change * 0.3  # Reduced from 0.5
+            if abs_change > 3:  # RELAXED from 5%
+                score += abs_change * 0.4  # INCREASED from 0.3
             
-            # Liquidity safety component (HIGHER requirements)
-            if token.liquidity_usd > 1_000_000:  # $1M+
+            # Liquidity safety component (ADJUSTED for lower minimums)
+            if token.liquidity_usd > 500_000:  # $500k+
                 score += 3.0
-            elif token.liquidity_usd > 500_000:  # $500k+
+            elif token.liquidity_usd > 250_000:  # $250k+
                 score += 2.0
-            elif token.liquidity_usd > 200_000:  # $200k+
+            elif token.liquidity_usd > 100_000:  # $100k+ (LOWERED)
                 score += 1.0
             else:
-                score -= 2.0  # PENALTY for low liquidity
+                score -= 1.0  # Light penalty
             
-            # Volume component (HIGHER requirements)
-            if token.volume_24h > 5_000_000:  # $5M+
+            # Volume component (ADJUSTED for lower minimums)
+            if token.volume_24h > 2_000_000:  # $2M+ (LOWERED from $5M)
                 score += 3.0
-            elif token.volume_24h > 2_000_000:  # $2M+
+            elif token.volume_24h > 1_000_000:  # $1M+ (LOWERED from $2M)
                 score += 2.0
-            elif token.volume_24h > 1_000_000:  # $1M+
+            elif token.volume_24h > 500_000:  # $500k+ (LOWERED from $1M)
                 score += 1.0
             else:
-                score -= 1.0  # PENALTY for low volume
+                score -= 0.5  # Light penalty
             
-            # Market cap component (STRONG preference for mid-caps)
+            # Market cap component (ADJUSTED range)
             if token.market_cap:
-                if 50_000_000 < token.market_cap < 500_000_000:  # $50M-$500M sweet spot
+                if 20_000_000 < token.market_cap < 500_000_000:  # $20M-$500M sweet spot (LOWERED from $50M)
                     score += 3.0
-                elif 10_000_000 < token.market_cap < 50_000_000:  # $10M-$50M
+                elif 5_000_000 < token.market_cap < 20_000_000:  # $5M-$20M (LOWERED from $10M-$50M)
                     score += 1.5
-                elif token.market_cap < 5_000_000:  # <$5M (risky micro-cap)
-                    score -= 3.0  # HEAVY PENALTY
+                elif token.market_cap < 2_000_000:  # <$2M (LOWERED from $5M)
+                    score -= 2.0  # REDUCED penalty
             
-            # NEW: Stability bonus (prefer established tokens)
-            # Lower volatility = more stable = bonus
+            # Stability bonus (prefer established tokens)
             if abs_change < 3:  # Less than 3% move
                 score += 1.0
             
-            # NEW: Volume consistency check
-            if volume_surge < 0.5:  # Volume is stable (not just a spike)
+            # Volume consistency check
+            if volume_surge < 0.5:  # Volume is stable
                 score += 0.5
             
-            token.opportunity_score = max(0.0, score)  # Can't be negative
+            # Performance history bonus (if we've traded this before)
+            if token.address in self._token_performance:
+                perf = self._token_performance[token.address]
+                win_rate = perf.get("win_rate", 0)
+                if win_rate > 0.6:  # 60%+ win rate
+                    score += 2.0
+                    logger.debug(f"   🌟 {token.symbol}: Performance bonus ({win_rate*100:.0f}% win rate)")
+                elif win_rate < 0.3:  # <30% win rate
+                    score -= 1.0
+            
+            token.opportunity_score = max(0.0, score)
         
         # Sort by score descending
         tokens.sort(key=lambda t: t.opportunity_score, reverse=True)
         
-        # PRODUCTION: Only return tokens with score > 8.0 (high quality)
-        quality_tokens = [t for t in tokens if t.opportunity_score >= 8.0]
+        # RELAXED: Return tokens with score > 6.0 (was 8.0)
+        quality_tokens = [t for t in tokens if t.opportunity_score >= 6.0]
+        
+        logger.info(f"   💎 {len(quality_tokens)} high-quality tokens (score >= 6.0)")
         
         return quality_tokens
     
@@ -354,10 +419,87 @@ class MarketScanner:
         
         return surge_score
     
-    def blacklist_token(self, address: str):
-        """Add token to blacklist"""
+    def blacklist_token(self, address: str, reason: str = "manual"):
+        """Permanently blacklist a token"""
         self._blacklist.add(address.lower())
-        logger.info(f"🚫 Blacklisted token: {address}")
+        if address not in self._token_performance:
+            self._token_performance[address] = {}
+        self._token_performance[address]["blacklist_reason"] = reason
+        self._token_performance[address]["blacklisted_at"] = datetime.now(timezone.utc).isoformat()
+        logger.info(f"🚫 Permanently blacklisted: {address[:10]}... ({reason})")
+    
+    def _soft_blacklist(self, address: str, reason: str):
+        """Soft blacklist (temporary, based on failures)"""
+        if address not in self._failed_trades:
+            self._failed_trades[address] = 0
+        self._failed_trades[address] += 1
+        
+        # Auto-blacklist after 3 failures
+        if self._failed_trades[address] >= 3:
+            self.blacklist_token(address, f"auto_{reason}_x{self._failed_trades[address]}")
+    
+    def _get_blacklist_reason(self, address: str) -> str:
+        """Get why a token was blacklisted"""
+        if address in self._token_performance:
+            return self._token_performance[address].get("blacklist_reason", "unknown")
+        return "unknown"
+    
+    def record_trade_result(
+        self, 
+        token_address: str, 
+        token_symbol: str,
+        success: bool,
+        pnl_pct: Optional[float] = None
+    ):
+        """
+        🔄 FEEDBACK LOOP: Learn from trade results
+        Auto-blacklist tokens that consistently fail
+        """
+        address = token_address.lower()
+        
+        if address not in self._token_performance:
+            self._token_performance[address] = {
+                "symbol": token_symbol,
+                "trades": 0,
+                "wins": 0,
+                "losses": 0,
+                "total_pnl": 0.0,
+                "consecutive_losses": 0
+            }
+        
+        perf = self._token_performance[address]
+        perf["trades"] += 1
+        
+        if success and pnl_pct is not None:
+            if pnl_pct > 0:
+                perf["wins"] += 1
+                perf["consecutive_losses"] = 0
+            else:
+                perf["losses"] += 1
+                perf["consecutive_losses"] += 1
+            perf["total_pnl"] += pnl_pct
+        elif not success:
+            # Trade failed (e.g., execution error, slippage)
+            perf["losses"] += 1
+            perf["consecutive_losses"] += 1
+            self._soft_blacklist(address, "trade_failure")
+        
+        perf["win_rate"] = perf["wins"] / perf["trades"] if perf["trades"] > 0 else 0
+        perf["avg_pnl"] = perf["total_pnl"] / perf["trades"] if perf["trades"] > 0 else 0
+        
+        # Auto-blacklist logic
+        if perf["trades"] >= 5:  # Need at least 5 trades
+            if perf["win_rate"] < 0.25:  # <25% win rate
+                self.blacklist_token(address, f"low_winrate_{perf['win_rate']*100:.0f}%")
+            elif perf["consecutive_losses"] >= 5:
+                self.blacklist_token(address, f"consecutive_losses_x{perf['consecutive_losses']}")
+            elif perf["avg_pnl"] < -5:  # Average loss >5%
+                self.blacklist_token(address, f"avg_loss_{perf['avg_pnl']:.1f}%")
+        
+        logger.debug(
+            f"📊 {token_symbol}: {perf['wins']}W/{perf['losses']}L "
+            f"({perf['win_rate']*100:.0f}% WR, {perf['avg_pnl']:+.1f}% avg)"
+        )
     
     def get_discovered_tokens(self) -> Dict[str, DiscoveredToken]:
         """Get all currently discovered tokens"""

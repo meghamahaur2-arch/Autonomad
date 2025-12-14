@@ -5,7 +5,6 @@ Autonomous trading with AI reasoning
 import asyncio
 import signal
 import sys
-from typing import Dict, Optional
 from datetime import datetime, timezone, date
 
 from config import config
@@ -14,6 +13,7 @@ from models import (
     TradingAction, TradeDecision, TradingMetrics,
     CircuitBreakerOpenError
 )
+from typing import Optional, Dict
 from api_client import RecallAPIClient
 from market_scanner import MarketScanner
 from strategy import TradingStrategy
@@ -40,12 +40,12 @@ class TradingAgent:
                 logger.error(f"❌ Config error: {error}")
             raise ValueError("Invalid configuration")
         
-        # Initialize components
+        # Initialize components with feedback loop
         self.client = RecallAPIClient(config.RECALL_API_KEY, config.base_url)
         self.market_scanner = MarketScanner()
         self.llm_brain = LLMBrain()
-        self.portfolio_manager = PortfolioManager(self.client)
-        self.strategy = TradingStrategy(llm_brain=self.llm_brain)  # Inject LLM brain
+        self.portfolio_manager = PortfolioManager(self.client, self.market_scanner)  # Connect scanner
+        self.strategy = TradingStrategy(llm_brain=self.llm_brain)
         self.persistence = PersistenceManager(
             config.STATE_FILE,
             config.STATE_BACKUP_COUNT

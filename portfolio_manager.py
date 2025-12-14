@@ -18,16 +18,20 @@ logger = get_logger("PortfolioManager")
 class PortfolioManager:
     """
     Manages portfolio state, tracking, and trade execution
+    Feeds results back to market scanner for learning
     """
     
-    def __init__(self, api_client: RecallAPIClient):
+    def __init__(self, api_client: RecallAPIClient, market_scanner=None):
         self.client = api_client
+        self.market_scanner = market_scanner  # For feedback loop
         self.tracked_positions: Dict[str, TrackedPosition] = {}
         self.position_history: list = []
         self.trade_history: list = []
         self.price_history: Dict[str, deque] = {}
         
         logger.info("💼 Portfolio Manager initialized")
+        if market_scanner:
+            logger.info("   ✅ Feedback loop to scanner enabled")
     
     async def get_portfolio_state(self, competition_id: str) -> Dict:
         """Get comprehensive portfolio state"""
@@ -240,6 +244,15 @@ class PortfolioManager:
                 elif decision.action == TradingAction.SELL:
                     await self._track_sell(from_symbol, trade_value)
                 
+                # 🔄 FEEDBACK TO SCANNER: Trade succeeded
+                if self.market_scanner and token_address:
+                    self.market_scanner.record_trade_result(
+                        token_address,
+                        to_symbol,
+                        success=True,
+                        pnl_pct=None  # Don't know PnL yet (just entry)
+                    )
+                
                 # Record in history
                 self.trade_history.append({
                     "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -255,6 +268,15 @@ class PortfolioManager:
                 return True
             else:
                 logger.error(f"❌ Trade failed: {result.get('error')}")
+                
+                # 🔄 FEEDBACK TO SCANNER: Trade failed
+                if self.market_scanner and token_address:
+                    self.market_scanner.record_trade_result(
+                        token_address,
+                        to_symbol,
+                        success=False
+                    )
+                
                 return False
                 
         except Exception as e:
@@ -367,21 +389,36 @@ class PortfolioManager:
             logger.info(f"📍 New position: {symbol} @ ${price:.4f}")
     
     async def _track_sell(self, symbol: str, value_usd: float):
-        """Track sell trade"""
+        """Track sell trade with feedback to scanner"""
         if symbol in self.tracked_positions:
             tracked = self.tracked_positions[symbol]
             
+            # Calculate PnL
+            exit_price = tracked.entry_price  # Simplified - would need actual exit price
+            pnl_pct = 0  # TODO: Calculate actual PnL
+            
             # Archive to history
-            self.position_history.append({
+            position_data = {
                 "symbol": symbol,
                 "entry_price": tracked.entry_price,
                 "entry_timestamp": tracked.entry_timestamp,
-                "exit_timestamp": datetime.now(timezone.utc).isoformat()
-            })
+                "exit_timestamp": datetime.now(timezone.utc).isoformat(),
+                "pnl_pct": pnl_pct
+            }
+            self.position_history.append(position_data)
+            
+            # 🔄 FEEDBACK TO SCANNER: Record exit result
+            if self.market_scanner and hasattr(tracked, 'token_address'):
+                self.market_scanner.record_trade_result(
+                    tracked.token_address,
+                    symbol,
+                    success=True,
+                    pnl_pct=pnl_pct
+                )
             
             # Remove from tracking
             del self.tracked_positions[symbol]
-            logger.info(f"📍 Closed position: {symbol}")
+            logger.info(f"📍 Closed position: {symbol} (P&L: {pnl_pct:+.1f}%)")
     
     def _find_best_usdc(self, holdings: Dict) -> tuple:
         """Find best USDC balance"""

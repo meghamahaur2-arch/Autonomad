@@ -33,13 +33,6 @@ class Config:
     COMPETITION_ID: str = os.getenv("COMPETITION_ID", "")
     SANDBOX_URL: str = "https://api.sandbox.competitions.recall.network"
     PRODUCTION_URL: str = "https://api.competitions.recall.network"
-    ENABLE_LLM_BRAIN: bool = os.getenv("ENABLE_LLM_BRAIN", "true").lower() == "true"
-    LLM_API_KEY: str = os.getenv("LLM_API_KEY", "")
-    LLM_MODEL: str = os.getenv("LLM_MODEL", "")
-    LLM_TIMEOUT : int = int(os.getenv("LLM_TIMEOUT", ""))
-    LLM_MAX_TOKENS : int = int(os.getenv("LLM_MAX_TOKENS", ""))
-    LLM_TEMPERATURE : float = float(os.getenv("LLM_TEMPERATURE", ""))
-    LLM_BASE_URL : str = os.getenv("LLM_BASE_URL", "")
     
     # =========================================================================
     # Retry and Resilience
@@ -112,7 +105,18 @@ class Config:
     STATE_BACKUP_COUNT: int = int(os.getenv("STATE_BACKUP_COUNT", "5"))
     
     # =========================================================================
-    # Logging (NEW - Memory Only)
+    # LLM Configuration (ELITE HYBRID MODE)
+    # =========================================================================
+    ENABLE_LLM_BRAIN: bool = os.getenv("ENABLE_LLM_BRAIN", "true").lower() == "true"
+    LLM_API_KEY: str = os.getenv("LLM_API_KEY", "")
+    LLM_BASE_URL: str = os.getenv("LLM_BASE_URL", "")
+    LLM_MODEL: str = os.getenv("LLM_MODEL", "qwen72b")
+    LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", "0.3"))
+    LLM_MAX_TOKENS: int = int(os.getenv("LLM_MAX_TOKENS", "500"))
+    LLM_TIMEOUT: int = int(os.getenv("LLM_TIMEOUT", "30"))
+    
+    # =========================================================================
+    # Logging (Memory Only)
     # =========================================================================
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     LOG_MAX_LINES: int = int(os.getenv("LOG_MAX_LINES", "1000"))  # Keep last N lines in memory
