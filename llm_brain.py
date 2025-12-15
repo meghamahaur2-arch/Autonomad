@@ -60,6 +60,39 @@ class LLMBrain:
         if self._session and not self._session.closed:
             await self._session.close()
     
+    def _extract_json(self, text: str) -> str:
+        """Extract JSON from LLM response (handles markdown code blocks)"""
+        if not text:
+            return ""
+        
+        # Remove markdown code blocks
+        text = text.strip()
+        
+        # Try to find JSON between ```json and ```
+        if "```json" in text:
+            start = text.find("```json") + 7
+            end = text.find("```", start)
+            if end != -1:
+                text = text[start:end].strip()
+        elif "```" in text:
+            # Generic code block
+            start = text.find("```") + 3
+            end = text.find("```", start)
+            if end != -1:
+                text = text[start:end].strip()
+        
+        # Find JSON object/array boundaries
+        if not text.startswith('{') and not text.startswith('['):
+            # Try to find first { or [
+            json_start = min(
+                (text.find('{') if '{' in text else len(text)),
+                (text.find('[') if '[' in text else len(text))
+            )
+            if json_start < len(text):
+                text = text[json_start:]
+        
+        return text.strip()
+    
     async def _call_llm(self, prompt: str, system: str = None) -> str:
         """Call LLM API"""
         if not self.enabled:
@@ -123,11 +156,14 @@ class LLMBrain:
         
         token_summaries = []
         for i, token in enumerate(top_tokens, 1):
+            # ✅ FIXED: Format market_cap outside f-string
+            market_cap_str = f"${token.market_cap:,.0f}" if token.market_cap else "Unknown"
+            
             token_summaries.append(
                 f"{i}. {token.symbol} on {token.chain}\n"
                 f"   Price: ${token.price:.6f} | Change: {token.change_24h_pct:+.2f}%\n"
                 f"   Volume: ${token.volume_24h:,.0f} | Liquidity: ${token.liquidity_usd:,.0f}\n"
-                f"   Market Cap: ${token.market_cap:,.0f if token.market_cap else 'Unknown'}\n"
+                f"   Market Cap: {market_cap_str}\n"
                 f"   Algo Score: {token.opportunity_score:.1f}"
             )
         
@@ -171,15 +207,22 @@ Respond in JSON format:
         
         try:
             # Parse JSON response
-            data = json.loads(response)
+            json_text = self._extract_json(response)
+            
+            if not json_text:
+                logger.warning("⚠️ No JSON found in LLM response")
+                logger.debug(f"Response was: {response[:500]}")
+                return [(t, t.opportunity_score, "Algorithmic (no JSON)") for t in top_tokens]
+            
+            data = json.loads(json_text)
             rankings = data.get("rankings", [])
             
             # Match back to tokens
             results = []
             for ranking in rankings:
-                symbol = ranking["symbol"]
-                llm_score = float(ranking["score"])
-                reason = ranking["reason"]
+                symbol = ranking.get("symbol", "")
+                llm_score = float(ranking.get("score", 0))
+                reason = ranking.get("reason", "No reason")
                 
                 # Find matching token
                 for token in top_tokens:
@@ -194,6 +237,11 @@ Respond in JSON format:
             
             return results
             
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ Failed to parse LLM rankings: {e}")
+            logger.debug(f"JSON text was: {json_text[:500] if 'json_text' in locals() else 'N/A'}")
+            logger.debug(f"Full response: {response[:500]}")
+            return [(t, t.opportunity_score, "Algorithmic (parse failed)") for t in top_tokens]
         except Exception as e:
             logger.error(f"❌ Failed to parse LLM rankings: {e}")
             logger.debug(f"Response was: {response[:500]}")
@@ -217,6 +265,9 @@ Respond in JSON format:
         
         logger.info(f"🧠 LLM confirming trade: {token.symbol} ({signal_type})")
         
+        # ✅ FIXED: Format market_cap outside f-string
+        market_cap_str = f"${token.market_cap:,.0f}" if token.market_cap else "Unknown"
+        
         prompt = f"""You are reviewing a trade before execution. Should we take this trade?
 
 TOKEN:
@@ -225,7 +276,7 @@ TOKEN:
 - 24h Change: {token.change_24h_pct:+.2f}%
 - Volume: ${token.volume_24h:,.0f}
 - Liquidity: ${token.liquidity_usd:,.0f}
-- Market Cap: ${token.market_cap:,.0f if token.market_cap else 'Unknown'}
+- Market Cap: {market_cap_str}
 
 SIGNAL:
 - Type: {signal_type}
@@ -264,13 +315,22 @@ Respond in JSON:
             return (True, "LLM unavailable, algo approved", conviction)
         
         try:
-            data = json.loads(response)
+            json_text = self._extract_json(response)
+            
+            if not json_text:
+                logger.warning("⚠️ No JSON found in LLM confirmation")
+                return (True, "Parse failed, algo approved", conviction)
+            
+            data = json.loads(json_text)
             approved = data.get("approved", True)
             reasoning = data.get("reasoning", "LLM confirmed")
             new_conviction_str = data.get("conviction", conviction.value)
             
             # Parse conviction
-            new_conviction = Conviction[new_conviction_str.upper()]
+            try:
+                new_conviction = Conviction[new_conviction_str.upper()]
+            except (KeyError, AttributeError):
+                new_conviction = conviction
             
             if approved:
                 logger.info(f"✅ LLM approved: {reasoning}")
@@ -279,6 +339,11 @@ Respond in JSON:
             
             return (approved, reasoning, new_conviction)
             
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ Failed to parse LLM confirmation: {e}")
+            logger.debug(f"JSON text was: {json_text[:500] if 'json_text' in locals() else 'N/A'}")
+            logger.debug(f"Full response: {response[:500]}")
+            return (True, "Parse failed, algo approved", conviction)
         except Exception as e:
             logger.error(f"❌ Failed to parse LLM confirmation: {e}")
             logger.debug(f"Response was: {response[:500]}")
@@ -336,7 +401,12 @@ Respond in JSON:
             return (market_snapshot.regime.value, "LLM unavailable")
         
         try:
-            data = json.loads(response)
+            json_text = self._extract_json(response)
+            
+            if not json_text:
+                return (market_snapshot.regime.value, "LLM unavailable")
+            
+            data = json.loads(json_text)
             regime = data.get("regime", market_snapshot.regime.value)
             advice = data.get("advice", "Trade normally")
             
@@ -345,6 +415,10 @@ Respond in JSON:
             
             return (regime, advice)
             
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ Failed to parse regime detection: {e}")
+            logger.debug(f"JSON text was: {json_text[:500] if 'json_text' in locals() else 'N/A'}")
+            return (market_snapshot.regime.value, "Parse failed")
         except Exception as e:
             logger.error(f"❌ Failed to parse regime detection: {e}")
             return (market_snapshot.regime.value, "Parse failed")

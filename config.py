@@ -59,7 +59,7 @@ class Config:
     MIN_TRADE_SIZE: float = float(os.getenv("MIN_TRADE_SIZE", "0.000001"))
     BASE_POSITION_SIZE: float = float(os.getenv("BASE_POSITION_SIZE", "300"))
     MAX_POSITION_PCT: float = float(os.getenv("MAX_POSITION_PCT", "0.20"))
-    MAX_POSITIONS: int = int(os.getenv("MAX_POSITIONS", "8"))
+    MAX_POSITIONS: int = int(os.getenv("MAX_POSITIONS", "1000"))
     MIN_TRADES_PER_DAY: int = int(os.getenv("MIN_TRADES_PER_DAY", "3"))
     MIN_POSITION_VALUE: float = float(os.getenv("MIN_POSITION_VALUE", "1.0"))
     

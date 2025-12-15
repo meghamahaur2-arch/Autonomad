@@ -6,14 +6,13 @@ import asyncio
 import signal
 import sys
 from datetime import datetime, timezone, date
-
+from typing import Optional, Dict
 from config import config
 from logging_manager import get_logger, log_manager
 from models import (
     TradingAction, TradeDecision, TradingMetrics,
-    CircuitBreakerOpenError
+    CircuitBreakerOpenError, MarketSnapshot
 )
-from typing import Optional, Dict
 from api_client import RecallAPIClient
 from market_scanner import MarketScanner
 from strategy import TradingStrategy
@@ -134,7 +133,7 @@ class TradingAgent:
             discovered_tokens = await self.market_scanner.scan_market()
             
             if not discovered_tokens:
-                logger.info("📭 No opportunities found in market scan")
+                logger.info("🔭 No opportunities found in market scan")
                 return
             
             top_opportunities = discovered_tokens[:10]
@@ -164,6 +163,15 @@ class TradingAgent:
             
             self._log_portfolio_summary(portfolio)
             
+            # ✅ FIXED: Create market snapshot BEFORE strategy decision
+            market_snapshot = MarketSnapshot.from_market_data(
+                {token.symbol: {
+                    "change_24h_pct": token.change_24h_pct,
+                    "volume_24h": token.volume_24h,
+                    "price": token.price
+                } for token in discovered_tokens}
+            )
+            
         except Exception as e:
             logger.error(f"❌ Portfolio analysis failed: {e}")
             return
@@ -176,14 +184,16 @@ class TradingAgent:
         # Step 4: Generate trade decision
         logger.info("\n🎯 Step 3: Generating trade decision...")
         try:
+            # ✅ FIXED: Pass market_snapshot to generate_decision
             decision = await self.strategy.generate_decision(
                 portfolio,
                 top_opportunities,
-                self.metrics
+                self.metrics,
+                market_snapshot  # ✅ Added required argument
             )
             
             if decision.action == TradingAction.HOLD:
-                logger.info(f"⸻ HOLD: {decision.reason}")
+                logger.info(f"⏸️ HOLD: {decision.reason}")
                 return
             
         except Exception as e:
@@ -214,10 +224,12 @@ class TradingAgent:
                     )
                     
                     if portfolio:
+                        # ✅ FIXED: Pass market_snapshot here too
                         decision = await self.strategy.generate_decision(
                             portfolio,
                             top_opportunities[1:],  # Skip first opportunity
-                            self.metrics
+                            self.metrics,
+                            market_snapshot  # ✅ Added required argument
                         )
                         
                         if decision.action != TradingAction.HOLD:
@@ -407,11 +419,11 @@ async def main():
 
 if __name__ == "__main__":
     print("""
-    ╔══════════════════════════════════════════════════════════════════╗
+    ╔══════════════════════════════════════════════════════════════╗
     ║       🔥 ELITE HYBRID TRADING AGENT v4.0 🔥                      ║
     ║                                                                  ║
     ║   Code (muscle) + LLM Brain (intelligence) = Elite Performance  ║
-    ╚══════════════════════════════════════════════════════════════════╝
+    ╚══════════════════════════════════════════════════════════════╝
     """)
     
     errors = config.validate()
