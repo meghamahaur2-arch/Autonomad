@@ -197,7 +197,7 @@ class TradingStrategy:
         if not opportunities_with_scores:
             return TradeDecision(
                 action=TradingAction.HOLD,
-                reason="📭 No opportunities meeting criteria"
+                reason="🔭 No opportunities meeting criteria"
             )
         
         # Find best opportunity
@@ -250,7 +250,8 @@ class TradingStrategy:
                     "score": score,
                     "change_24h": token.change_24h_pct,
                     "volume_24h": token.volume_24h,
-                    "liquidity": token.liquidity_usd
+                    "liquidity": token.liquidity_usd,
+                    "price": token.price
                 }
             )
         
@@ -320,10 +321,36 @@ class TradingStrategy:
         
         return max(size, config.MIN_TRADE_SIZE)
     
+    def _get_deployed_pct(self, portfolio: Dict) -> float:
+        """Calculate percentage of capital deployed in non-stable positions"""
+        total_value = portfolio.get("total_value", 0)
+        if total_value <= 0:
+            return 0.0
+        
+        holdings = portfolio.get("holdings", {})
+        
+        # Sum value of non-stablecoin holdings
+        deployed = sum(
+            h["value"] for sym, h in holdings.items()
+            if sym != "USDC" and not self._is_stablecoin(sym)
+        )
+        
+        return deployed / total_value
+    
+    def _is_stablecoin(self, symbol: str) -> bool:
+        """Check if symbol is a stablecoin"""
+        # Check if in config tokens
+        if symbol in config.TOKENS:
+            return config.TOKENS[symbol].stable
+        
+        # Check common stablecoin patterns
+        stable_patterns = ["USDC", "USDT", "DAI", "USD", "BUSD", "TUSD", "FRAX"]
+        return any(pattern in symbol.upper() for pattern in stable_patterns)
+    
     def _get_total_usdc(self, holdings: Dict) -> float:
         """Get total USDC across all chains"""
         total = 0.0
         for symbol, holding in holdings.items():
-            if "USDC" in symbol or "USD" in symbol or "DAI" in symbol:
+            if self._is_stablecoin(symbol):
                 total += holding.get("value", 0)
         return total
