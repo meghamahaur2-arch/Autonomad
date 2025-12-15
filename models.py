@@ -65,6 +65,8 @@ class TrackedPosition:
     entry_amount: float
     entry_value_usd: float
     entry_timestamp: str
+    token_address: str = ""  # ✅ ADDED: For feedback loop to scanner
+    chain: str = ""  # ✅ ADDED: For multi-chain tracking
     highest_price: float = 0.0
     lowest_price_since_entry: float = float('inf')
     total_cost_basis: float = 0.0
