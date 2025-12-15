@@ -163,7 +163,7 @@ class TradingAgent:
             
             self._log_portfolio_summary(portfolio)
             
-            # ✅ FIXED: Create market snapshot BEFORE strategy decision
+            # ✅ Create market snapshot for decision making
             market_snapshot = MarketSnapshot.from_market_data(
                 {token.symbol: {
                     "change_24h_pct": token.change_24h_pct,
@@ -184,12 +184,11 @@ class TradingAgent:
         # Step 4: Generate trade decision
         logger.info("\n🎯 Step 3: Generating trade decision...")
         try:
-            # ✅ FIXED: Pass market_snapshot to generate_decision
             decision = await self.strategy.generate_decision(
                 portfolio,
                 top_opportunities,
                 self.metrics,
-                market_snapshot  # ✅ Added required argument
+                market_snapshot
             )
             
             if decision.action == TradingAction.HOLD:
@@ -213,33 +212,43 @@ class TradingAgent:
                 await self._record_trade(decision, portfolio)
                 logger.info("✅ Trade executed successfully")
                 
-                # Try additional trades if needed
+                # ✅ ENHANCED: Try additional trades if needed (with fresh data)
                 if self.trades_today < config.MIN_TRADES_PER_DAY:
                     logger.info(f"🔄 Attempting additional trade to meet daily minimum...")
                     await asyncio.sleep(2)
                     
-                    # Refresh and try again
+                    # Refresh portfolio
                     portfolio = await self.portfolio_manager.get_portfolio_state(
                         self.competition_id
                     )
                     
                     if portfolio:
-                        # ✅ FIXED: Pass market_snapshot here too
-                        decision = await self.strategy.generate_decision(
-                            portfolio,
-                            top_opportunities[1:],  # Skip first opportunity
-                            self.metrics,
-                            market_snapshot  # ✅ Added required argument
-                        )
-                        
-                        if decision.action != TradingAction.HOLD:
-                            success = await self.portfolio_manager.execute_trade(
-                                decision,
-                                portfolio,
-                                self.competition_id
+                        # ✅ FIXED: Create fresh market snapshot for retry
+                        remaining_tokens = top_opportunities[1:]  # Skip first
+                        if remaining_tokens:
+                            fresh_market_snapshot = MarketSnapshot.from_market_data(
+                                {token.symbol: {
+                                    "change_24h_pct": token.change_24h_pct,
+                                    "volume_24h": token.volume_24h,
+                                    "price": token.price
+                                } for token in remaining_tokens}
                             )
-                            if success:
-                                await self._record_trade(decision, portfolio)
+                            
+                            decision = await self.strategy.generate_decision(
+                                portfolio,
+                                remaining_tokens,
+                                self.metrics,
+                                fresh_market_snapshot  # ✅ Use fresh snapshot
+                            )
+                            
+                            if decision.action != TradingAction.HOLD:
+                                success = await self.portfolio_manager.execute_trade(
+                                    decision,
+                                    portfolio,
+                                    self.competition_id
+                                )
+                                if success:
+                                    await self._record_trade(decision, portfolio)
             
         except Exception as e:
             logger.error(f"❌ Trade execution failed: {e}")

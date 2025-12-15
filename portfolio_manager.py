@@ -25,8 +25,9 @@ class PortfolioManager:
         self.client = api_client
         self.market_scanner = market_scanner  # For feedback loop
         self.tracked_positions: Dict[str, TrackedPosition] = {}
-        self.position_history: list = []
-        self.trade_history: list = []
+        # ✅ FIXED: Use deque with maxlen to prevent memory leaks
+        self.position_history: deque = deque(maxlen=500)
+        self.trade_history: deque = deque(maxlen=1000)
         self.price_history: Dict[str, deque] = {}
         
         logger.info("💼 Portfolio Manager initialized")
@@ -101,7 +102,9 @@ class PortfolioManager:
                                 entry_price=current_price,
                                 entry_amount=amount,
                                 entry_value_usd=value,
-                                entry_timestamp=datetime.now(timezone.utc).isoformat()
+                                entry_timestamp=datetime.now(timezone.utc).isoformat(),
+                                token_address=token_address,  # ✅ ADDED
+                                chain=chain  # ✅ ADDED
                             )
                             
                             positions.append(Position(
@@ -242,7 +245,9 @@ class PortfolioManager:
                 if decision.action == TradingAction.BUY:
                     await self._track_buy(to_symbol, trade_value, metadata)
                 elif decision.action == TradingAction.SELL:
-                    await self._track_sell(from_symbol, trade_value)
+                    # ✅ FIXED: Pass current_price for better tracking
+                    current_price = metadata.get("price", 0)
+                    await self._track_sell(from_symbol, trade_value, current_price)
                 
                 # 🔄 FEEDBACK TO SCANNER: Trade succeeded
                 if self.market_scanner and token_address:
@@ -370,6 +375,8 @@ class PortfolioManager:
     async def _track_buy(self, symbol: str, value_usd: float, metadata: Dict):
         """Track buy trade"""
         price = metadata.get("price", 0)
+        token_address = metadata.get("token_address", "")  # ✅ ADDED
+        chain = metadata.get("chain", "")  # ✅ ADDED
         
         if symbol in self.tracked_positions:
             self.tracked_positions[symbol].update_for_add(
@@ -384,23 +391,31 @@ class PortfolioManager:
                 entry_price=price,
                 entry_amount=value_usd / price if price > 0 else 0,
                 entry_value_usd=value_usd,
-                entry_timestamp=datetime.now(timezone.utc).isoformat()
+                entry_timestamp=datetime.now(timezone.utc).isoformat(),
+                token_address=token_address,  # ✅ ADDED
+                chain=chain  # ✅ ADDED
             )
             logger.info(f"📍 New position: {symbol} @ ${price:.4f}")
     
-    async def _track_sell(self, symbol: str, value_usd: float):
-        """Track sell trade with feedback to scanner"""
+    async def _track_sell(self, symbol: str, value_usd: float, current_price: float = 0):
+        """
+        Track sell trade with feedback to scanner
+        ✅ FIXED: Now calculates actual PnL using current_price
+        """
         if symbol in self.tracked_positions:
             tracked = self.tracked_positions[symbol]
             
-            # Calculate PnL
-            exit_price = tracked.entry_price  # Simplified - would need actual exit price
-            pnl_pct = 0  # TODO: Calculate actual PnL
+            # ✅ IMPROVED: Calculate actual PnL if we have current price
+            if current_price > 0 and tracked.entry_price > 0:
+                pnl_pct = ((current_price - tracked.entry_price) / tracked.entry_price) * 100
+            else:
+                pnl_pct = 0
             
             # Archive to history
             position_data = {
                 "symbol": symbol,
                 "entry_price": tracked.entry_price,
+                "exit_price": current_price if current_price > 0 else tracked.entry_price,
                 "entry_timestamp": tracked.entry_timestamp,
                 "exit_timestamp": datetime.now(timezone.utc).isoformat(),
                 "pnl_pct": pnl_pct
@@ -408,13 +423,15 @@ class PortfolioManager:
             self.position_history.append(position_data)
             
             # 🔄 FEEDBACK TO SCANNER: Record exit result
-            if self.market_scanner and hasattr(tracked, 'token_address'):
+            # ✅ FIXED: Now properly checks for token_address (was causing hasattr error)
+            if self.market_scanner and tracked.token_address:
                 self.market_scanner.record_trade_result(
                     tracked.token_address,
                     symbol,
                     success=True,
                     pnl_pct=pnl_pct
                 )
+                logger.debug(f"📊 Feedback sent to scanner: {symbol} ({pnl_pct:+.1f}% PnL)")
             
             # Remove from tracking
             del self.tracked_positions[symbol]
@@ -446,8 +463,9 @@ class PortfolioManager:
             "tracked_positions": {
                 k: v.to_dict() for k, v in self.tracked_positions.items()
             },
-            "position_history": self.position_history[-500:],
-            "trade_history": self.trade_history[-1000:]
+            # ✅ FIXED: No need to slice anymore - deque handles it
+            "position_history": list(self.position_history),
+            "trade_history": list(self.trade_history)
         }
     
     async def restore_state(self, state: Dict):
@@ -461,7 +479,10 @@ class PortfolioManager:
                     for k, v in ps["tracked_positions"].items()
                 }
             
-            self.position_history = ps.get("position_history", [])
-            self.trade_history = ps.get("trade_history", [])
+            # ✅ FIXED: Restore into deques
+            if "position_history" in ps:
+                self.position_history.extend(ps["position_history"])
+            if "trade_history" in ps:
+                self.trade_history.extend(ps["trade_history"])
         
         logger.info(f"✅ Restored {len(self.tracked_positions)} tracked positions")

@@ -51,7 +51,7 @@ class Config:
     # =========================================================================
     TRADING_INTERVAL: int = int(os.getenv("TRADING_INTERVAL_SECONDS", "300"))
     MARKET_DATA_CACHE_TTL: int = int(os.getenv("MARKET_DATA_CACHE_TTL", "60"))
-    MARKET_SCAN_DEPTH: int = int(os.getenv("MARKET_SCAN_DEPTH", "50"))  # NEW: How many tokens to scan
+    MARKET_SCAN_DEPTH: int = int(os.getenv("MARKET_SCAN_DEPTH", "50"))
     
     # =========================================================================
     # Position Sizing
@@ -73,7 +73,7 @@ class Config:
     MAX_DAILY_LOSS_PCT: float = float(os.getenv("MAX_DAILY_LOSS_PCT", "-0.10"))
     
     # =========================================================================
-    # Self-Thinking Bot Parameters (NEW)
+    # Self-Thinking Bot Parameters
     # =========================================================================
     AUTO_DISCOVERY_MODE: bool = os.getenv("AUTO_DISCOVERY_MODE", "true").lower() == "true"
     MIN_LIQUIDITY_USD: float = float(os.getenv("MIN_LIQUIDITY_USD", "50000"))
@@ -119,7 +119,7 @@ class Config:
     # Logging (Memory Only)
     # =========================================================================
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
-    LOG_MAX_LINES: int = int(os.getenv("LOG_MAX_LINES", "1000"))  # Keep last N lines in memory
+    LOG_MAX_LINES: int = int(os.getenv("LOG_MAX_LINES", "1000"))
     
     # =========================================================================
     # Token Registry - Multi-Chain Support
@@ -194,21 +194,56 @@ class Config:
         return self.SANDBOX_URL if self.USE_SANDBOX else self.PRODUCTION_URL
     
     def validate(self) -> List[str]:
-        """Validate configuration and return list of errors"""
+        """
+        ✅ ENHANCED: Validate configuration and return list of errors
+        """
         errors = []
         
+        # API Configuration
         if not self.RECALL_API_KEY:
             errors.append("RECALL_API_KEY is required")
+        
+        # ✅ ADDED: LLM Configuration Validation
+        if self.ENABLE_LLM_BRAIN:
+            if not self.LLM_API_KEY:
+                errors.append("LLM_API_KEY required when ENABLE_LLM_BRAIN=true")
+            if not self.LLM_BASE_URL:
+                errors.append("LLM_BASE_URL required when ENABLE_LLM_BRAIN=true")
+            if not self.LLM_MODEL:
+                errors.append("LLM_MODEL required when ENABLE_LLM_BRAIN=true")
+            if self.LLM_TEMPERATURE < 0 or self.LLM_TEMPERATURE > 2:
+                errors.append("LLM_TEMPERATURE must be between 0 and 2")
+            if self.LLM_MAX_TOKENS < 1:
+                errors.append("LLM_MAX_TOKENS must be positive")
+        
+        # Position Sizing
         if self.MAX_POSITION_PCT <= 0 or self.MAX_POSITION_PCT > 1:
             errors.append("MAX_POSITION_PCT must be between 0 and 1")
         if self.MAX_PORTFOLIO_RISK <= 0 or self.MAX_PORTFOLIO_RISK > 1:
             errors.append("MAX_PORTFOLIO_RISK must be between 0 and 1")
+        
+        # Risk Management
         if self.STOP_LOSS_PCT >= 0:
             errors.append("STOP_LOSS_PCT must be negative")
         if self.TAKE_PROFIT_PCT <= 0:
             errors.append("TAKE_PROFIT_PCT must be positive")
+        if self.TRAILING_STOP_PCT <= 0 or self.TRAILING_STOP_PCT >= 1:
+            errors.append("TRAILING_STOP_PCT must be between 0 and 1")
+        if self.MAX_DAILY_LOSS_PCT >= 0:
+            errors.append("MAX_DAILY_LOSS_PCT must be negative")
+        
+        # Trading Intervals
         if self.TRADING_INTERVAL < 60:
             errors.append("TRADING_INTERVAL should be at least 60 seconds")
+        
+        # Discovery Parameters
+        if self.AUTO_DISCOVERY_MODE:
+            if self.MIN_LIQUIDITY_USD < 0:
+                errors.append("MIN_LIQUIDITY_USD must be non-negative")
+            if self.MIN_VOLUME_24H_USD < 0:
+                errors.append("MIN_VOLUME_24H_USD must be non-negative")
+            if self.OPPORTUNITY_SCORE_THRESHOLD < 0:
+                errors.append("OPPORTUNITY_SCORE_THRESHOLD must be non-negative")
         
         return errors
 
