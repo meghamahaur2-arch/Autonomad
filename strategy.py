@@ -1,14 +1,15 @@
 """
 Trading Strategy - Hybrid Algorithmic + LLM Decision Making
+FIXED: Ensures all trade decisions have required metadata
 """
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from config import config
 from models import (
     TradingAction, TradeDecision, Conviction, SignalType,
     DiscoveredToken, TradingMetrics, Position, MarketSnapshot
 )
 from logging_manager import get_logger
-from typing import Tuple
+
 logger = get_logger("Strategy")
 
 
@@ -21,7 +22,7 @@ class TradingStrategy:
     """
     
     def __init__(self, llm_brain=None):
-        self.llm_brain = llm_brain  # Injected LLM brain
+        self.llm_brain = llm_brain
         logger.info("📊 Hybrid Trading Strategy initialized")
     
     async def generate_decision(
@@ -43,7 +44,7 @@ class TradingStrategy:
         
         # STEP 1: Check exit signals (pure algorithmic - fast)
         for position in positions:
-            exit_decision = self._check_exit_signals(position)
+            exit_decision = self._check_exit_signals(position, portfolio)
             if exit_decision:
                 return exit_decision
         
@@ -54,13 +55,11 @@ class TradingStrategy:
                 opportunities,
                 market_snapshot
             )
-            # Use LLM scores
             opportunities_with_scores = [
                 (token, llm_score, reason) 
                 for token, llm_score, reason in ranked_opportunities
             ]
         else:
-            # Fallback to algorithmic scores
             opportunities_with_scores = [
                 (token, token.opportunity_score, "Algorithmic")
                 for token in opportunities
@@ -110,14 +109,28 @@ class TradingStrategy:
                         reason=f"🧠 LLM Rejected: {reasoning}"
                     )
                 
-                # Update conviction based on LLM
                 entry_candidate.conviction = new_conviction
                 entry_candidate.reason = f"{entry_candidate.reason} | LLM: {reasoning}"
         
         return entry_candidate
     
-    def _check_exit_signals(self, position: Position) -> Optional[TradeDecision]:
-        """Check if position should be exited"""
+    def _check_exit_signals(self, position: Position, portfolio: Dict) -> Optional[TradeDecision]:
+        """
+        ✅ FIXED: Exit signals now include proper metadata
+        """
+        # Get holdings to find token metadata
+        holdings = portfolio.get("holdings", {})
+        position_holding = holdings.get(position.symbol, {})
+        
+        # Extract metadata for exit
+        metadata = {
+            "token_address": position_holding.get("tokenAddress", ""),
+            "chain": position_holding.get("chain", "eth"),
+            "price": position.current_price,
+            "liquidity": 999999,  # Assume sufficient for exits
+            "volume_24h": 999999,
+            "score": 10.0
+        }
         
         # Stop Loss
         if position.should_stop_loss(config.STOP_LOSS_PCT):
@@ -128,7 +141,8 @@ class TradingStrategy:
                 amount_usd=position.value * 0.98,
                 conviction=Conviction.HIGH,
                 signal_type=SignalType.STOP_LOSS,
-                reason=f"🛑 Stop-loss: {position.pnl_pct:.1f}% loss on ${position.value:.2f}"
+                reason=f"🛑 Stop-loss: {position.pnl_pct:.1f}% loss on ${position.value:.2f}",
+                metadata=metadata  # ✅ FIXED: Added metadata
             )
         
         # Trailing Stop
@@ -140,7 +154,8 @@ class TradingStrategy:
                 amount_usd=position.value * 0.98,
                 conviction=Conviction.HIGH,
                 signal_type=SignalType.STOP_LOSS,
-                reason=f"📉 Trailing stop triggered"
+                reason=f"📉 Trailing stop triggered",
+                metadata=metadata  # ✅ FIXED: Added metadata
             )
         
         # Take Profit (partial)
@@ -152,7 +167,8 @@ class TradingStrategy:
                 amount_usd=position.value * 0.5,
                 conviction=Conviction.MEDIUM,
                 signal_type=SignalType.TAKE_PROFIT,
-                reason=f"🎯 Take-profit: {position.pnl_pct:.1f}% gain (partial 50%)"
+                reason=f"🎯 Take-profit: {position.pnl_pct:.1f}% gain (partial 50%)",
+                metadata=metadata  # ✅ FIXED: Added metadata
             )
         
         return None
@@ -160,7 +176,7 @@ class TradingStrategy:
     def _check_entry_signals(
         self,
         portfolio: Dict,
-        opportunities_with_scores: List[Tuple],  # [(token, score, reason)]
+        opportunities_with_scores: List[Tuple],
         metrics: TradingMetrics
     ) -> TradeDecision:
         """Check for entry opportunities"""
@@ -172,7 +188,7 @@ class TradingStrategy:
         # Calculate deployed capital
         deployed = sum(
             h["value"] for sym, h in holdings.items()
-            if sym != "USDC" and not config.TOKENS.get(sym, config.TOKENS.get("USDC")).stable
+            if sym != "USDC" and not self._is_stablecoin(sym)
         )
         deployed_pct = deployed / total_value if total_value > 0 else 0
         
@@ -216,7 +232,7 @@ class TradingStrategy:
                     reason=f"📊 Max positions ({config.MAX_POSITIONS}) reached"
                 )
             
-            # Score must be above threshold (use LLM or algorithmic score)
+            # Score must be above threshold
             if score < config.OPPORTUNITY_SCORE_THRESHOLD:
                 continue
             
@@ -236,6 +252,7 @@ class TradingStrategy:
             # Don't exceed available USDC
             position_size = min(position_size, usdc_value * 0.95)
             
+            # ✅ FIXED: Ensure complete metadata
             return TradeDecision(
                 action=TradingAction.BUY,
                 from_token="USDC",
@@ -245,13 +262,14 @@ class TradingStrategy:
                 signal_type=signal_type,
                 reason=f"🎯 {signal_type.value}: {token.symbol} | Score: {score:.1f} | {llm_reason}",
                 metadata={
-                    "token_address": token.address,
-                    "chain": token.chain,
+                    "token_address": token.address,  # ✅ Required
+                    "chain": token.chain,             # ✅ Required
                     "score": score,
                     "change_24h": token.change_24h_pct,
                     "volume_24h": token.volume_24h,
                     "liquidity": token.liquidity_usd,
-                    "price": token.price
+                    "price": token.price,
+                    "market_cap": token.market_cap
                 }
             )
         
@@ -322,14 +340,12 @@ class TradingStrategy:
         return max(size, config.MIN_TRADE_SIZE)
     
     def _get_deployed_pct(self, portfolio: Dict) -> float:
-        """Calculate percentage of capital deployed in non-stable positions"""
+        """Calculate percentage of capital deployed"""
         total_value = portfolio.get("total_value", 0)
         if total_value <= 0:
             return 0.0
         
         holdings = portfolio.get("holdings", {})
-        
-        # Sum value of non-stablecoin holdings
         deployed = sum(
             h["value"] for sym, h in holdings.items()
             if sym != "USDC" and not self._is_stablecoin(sym)
@@ -339,18 +355,16 @@ class TradingStrategy:
     
     def _is_stablecoin(self, symbol: str) -> bool:
         """Check if symbol is a stablecoin"""
-        # Check if in config tokens
         if symbol in config.TOKENS:
             return config.TOKENS[symbol].stable
         
-        # Check common stablecoin patterns
         stable_patterns = ["USDC", "USDT", "DAI", "USD", "BUSD", "TUSD", "FRAX"]
         return any(pattern in symbol.upper() for pattern in stable_patterns)
     
     def _get_total_usdc(self, holdings: Dict) -> float:
         """Get total USDC across all chains"""
-        total = 0.0
-        for symbol, holding in holdings.items():
-            if self._is_stablecoin(symbol):
-                total += holding.get("value", 0)
-        return total
+        return sum(
+            holding.get("value", 0)
+            for symbol, holding in holdings.items()
+            if self._is_stablecoin(symbol)
+        )
