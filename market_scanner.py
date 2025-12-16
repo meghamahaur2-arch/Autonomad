@@ -231,24 +231,47 @@ class MultiAPIMarketScanner:
             await self._rate_limit("dexscreener", 1.0)
             session = await self._get_session()
             
-            url = f"{self.DEXSCREENER_BASE}/tokens/trending"
+            # Try multiple endpoints
+            urls = [
+                f"{self.DEXSCREENER_BASE}/tokens/trending",
+                f"{self.DEXSCREENER_BASE}/tokens/hot"
+            ]
             
-            async with self._semaphore:
-                async with session.get(url, timeout=15) as resp:
-                    if resp.status != 200:
-                        return []
-                    
-                    data = await resp.json()
-                    pairs = data.get("pairs", [])
-                    
-                    tokens = []
-                    for pair in pairs[:50]:  # Top 50 trending
-                        token = self._parse_dexscreener_pair(pair)
-                        if token:
-                            tokens.append(token)
-                    
-                    logger.info(f"   DexScreener Trending: {len(tokens)} tokens")
-                    return tokens
+            for url in urls:
+                try:
+                    async with self._semaphore:
+                        async with session.get(url, timeout=15) as resp:
+                            if resp.status != 200:
+                                continue
+                            
+                            data = await resp.json()
+                            
+                            # Handle different response formats
+                            pairs = None
+                            if isinstance(data, dict):
+                                pairs = data.get("pairs") or data.get("data") or data.get("tokens")
+                            elif isinstance(data, list):
+                                pairs = data
+                            
+                            if not pairs:
+                                continue
+                            
+                            tokens = []
+                            for pair in pairs[:50]:  # Top 50 trending
+                                token = self._parse_dexscreener_pair(pair)
+                                if token:
+                                    tokens.append(token)
+                            
+                            if tokens:
+                                logger.info(f"   DexScreener Trending: {len(tokens)} tokens")
+                                return tokens
+                
+                except Exception as e:
+                    logger.debug(f"   Trending endpoint {url} failed: {e}")
+                    continue
+            
+            logger.info("   DexScreener Trending: No data from any endpoint")
+            return []
         
         except Exception as e:
             logger.warning(f"   DexScreener trending failed: {e}")
@@ -265,63 +288,157 @@ class MultiAPIMarketScanner:
             await self._rate_limit("dexscreener", 1.0)
             session = await self._get_session()
             
-            # Search by chain
-            url = f"{self.DEXSCREENER_BASE}/search"
+            # Try both search and chain-specific endpoints
+            urls_params = [
+                (f"{self.DEXSCREENER_BASE}/search", {"q": chain}),
+                (f"{self.DEXSCREENER_BASE}/tokens/{chain}", None)
+            ]
             
-            async with self._semaphore:
-                async with session.get(
-                    url,
-                    params={"q": chain},
-                    timeout=15
-                ) as resp:
-                    if resp.status != 200:
-                        return []
-                    
-                    data = await resp.json()
-                    pairs = data.get("pairs", [])
-                    
-                    tokens = []
-                    seen = set()
-                    
-                    for pair in pairs[:100]:  # Top 100 per chain
-                        chain_id = pair.get("chainId", "").lower()
-                        if chain_id != chain.lower():
-                            continue
-                        
-                        token = self._parse_dexscreener_pair(pair)
-                        if token and token.address not in seen:
-                            if (token.liquidity_usd >= min_liquidity and 
-                                token.volume_24h >= min_volume):
-                                tokens.append(token)
-                                seen.add(token.address)
-                    
-                    logger.info(f"   DexScreener {chain}: {len(tokens)} tokens")
-                    return tokens
+            for url, params in urls_params:
+                try:
+                    async with self._semaphore:
+                        async with session.get(url, params=params, timeout=15) as resp:
+                            if resp.status != 200:
+                                continue
+                            
+                            data = await resp.json()
+                            
+                            # Handle different response formats
+                            pairs = None
+                            if isinstance(data, dict):
+                                pairs = data.get("pairs") or data.get("data") or data.get("tokens")
+                            elif isinstance(data, list):
+                                pairs = data
+                            
+                            if not pairs:
+                                continue
+                            
+                            tokens = []
+                            seen = set()
+                            
+                            for pair in pairs[:100]:  # Top 100 per chain
+                                try:
+                                    # Flexible chain matching
+                                    chain_id = ""
+                                    if isinstance(pair, dict):
+                                        chain_id = pair.get("chainId", pair.get("chain", "")).lower()
+                                    
+                                    # Accept if chain matches or no chain specified
+                                    if chain_id and chain_id != chain.lower():
+                                        continue
+                                    
+                                    token = self._parse_dexscreener_pair(pair)
+                                    if token and token.address not in seen:
+                                        if (token.liquidity_usd >= min_liquidity and 
+                                            token.volume_24h >= min_volume):
+                                            tokens.append(token)
+                                            seen.add(token.address)
+                                
+                                except Exception as e:
+                                    logger.debug(f"Failed to parse pair: {e}")
+                                    continue
+                            
+                            if tokens:
+                                logger.info(f"   DexScreener {chain}: {len(tokens)} tokens")
+                                return tokens
+                
+                except Exception as e:
+                    logger.debug(f"   DexScreener chain endpoint failed: {e}")
+                    continue
+            
+            logger.info(f"   DexScreener {chain}: No data from any endpoint")
+            return []
         
         except Exception as e:
             logger.warning(f"   DexScreener {chain} failed: {e}")
             return []
     
     def _parse_dexscreener_pair(self, pair: Dict) -> Optional[DiscoveredToken]:
-        """Parse DexScreener pair data"""
+        """Parse DexScreener pair data with robust error handling"""
         try:
-            base_token = pair.get("baseToken", {})
-            quote_token = pair.get("quoteToken", {})
-            
-            # Only pairs with stable quotes
-            if quote_token.get("symbol", "").upper() not in ["USDC", "USDT", "DAI", "WETH", "ETH"]:
+            if not isinstance(pair, dict):
                 return None
             
-            address = base_token.get("address", "").lower()
-            symbol = base_token.get("symbol", "UNKNOWN")
-            chain = pair.get("chainId", "").lower()
+            # Extract base token (flexible field names)
+            base_token = pair.get("baseToken") or pair.get("token") or {}
+            quote_token = pair.get("quoteToken") or pair.get("quoteToken") or {}
             
-            price = float(pair.get("priceUsd", 0))
-            liquidity = float(pair.get("liquidity", {}).get("usd", 0))
-            volume = float(pair.get("volume", {}).get("h24", 0))
-            change_24h = float(pair.get("priceChange", {}).get("h24", 0))
-            market_cap = pair.get("fdv")
+            # Quote token validation
+            quote_symbol = quote_token.get("symbol", "").upper()
+            if quote_symbol not in ["USDC", "USDT", "DAI", "WETH", "ETH", "SOL", "WBNB", "BUSD"]:
+                return None
             
+            # Extract required fields
+            address = (base_token.get("address") or pair.get("address") or "").lower()
+            symbol = (base_token.get("symbol") or pair.get("symbol") or "UNKNOWN").upper()
+            chain = (pair.get("chainId") or pair.get("chain") or "ethereum").lower()
+            
+            if not address or address == "":
+                return None
+            
+            # Price extraction (multiple possible locations)
+            price = 0.0
+            price_fields = [
+                pair.get("priceUsd"),
+                pair.get("price"),
+                base_token.get("priceUsd"),
+                base_token.get("price")
+            ]
+            for p in price_fields:
+                if p is not None:
+                    try:
+                        price = float(p)
+                        if price > 0:
+                            break
+                    except (ValueError, TypeError):
+                        continue
+            
+            # Liquidity extraction
+            liquidity = 0.0
+            liquidity_data = pair.get("liquidity") or {}
+            if isinstance(liquidity_data, dict):
+                liquidity = float(liquidity_data.get("usd") or liquidity_data.get("value") or 0)
+            elif isinstance(liquidity_data, (int, float, str)):
+                try:
+                    liquidity = float(liquidity_data)
+                except (ValueError, TypeError):
+                    pass
+            
+            # Volume extraction
+            volume = 0.0
+            volume_data = pair.get("volume") or {}
+            if isinstance(volume_data, dict):
+                volume = float(volume_data.get("h24") or volume_data.get("24h") or 0)
+            elif isinstance(volume_data, (int, float, str)):
+                try:
+                    volume = float(volume_data)
+                except (ValueError, TypeError):
+                    pass
+            
+            # Price change extraction
+            change_24h = 0.0
+            price_change = pair.get("priceChange") or {}
+            if isinstance(price_change, dict):
+                change_24h = float(price_change.get("h24") or price_change.get("24h") or 0)
+            elif isinstance(price_change, (int, float, str)):
+                try:
+                    change_24h = float(price_change)
+                except (ValueError, TypeError):
+                    pass
+            
+            # Market cap (optional)
+            market_cap = None
+            mc_fields = [pair.get("fdv"), pair.get("marketCap"), pair.get("mcap")]
+            for mc in mc_fields:
+                if mc is not None:
+                    try:
+                        market_cap = float(mc)
+                        if market_cap > 0:
+                            break
+                    except (ValueError, TypeError):
+                        continue
+            
+            # Validation
             if price <= 0 or liquidity <= 0:
                 return None
             
@@ -333,7 +450,7 @@ class MultiAPIMarketScanner:
                 liquidity_usd=liquidity,
                 volume_24h=volume,
                 change_24h_pct=change_24h,
-                market_cap=float(market_cap) if market_cap else None
+                market_cap=market_cap
             )
         
         except Exception as e:
@@ -358,15 +475,24 @@ class MultiAPIMarketScanner:
             async with self._semaphore:
                 async with session.get(url, params=params, timeout=15) as resp:
                     if resp.status != 200:
+                        logger.debug(f"   CoinGecko gainers: HTTP {resp.status}")
                         return []
                     
                     data = await resp.json()
                     
+                    if not isinstance(data, list):
+                        logger.debug(f"   CoinGecko gainers: Unexpected response format")
+                        return []
+                    
                     tokens = []
                     for coin in data:
-                        token = self._parse_coingecko_coin(coin)
-                        if token:
-                            tokens.append(token)
+                        try:
+                            token = self._parse_coingecko_coin(coin)
+                            if token:
+                                tokens.append(token)
+                        except Exception as e:
+                            logger.debug(f"Failed to parse CoinGecko coin: {e}")
+                            continue
                     
                     logger.info(f"   CoinGecko Gainers: {len(tokens)} tokens")
                     return tokens
@@ -393,18 +519,31 @@ class MultiAPIMarketScanner:
             async with self._semaphore:
                 async with session.get(url, params=params, timeout=15) as resp:
                     if resp.status != 200:
+                        logger.debug(f"   CoinGecko losers: HTTP {resp.status}")
                         return []
                     
                     data = await resp.json()
                     
+                    if not isinstance(data, list):
+                        logger.debug(f"   CoinGecko losers: Unexpected response format")
+                        return []
+                    
                     tokens = []
                     for coin in data:
-                        # Only consider moderate dips (not crashes)
-                        change = coin.get("price_change_percentage_24h", 0)
-                        if -15 < change < -3:  # -15% to -3%
-                            token = self._parse_coingecko_coin(coin)
-                            if token:
-                                tokens.append(token)
+                        try:
+                            # Only moderate dips (not crashes)
+                            change = coin.get("price_change_percentage_24h")
+                            if change is None:
+                                continue
+                            
+                            change_val = float(change)
+                            if -15 < change_val < -3:  # -15% to -3%
+                                token = self._parse_coingecko_coin(coin)
+                                if token:
+                                    tokens.append(token)
+                        except Exception as e:
+                            logger.debug(f"Failed to parse CoinGecko coin: {e}")
+                            continue
                     
                     logger.info(f"   CoinGecko Losers: {len(tokens)} tokens")
                     return tokens
@@ -414,43 +553,74 @@ class MultiAPIMarketScanner:
             return []
     
     def _parse_coingecko_coin(self, coin: Dict) -> Optional[DiscoveredToken]:
-        """Parse CoinGecko coin data"""
+        """Parse CoinGecko coin data with robust error handling"""
         try:
-            symbol = coin.get("symbol", "").upper()
+            if not isinstance(coin, dict):
+                return None
             
-            # Try to find contract address (check platforms)
-            platforms = coin.get("platforms", {})
+            symbol = (coin.get("symbol") or "").upper()
+            if not symbol:
+                return None
+            
+            # Try to find contract address
+            platforms = coin.get("platforms") or {}
             address = None
             chain = "ethereum"
             
-            if "ethereum" in platforms and platforms["ethereum"]:
-                address = platforms["ethereum"].lower()
-                chain = "ethereum"
-            elif "polygon-pos" in platforms and platforms["polygon-pos"]:
-                address = platforms["polygon-pos"].lower()
-                chain = "polygon"
-            elif "arbitrum-one" in platforms and platforms["arbitrum-one"]:
-                address = platforms["arbitrum-one"].lower()
-                chain = "arbitrum"
-            elif "optimistic-ethereum" in platforms and platforms["optimistic-ethereum"]:
-                address = platforms["optimistic-ethereum"].lower()
-                chain = "optimism"
-            elif "base" in platforms and platforms["base"]:
-                address = platforms["base"].lower()
-                chain = "base"
+            # Chain priority: Ethereum > Polygon > Arbitrum > Optimism > Base
+            chain_mappings = [
+                ("ethereum", "ethereum"),
+                ("polygon-pos", "polygon"),
+                ("arbitrum-one", "arbitrum"),
+                ("optimistic-ethereum", "optimism"),
+                ("base", "base"),
+                ("binance-smart-chain", "bsc")
+            ]
+            
+            for platform_key, chain_name in chain_mappings:
+                if platform_key in platforms and platforms[platform_key]:
+                    addr = platforms[platform_key]
+                    if addr and isinstance(addr, str) and addr.strip():
+                        address = addr.lower()
+                        chain = chain_name
+                        break
             
             if not address:
                 return None
             
-            price = float(coin.get("current_price", 0))
-            market_cap = float(coin.get("market_cap", 0))
-            volume = float(coin.get("total_volume", 0))
-            change_24h = float(coin.get("price_change_percentage_24h", 0))
+            # Extract metrics with safe conversions
+            price = 0.0
+            try:
+                price = float(coin.get("current_price") or 0)
+            except (ValueError, TypeError):
+                return None
             
-            # Estimate liquidity (rough: 10% of market cap)
-            liquidity = market_cap * 0.1 if market_cap else volume * 2
+            market_cap = 0.0
+            try:
+                market_cap = float(coin.get("market_cap") or 0)
+            except (ValueError, TypeError):
+                pass
             
-            if price <= 0:
+            volume = 0.0
+            try:
+                volume = float(coin.get("total_volume") or 0)
+            except (ValueError, TypeError):
+                pass
+            
+            change_24h = 0.0
+            try:
+                change_24h = float(coin.get("price_change_percentage_24h") or 0)
+            except (ValueError, TypeError):
+                pass
+            
+            # Estimate liquidity (10% of market cap or 2x volume)
+            liquidity = 0.0
+            if market_cap > 0:
+                liquidity = market_cap * 0.1
+            elif volume > 0:
+                liquidity = volume * 2
+            
+            if price <= 0 or liquidity <= 0:
                 return None
             
             return DiscoveredToken(
@@ -461,7 +631,7 @@ class MultiAPIMarketScanner:
                 liquidity_usd=liquidity,
                 volume_24h=volume,
                 change_24h_pct=change_24h,
-                market_cap=market_cap
+                market_cap=market_cap if market_cap > 0 else None
             )
         
         except Exception as e:
@@ -486,16 +656,35 @@ class MultiAPIMarketScanner:
             async with self._semaphore:
                 async with session.get(url, params=params, timeout=15) as resp:
                     if resp.status != 200:
+                        logger.debug(f"   Birdeye Solana: HTTP {resp.status}")
                         return []
                     
                     data = await resp.json()
-                    tokens_data = data.get("data", {}).get("tokens", [])
+                    
+                    # Handle different response formats
+                    tokens_data = []
+                    if isinstance(data, dict):
+                        tokens_data = (
+                            data.get("data", {}).get("tokens", []) or
+                            data.get("tokens", []) or
+                            []
+                        )
+                    elif isinstance(data, list):
+                        tokens_data = data
+                    
+                    if not tokens_data:
+                        logger.debug(f"   Birdeye Solana: No tokens in response")
+                        return []
                     
                     tokens = []
                     for token_data in tokens_data:
-                        token = self._parse_birdeye_token(token_data)
-                        if token:
-                            tokens.append(token)
+                        try:
+                            token = self._parse_birdeye_token(token_data)
+                            if token:
+                                tokens.append(token)
+                        except Exception as e:
+                            logger.debug(f"Failed to parse Birdeye token: {e}")
+                            continue
                     
                     logger.info(f"   Birdeye Solana: {len(tokens)} tokens")
                     return tokens
@@ -505,16 +694,51 @@ class MultiAPIMarketScanner:
             return []
     
     def _parse_birdeye_token(self, token_data: Dict) -> Optional[DiscoveredToken]:
-        """Parse Birdeye token data"""
+        """Parse Birdeye token data with robust error handling"""
         try:
-            address = token_data.get("address", "").lower()
-            symbol = token_data.get("symbol", "UNKNOWN")
+            if not isinstance(token_data, dict):
+                return None
             
-            price = float(token_data.get("price", 0))
-            volume = float(token_data.get("v24hUSD", 0))
-            liquidity = float(token_data.get("liquidity", 0))
-            change_24h = float(token_data.get("priceChange24h", 0))
-            market_cap = float(token_data.get("mc", 0))
+            address = (token_data.get("address") or "").lower()
+            symbol = (token_data.get("symbol") or "UNKNOWN").upper()
+            
+            if not address:
+                return None
+            
+            # Safe conversions
+            price = 0.0
+            try:
+                price = float(token_data.get("price") or 0)
+            except (ValueError, TypeError):
+                return None
+            
+            volume = 0.0
+            try:
+                volume = float(token_data.get("v24hUSD") or token_data.get("volume24h") or 0)
+            except (ValueError, TypeError):
+                pass
+            
+            liquidity = 0.0
+            try:
+                liquidity = float(token_data.get("liquidity") or 0)
+            except (ValueError, TypeError):
+                pass
+            
+            change_24h = 0.0
+            try:
+                change_24h = float(token_data.get("priceChange24h") or token_data.get("change24h") or 0)
+            except (ValueError, TypeError):
+                pass
+            
+            market_cap = None
+            try:
+                mc_val = token_data.get("mc") or token_data.get("marketCap")
+                if mc_val:
+                    market_cap = float(mc_val)
+                    if market_cap <= 0:
+                        market_cap = None
+            except (ValueError, TypeError):
+                pass
             
             if price <= 0 or volume <= 0:
                 return None
@@ -527,7 +751,7 @@ class MultiAPIMarketScanner:
                 liquidity_usd=liquidity,
                 volume_24h=volume,
                 change_24h_pct=change_24h,
-                market_cap=market_cap if market_cap > 0 else None
+                market_cap=market_cap
             )
         
         except Exception as e:
