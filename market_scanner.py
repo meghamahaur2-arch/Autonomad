@@ -1,11 +1,15 @@
 """
-Self-Thinking Market Scanner
-Automatically discovers and analyzes trading opportunities
+Enhanced Self-Thinking Market Scanner
+Uses multiple free APIs for comprehensive token discovery
+- DexScreener (trending + search)
+- CoinGecko (top gainers/losers)
+- Birdeye (Solana tokens)
+- DEX aggregators
 """
 import asyncio
 import aiohttp
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 from collections import deque
 from aiohttp import ClientTimeout, TCPConnector
 
@@ -19,23 +23,27 @@ from logging_manager import get_logger
 logger = get_logger("MarketScanner")
 
 
-class MarketScanner:
+class MultiAPIMarketScanner:
     """
-    Autonomous market scanner with auto-blacklist learning
+    Advanced market scanner using multiple free APIs
+    Discovers hundreds of tokens across chains
     """
     
-    BASE_URL = "https://api.dexscreener.com/latest/dex"
+    # API endpoints
+    DEXSCREENER_BASE = "https://api.dexscreener.com/latest/dex"
+    COINGECKO_BASE = "https://api.coingecko.com/api/v3"
+    BIRDEYE_BASE = "https://public-api.birdeye.so"
     
-    # Chain-specific tuning (different chains have different characteristics)
+    # Chain-specific configs
     CHAIN_CONFIGS = {
         "ethereum": {
-            "min_liquidity": 500_000,  # ETH = expensive, needs more liquidity
+            "min_liquidity": 500_000,
             "min_volume": 1_000_000,
-            "gas_cost_weight": 1.0,    # Highest gas
-            "quality_bonus": 1.5       # Most established tokens
+            "gas_cost_weight": 1.0,
+            "quality_bonus": 1.5
         },
         "polygon": {
-            "min_liquidity": 100_000,  # Cheap gas, can trade smaller
+            "min_liquidity": 100_000,
             "min_volume": 200_000,
             "gas_cost_weight": 0.1,
             "quality_bonus": 1.0
@@ -47,16 +55,28 @@ class MarketScanner:
             "quality_bonus": 1.2
         },
         "base": {
-            "min_liquidity": 100_000,  # Newer chain, lower requirements
+            "min_liquidity": 100_000,
             "min_volume": 200_000,
             "gas_cost_weight": 0.15,
-            "quality_bonus": 0.9       # Less established
+            "quality_bonus": 0.9
         },
         "optimism": {
             "min_liquidity": 150_000,
             "min_volume": 300_000,
             "gas_cost_weight": 0.2,
             "quality_bonus": 1.1
+        },
+        "solana": {
+            "min_liquidity": 50_000,
+            "min_volume": 100_000,
+            "gas_cost_weight": 0.05,
+            "quality_bonus": 1.0
+        },
+        "bsc": {
+            "min_liquidity": 80_000,
+            "min_volume": 150_000,
+            "gas_cost_weight": 0.08,
+            "quality_bonus": 0.8
         }
     }
     
@@ -66,26 +86,27 @@ class MarketScanner:
         self._discovered_tokens: Dict[str, DiscoveredToken] = {}
         self._volume_history: Dict[str, deque] = {}
         
-        # AUTO-BLACKLIST SYSTEM
-        self._blacklist: Set[str] = set()  # Addresses to avoid
-        self._token_performance: Dict[str, Dict] = {}  # Track how tokens perform
-        self._failed_trades: Dict[str, int] = {}  # Count failures per token
+        # Auto-blacklist system
+        self._blacklist: Set[str] = set()
+        self._token_performance: Dict[str, Dict] = {}
+        self._failed_trades: Dict[str, int] = {}
         
         # Rate limiting
-        self._semaphore = asyncio.Semaphore(10)
-        self._last_request_time = datetime.now()
-        self._request_count = 0
+        self._semaphore = asyncio.Semaphore(15)
+        self._last_request_time = {}
         
-        logger.info("🔍 Advanced Market Scanner initialized")
+        logger.info("🔍 Multi-API Market Scanner initialized")
+        logger.info("   ✅ DexScreener: Trending + Search")
+        logger.info("   ✅ CoinGecko: Top Gainers/Losers")
+        logger.info("   ✅ Birdeye: Solana Tokens")
         logger.info("   ✅ Auto-blacklist learning enabled")
-        logger.info("   ✅ Chain-specific tuning active")
     
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create HTTP session"""
         if self._session is None or self._session.closed:
             connector = TCPConnector(
-                limit=20,
-                limit_per_host=10,
+                limit=30,
+                limit_per_host=15,
                 ttl_dns_cache=300
             )
             self._session = aiohttp.ClientSession(
@@ -99,6 +120,18 @@ class MarketScanner:
         if self._session and not self._session.closed:
             await self._session.close()
     
+    async def _rate_limit(self, api_name: str, delay: float = 0.5):
+        """Rate limiting per API"""
+        now = datetime.now()
+        last = self._last_request_time.get(api_name)
+        
+        if last:
+            elapsed = (now - last).total_seconds()
+            if elapsed < delay:
+                await asyncio.sleep(delay - elapsed)
+        
+        self._last_request_time[api_name] = datetime.now()
+    
     async def scan_market(
         self, 
         chains: Optional[List[str]] = None,
@@ -106,78 +139,138 @@ class MarketScanner:
         min_volume: Optional[float] = None
     ) -> List[DiscoveredToken]:
         """
-        Scan market for trading opportunities with chain-specific tuning
+        Comprehensive market scan using multiple APIs
         """
         if chains is None:
-            chains = ["ethereum", "polygon", "arbitrum", "base", "optimism"]
+            chains = ["ethereum", "polygon", "arbitrum", "base", "optimism", "solana"]
         
-        # Use global minimums as fallback, but chains have their own configs
         global_min_liquidity = min_liquidity or config.MIN_LIQUIDITY_USD
         global_min_volume = min_volume or config.MIN_VOLUME_24H_USD
         
-        logger.info(f"🔍 Scanning {len(chains)} chains for opportunities...")
-        logger.info(f"   Global Min Liquidity: ${global_min_liquidity:,.0f}")
-        logger.info(f"   Global Min Volume: ${global_min_volume:,.0f}")
-        logger.info(f"   Blacklist size: {len(self._blacklist)} tokens")
+        logger.info(f"🔍 Multi-API scan across {len(chains)} chains...")
+        logger.info(f"   Min Liquidity: ${global_min_liquidity:,.0f}")
+        logger.info(f"   Min Volume: ${global_min_volume:,.0f}")
+        logger.info(f"   Blacklist: {len(self._blacklist)} tokens")
         
         all_tokens = []
         
+        # Parallel API calls
+        tasks = []
+        
+        # 1. DexScreener trending (all chains)
+        tasks.append(self._scan_dexscreener_trending())
+        
+        # 2. DexScreener chain-specific searches
         for chain in chains:
-            try:
-                # Get chain-specific config
-                chain_config = self.CHAIN_CONFIGS.get(chain, {
-                    "min_liquidity": global_min_liquidity,
-                    "min_volume": global_min_volume,
-                    "gas_cost_weight": 0.5,
-                    "quality_bonus": 1.0
-                })
-                
-                tokens = await self._scan_chain(
-                    chain, 
-                    chain_config["min_liquidity"],
-                    chain_config["min_volume"]
-                )
-                
-                # Apply chain-specific quality bonus
-                for token in tokens:
-                    token.opportunity_score *= chain_config["quality_bonus"]
-                
-                all_tokens.extend(tokens)
-                logger.info(f"   ✅ {chain}: Found {len(tokens)} tokens (bonus: {chain_config['quality_bonus']}x)")
-            except Exception as e:
-                logger.warning(f"   ⚠️ {chain}: Failed to scan - {e}")
+            if chain != "solana":  # Solana handled separately
+                chain_config = self.CHAIN_CONFIGS.get(chain, {})
+                tasks.append(self._scan_dexscreener_chain(
+                    chain,
+                    chain_config.get("min_liquidity", global_min_liquidity),
+                    chain_config.get("min_volume", global_min_volume)
+                ))
+        
+        # 3. CoinGecko top gainers/losers
+        tasks.append(self._scan_coingecko_gainers())
+        tasks.append(self._scan_coingecko_losers())
+        
+        # 4. Birdeye for Solana
+        if "solana" in chains:
+            tasks.append(self._scan_birdeye_solana())
+        
+        # Execute all tasks
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Collect results
+        for result in results:
+            if isinstance(result, Exception):
+                logger.warning(f"⚠️ API call failed: {result}")
+                continue
+            if isinstance(result, list):
+                all_tokens.extend(result)
+        
+        logger.info(f"   📊 Raw tokens discovered: {len(all_tokens)}")
+        
+        # Deduplicate by address
+        unique_tokens = {}
+        for token in all_tokens:
+            key = f"{token.address}_{token.chain}"
+            if key not in unique_tokens:
+                unique_tokens[key] = token
+            else:
+                # Keep higher scored version
+                if token.opportunity_score > unique_tokens[key].opportunity_score:
+                    unique_tokens[key] = token
+        
+        all_tokens = list(unique_tokens.values())
+        logger.info(f"   🔄 After deduplication: {len(all_tokens)}")
+        
+        # Apply chain quality bonus
+        for token in all_tokens:
+            chain_config = self.CHAIN_CONFIGS.get(token.chain, {})
+            token.opportunity_score *= chain_config.get("quality_bonus", 1.0)
         
         # Filter and score
         filtered_tokens = self._filter_tokens(all_tokens)
+        logger.info(f"   ✅ After filtering: {len(filtered_tokens)}")
+        
         scored_tokens = self._score_opportunities(filtered_tokens)
+        logger.info(f"   💎 High quality tokens: {len(scored_tokens)}")
         
         # Update cache
         for token in scored_tokens:
             self._discovered_tokens[f"{token.symbol}_{token.chain}"] = token
         
-        logger.info(f"✅ Scan complete: {len(scored_tokens)} opportunities found")
+        logger.info(f"✅ Multi-API scan complete: {len(scored_tokens)} opportunities")
         
         return scored_tokens
     
-    async def _scan_chain(
+    async def _scan_dexscreener_trending(self) -> List[DiscoveredToken]:
+        """Scan DexScreener trending tokens (cross-chain)"""
+        try:
+            await self._rate_limit("dexscreener", 1.0)
+            session = await self._get_session()
+            
+            url = f"{self.DEXSCREENER_BASE}/tokens/trending"
+            
+            async with self._semaphore:
+                async with session.get(url, timeout=15) as resp:
+                    if resp.status != 200:
+                        return []
+                    
+                    data = await resp.json()
+                    pairs = data.get("pairs", [])
+                    
+                    tokens = []
+                    for pair in pairs[:50]:  # Top 50 trending
+                        token = self._parse_dexscreener_pair(pair)
+                        if token:
+                            tokens.append(token)
+                    
+                    logger.info(f"   DexScreener Trending: {len(tokens)} tokens")
+                    return tokens
+        
+        except Exception as e:
+            logger.warning(f"   DexScreener trending failed: {e}")
+            return []
+    
+    async def _scan_dexscreener_chain(
         self, 
         chain: str, 
         min_liquidity: float, 
         min_volume: float
     ) -> List[DiscoveredToken]:
-        """Scan a specific chain for tokens"""
-        async with self._semaphore:
+        """Scan specific chain on DexScreener"""
+        try:
+            await self._rate_limit("dexscreener", 1.0)
             session = await self._get_session()
             
-            # DexScreener trending endpoint
-            url = f"{self.BASE_URL}/search"
+            # Search by chain
+            url = f"{self.DEXSCREENER_BASE}/search"
             
-            # Search for high-volume pairs on this chain
-            try:
-                await asyncio.sleep(0.1)  # Rate limiting
-                
+            async with self._semaphore:
                 async with session.get(
-                    url, 
+                    url,
                     params={"q": chain},
                     timeout=15
                 ) as resp:
@@ -188,115 +281,298 @@ class MarketScanner:
                     pairs = data.get("pairs", [])
                     
                     tokens = []
-                    seen_addresses = set()
+                    seen = set()
                     
-                    for pair in pairs[:50]:  # Limit to top 50 pairs
-                        try:
-                            # Extract token info
-                            chain_id = pair.get("chainId", "").lower()
-                            if chain_id != chain.lower():
-                                continue
-                            
-                            base_token = pair.get("baseToken", {})
-                            quote_token = pair.get("quoteToken", {})
-                            
-                            # Skip if quote isn't a stablecoin
-                            if quote_token.get("symbol", "").upper() not in ["USDC", "USDT", "DAI", "WETH"]:
-                                continue
-                            
-                            address = base_token.get("address", "").lower()
-                            symbol = base_token.get("symbol", "UNKNOWN")
-                            
-                            # Skip duplicates
-                            if address in seen_addresses:
-                                continue
-                            seen_addresses.add(address)
-                            
-                            # Extract metrics
-                            price = float(pair.get("priceUsd", 0))
-                            liquidity = float(pair.get("liquidity", {}).get("usd", 0))
-                            volume = float(pair.get("volume", {}).get("h24", 0))
-                            change_24h = float(pair.get("priceChange", {}).get("h24", 0))
-                            market_cap = pair.get("fdv")  # Fully diluted valuation
-                            
-                            # Filter by liquidity and volume
-                            if liquidity < min_liquidity or volume < min_volume:
-                                continue
-                            
-                            # Create discovered token
-                            token = DiscoveredToken(
-                                symbol=symbol,
-                                address=address,
-                                chain=chain,
-                                price=price,
-                                liquidity_usd=liquidity,
-                                volume_24h=volume,
-                                change_24h_pct=change_24h,
-                                market_cap=float(market_cap) if market_cap else None
-                            )
-                            
-                            tokens.append(token)
-                            
-                        except Exception as e:
-                            logger.debug(f"Failed to parse pair: {e}")
+                    for pair in pairs[:100]:  # Top 100 per chain
+                        chain_id = pair.get("chainId", "").lower()
+                        if chain_id != chain.lower():
                             continue
+                        
+                        token = self._parse_dexscreener_pair(pair)
+                        if token and token.address not in seen:
+                            if (token.liquidity_usd >= min_liquidity and 
+                                token.volume_24h >= min_volume):
+                                tokens.append(token)
+                                seen.add(token.address)
                     
+                    logger.info(f"   DexScreener {chain}: {len(tokens)} tokens")
                     return tokens
+        
+        except Exception as e:
+            logger.warning(f"   DexScreener {chain} failed: {e}")
+            return []
+    
+    def _parse_dexscreener_pair(self, pair: Dict) -> Optional[DiscoveredToken]:
+        """Parse DexScreener pair data"""
+        try:
+            base_token = pair.get("baseToken", {})
+            quote_token = pair.get("quoteToken", {})
+            
+            # Only pairs with stable quotes
+            if quote_token.get("symbol", "").upper() not in ["USDC", "USDT", "DAI", "WETH", "ETH"]:
+                return None
+            
+            address = base_token.get("address", "").lower()
+            symbol = base_token.get("symbol", "UNKNOWN")
+            chain = pair.get("chainId", "").lower()
+            
+            price = float(pair.get("priceUsd", 0))
+            liquidity = float(pair.get("liquidity", {}).get("usd", 0))
+            volume = float(pair.get("volume", {}).get("h24", 0))
+            change_24h = float(pair.get("priceChange", {}).get("h24", 0))
+            market_cap = pair.get("fdv")
+            
+            if price <= 0 or liquidity <= 0:
+                return None
+            
+            return DiscoveredToken(
+                symbol=symbol,
+                address=address,
+                chain=chain,
+                price=price,
+                liquidity_usd=liquidity,
+                volume_24h=volume,
+                change_24h_pct=change_24h,
+                market_cap=float(market_cap) if market_cap else None
+            )
+        
+        except Exception as e:
+            logger.debug(f"Failed to parse DexScreener pair: {e}")
+            return None
+    
+    async def _scan_coingecko_gainers(self) -> List[DiscoveredToken]:
+        """Scan CoinGecko top gainers (24h)"""
+        try:
+            await self._rate_limit("coingecko", 2.0)
+            session = await self._get_session()
+            
+            url = f"{self.COINGECKO_BASE}/coins/markets"
+            params = {
+                "vs_currency": "usd",
+                "order": "price_change_percentage_24h_desc",
+                "per_page": 100,
+                "page": 1,
+                "sparkline": "false"
+            }
+            
+            async with self._semaphore:
+                async with session.get(url, params=params, timeout=15) as resp:
+                    if resp.status != 200:
+                        return []
                     
-            except Exception as e:
-                logger.warning(f"Failed to scan {chain}: {e}")
-                return []
+                    data = await resp.json()
+                    
+                    tokens = []
+                    for coin in data:
+                        token = self._parse_coingecko_coin(coin)
+                        if token:
+                            tokens.append(token)
+                    
+                    logger.info(f"   CoinGecko Gainers: {len(tokens)} tokens")
+                    return tokens
+        
+        except Exception as e:
+            logger.warning(f"   CoinGecko gainers failed: {e}")
+            return []
+    
+    async def _scan_coingecko_losers(self) -> List[DiscoveredToken]:
+        """Scan CoinGecko top losers (24h) for mean reversion"""
+        try:
+            await self._rate_limit("coingecko", 2.0)
+            session = await self._get_session()
+            
+            url = f"{self.COINGECKO_BASE}/coins/markets"
+            params = {
+                "vs_currency": "usd",
+                "order": "price_change_percentage_24h_asc",
+                "per_page": 50,
+                "page": 1,
+                "sparkline": "false"
+            }
+            
+            async with self._semaphore:
+                async with session.get(url, params=params, timeout=15) as resp:
+                    if resp.status != 200:
+                        return []
+                    
+                    data = await resp.json()
+                    
+                    tokens = []
+                    for coin in data:
+                        # Only consider moderate dips (not crashes)
+                        change = coin.get("price_change_percentage_24h", 0)
+                        if -15 < change < -3:  # -15% to -3%
+                            token = self._parse_coingecko_coin(coin)
+                            if token:
+                                tokens.append(token)
+                    
+                    logger.info(f"   CoinGecko Losers: {len(tokens)} tokens")
+                    return tokens
+        
+        except Exception as e:
+            logger.warning(f"   CoinGecko losers failed: {e}")
+            return []
+    
+    def _parse_coingecko_coin(self, coin: Dict) -> Optional[DiscoveredToken]:
+        """Parse CoinGecko coin data"""
+        try:
+            symbol = coin.get("symbol", "").upper()
+            
+            # Try to find contract address (check platforms)
+            platforms = coin.get("platforms", {})
+            address = None
+            chain = "ethereum"
+            
+            if "ethereum" in platforms and platforms["ethereum"]:
+                address = platforms["ethereum"].lower()
+                chain = "ethereum"
+            elif "polygon-pos" in platforms and platforms["polygon-pos"]:
+                address = platforms["polygon-pos"].lower()
+                chain = "polygon"
+            elif "arbitrum-one" in platforms and platforms["arbitrum-one"]:
+                address = platforms["arbitrum-one"].lower()
+                chain = "arbitrum"
+            elif "optimistic-ethereum" in platforms and platforms["optimistic-ethereum"]:
+                address = platforms["optimistic-ethereum"].lower()
+                chain = "optimism"
+            elif "base" in platforms and platforms["base"]:
+                address = platforms["base"].lower()
+                chain = "base"
+            
+            if not address:
+                return None
+            
+            price = float(coin.get("current_price", 0))
+            market_cap = float(coin.get("market_cap", 0))
+            volume = float(coin.get("total_volume", 0))
+            change_24h = float(coin.get("price_change_percentage_24h", 0))
+            
+            # Estimate liquidity (rough: 10% of market cap)
+            liquidity = market_cap * 0.1 if market_cap else volume * 2
+            
+            if price <= 0:
+                return None
+            
+            return DiscoveredToken(
+                symbol=symbol,
+                address=address,
+                chain=chain,
+                price=price,
+                liquidity_usd=liquidity,
+                volume_24h=volume,
+                change_24h_pct=change_24h,
+                market_cap=market_cap
+            )
+        
+        except Exception as e:
+            logger.debug(f"Failed to parse CoinGecko coin: {e}")
+            return None
+    
+    async def _scan_birdeye_solana(self) -> List[DiscoveredToken]:
+        """Scan Birdeye for Solana tokens"""
+        try:
+            await self._rate_limit("birdeye", 1.5)
+            session = await self._get_session()
+            
+            # Birdeye trending tokens
+            url = f"{self.BIRDEYE_BASE}/defi/tokenlist"
+            params = {
+                "sort_by": "v24hUSD",
+                "sort_type": "desc",
+                "offset": 0,
+                "limit": 50
+            }
+            
+            async with self._semaphore:
+                async with session.get(url, params=params, timeout=15) as resp:
+                    if resp.status != 200:
+                        return []
+                    
+                    data = await resp.json()
+                    tokens_data = data.get("data", {}).get("tokens", [])
+                    
+                    tokens = []
+                    for token_data in tokens_data:
+                        token = self._parse_birdeye_token(token_data)
+                        if token:
+                            tokens.append(token)
+                    
+                    logger.info(f"   Birdeye Solana: {len(tokens)} tokens")
+                    return tokens
+        
+        except Exception as e:
+            logger.warning(f"   Birdeye Solana failed: {e}")
+            return []
+    
+    def _parse_birdeye_token(self, token_data: Dict) -> Optional[DiscoveredToken]:
+        """Parse Birdeye token data"""
+        try:
+            address = token_data.get("address", "").lower()
+            symbol = token_data.get("symbol", "UNKNOWN")
+            
+            price = float(token_data.get("price", 0))
+            volume = float(token_data.get("v24hUSD", 0))
+            liquidity = float(token_data.get("liquidity", 0))
+            change_24h = float(token_data.get("priceChange24h", 0))
+            market_cap = float(token_data.get("mc", 0))
+            
+            if price <= 0 or volume <= 0:
+                return None
+            
+            return DiscoveredToken(
+                symbol=symbol,
+                address=address,
+                chain="solana",
+                price=price,
+                liquidity_usd=liquidity,
+                volume_24h=volume,
+                change_24h_pct=change_24h,
+                market_cap=market_cap if market_cap > 0 else None
+            )
+        
+        except Exception as e:
+            logger.debug(f"Failed to parse Birdeye token: {e}")
+            return None
     
     def _filter_tokens(self, tokens: List[DiscoveredToken]) -> List[DiscoveredToken]:
         """Apply filters with auto-blacklist learning"""
         filtered = []
         
         for token in tokens:
-            # Skip auto-blacklisted tokens
+            # Skip blacklisted
             if token.address in self._blacklist:
-                logger.debug(f"⏭️ Auto-blacklisted: {token.symbol} ({self._get_blacklist_reason(token.address)})")
                 continue
             
-            # ENHANCED: More comprehensive scam detection (relaxed slightly)
-            suspicious_patterns = [
+            # Scam detection
+            suspicious = [
                 "test", "xxx", "scam", "rug", "fake",
-                "elon", "moon", "safe",  # Removed some aggressive filters
-                "token", "coin",  # Generic names
-                "v2", "2.0", "new"  # Fork indicators
+                "elon", "moon", "safe"
             ]
-            symbol_lower = token.symbol.lower()
-            if any(pattern in symbol_lower for pattern in suspicious_patterns):
-                logger.debug(f"⏭️ Skipping suspicious token: {token.symbol}")
+            if any(p in token.symbol.lower() for p in suspicious):
                 self._soft_blacklist(token.address, "suspicious_pattern")
                 continue
             
-            # Check liquidity/volume ratio (RELAXED from 0.1 to 0.05)
+            # Liquidity/volume ratio check
             if token.volume_24h > 0:
                 lv_ratio = token.liquidity_usd / token.volume_24h
                 
-                if lv_ratio < 0.05:  # RELAXED: Volume is 20x liquidity (was 10x)
-                    logger.debug(f"⏭️ {token.symbol}: Suspicious L/V ratio ({lv_ratio:.3f})")
+                if lv_ratio < 0.05:  # Wash trading
                     self._soft_blacklist(token.address, "wash_trading")
                     continue
                 
-                # Also check if liquidity is TOO high vs volume
-                if lv_ratio > 20:
-                    logger.debug(f"⏭️ {token.symbol}: Stale pool (high liquidity, low volume)")
+                if lv_ratio > 20:  # Stale pool
                     continue
             
-            # Market cap check (RELAXED from $1M to $500k)
-            if token.market_cap and token.market_cap < 500_000:  # RELAXED
-                logger.debug(f"⏭️ {token.symbol}: Market cap too low (${token.market_cap:,.0f})")
+            # Market cap check
+            if token.market_cap and token.market_cap < 500_000:
                 continue
             
-            # Symbol length check
+            # Symbol length
             if len(token.symbol) > 10:
-                logger.debug(f"⏭️ {token.symbol}: Symbol too long")
                 continue
             
-            # Price sanity check
+            # Price sanity
             if token.price <= 0 or token.price > 1_000_000:
-                logger.debug(f"⏭️ {token.symbol}: Invalid price (${token.price})")
                 continue
             
             filtered.append(token)
@@ -304,83 +580,61 @@ class MarketScanner:
         return filtered
     
     def _score_opportunities(self, tokens: List[DiscoveredToken]) -> List[DiscoveredToken]:
-        """
-        Score tokens with chain-specific adjustments (RELAXED thresholds)
-        """
+        """Score tokens with comprehensive metrics"""
         for token in tokens:
             score = 0.0
             
-            # Get chain config for bonus
-            chain_config = self.CHAIN_CONFIGS.get(token.chain, {"quality_bonus": 1.0})
-            
-            # Volume surge component (REDUCED weight)
+            # Volume surge
             volume_surge = self._calc_volume_surge(
                 f"{token.symbol}_{token.chain}", 
                 token.volume_24h
             )
-            score += volume_surge * 1.5  # REDUCED from 2.0
+            score += volume_surge * 1.5
             
-            # Price momentum component (MORE LENIENT - lowered from 5% to 3%)
+            # Price momentum
             abs_change = abs(token.change_24h_pct)
-            if abs_change > 3:  # RELAXED from 5%
-                score += abs_change * 0.4  # INCREASED from 0.3
+            if abs_change > 3:
+                score += abs_change * 0.4
             
-            # Liquidity safety component (ADJUSTED for lower minimums)
-            if token.liquidity_usd > 500_000:  # $500k+
+            # Liquidity tiers
+            if token.liquidity_usd > 500_000:
                 score += 3.0
-            elif token.liquidity_usd > 250_000:  # $250k+
+            elif token.liquidity_usd > 250_000:
                 score += 2.0
-            elif token.liquidity_usd > 100_000:  # $100k+ (LOWERED)
+            elif token.liquidity_usd > 100_000:
                 score += 1.0
-            else:
-                score -= 1.0  # Light penalty
             
-            # Volume component (ADJUSTED for lower minimums)
-            if token.volume_24h > 2_000_000:  # $2M+ (LOWERED from $5M)
+            # Volume tiers
+            if token.volume_24h > 2_000_000:
                 score += 3.0
-            elif token.volume_24h > 1_000_000:  # $1M+ (LOWERED from $2M)
+            elif token.volume_24h > 1_000_000:
                 score += 2.0
-            elif token.volume_24h > 500_000:  # $500k+ (LOWERED from $1M)
+            elif token.volume_24h > 500_000:
                 score += 1.0
-            else:
-                score -= 0.5  # Light penalty
             
-            # Market cap component (ADJUSTED range)
+            # Market cap sweet spot
             if token.market_cap:
-                if 20_000_000 < token.market_cap < 500_000_000:  # $20M-$500M sweet spot (LOWERED from $50M)
+                if 20_000_000 < token.market_cap < 500_000_000:
                     score += 3.0
-                elif 5_000_000 < token.market_cap < 20_000_000:  # $5M-$20M (LOWERED from $10M-$50M)
+                elif 5_000_000 < token.market_cap < 20_000_000:
                     score += 1.5
-                elif token.market_cap < 2_000_000:  # <$2M (LOWERED from $5M)
-                    score -= 2.0  # REDUCED penalty
             
-            # Stability bonus (prefer established tokens)
-            if abs_change < 3:  # Less than 3% move
-                score += 1.0
-            
-            # Volume consistency check
-            if volume_surge < 0.5:  # Volume is stable
-                score += 0.5
-            
-            # Performance history bonus (if we've traded this before)
+            # Performance history bonus
             if token.address in self._token_performance:
                 perf = self._token_performance[token.address]
                 win_rate = perf.get("win_rate", 0)
-                if win_rate > 0.6:  # 60%+ win rate
+                if win_rate > 0.6:
                     score += 2.0
-                    logger.debug(f"   🌟 {token.symbol}: Performance bonus ({win_rate*100:.0f}% win rate)")
-                elif win_rate < 0.3:  # <30% win rate
+                elif win_rate < 0.3:
                     score -= 1.0
             
             token.opportunity_score = max(0.0, score)
         
-        # Sort by score descending
+        # Sort and filter
         tokens.sort(key=lambda t: t.opportunity_score, reverse=True)
-        
-        # RELAXED: Return tokens with score > 6.0 (was 8.0)
         quality_tokens = [t for t in tokens if t.opportunity_score >= 6.0]
         
-        logger.info(f"   💎 {len(quality_tokens)} high-quality tokens (score >= 6.0)")
+        logger.info(f"   💎 {len(quality_tokens)} tokens scored >= 6.0")
         
         return quality_tokens
     
@@ -398,13 +652,6 @@ class MarketScanner:
         if len(hist) < 3:
             return 0.1
         
-        if len(hist) < 7:
-            avg = sum(hist) / len(hist)
-            if avg == 0:
-                return 0.3
-            ratio = volume / avg
-            return max(0.0, (ratio - 0.5) * 0.5)
-        
         # EMA calculation
         ema_alpha = 0.3
         ema = hist[0]
@@ -415,9 +662,7 @@ class MarketScanner:
             return 0.5
         
         ratio = volume / ema
-        surge_score = max(0.0, ratio - 0.7)
-        
-        return surge_score
+        return max(0.0, ratio - 0.7)
     
     def blacklist_token(self, address: str, reason: str = "manual"):
         """Permanently blacklist a token"""
@@ -426,23 +671,16 @@ class MarketScanner:
             self._token_performance[address] = {}
         self._token_performance[address]["blacklist_reason"] = reason
         self._token_performance[address]["blacklisted_at"] = datetime.now(timezone.utc).isoformat()
-        logger.info(f"🚫 Permanently blacklisted: {address[:10]}... ({reason})")
+        logger.info(f"🚫 Blacklisted: {address[:10]}... ({reason})")
     
     def _soft_blacklist(self, address: str, reason: str):
-        """Soft blacklist (temporary, based on failures)"""
+        """Temporary blacklist based on failures"""
         if address not in self._failed_trades:
             self._failed_trades[address] = 0
         self._failed_trades[address] += 1
         
-        # Auto-blacklist after 3 failures
         if self._failed_trades[address] >= 3:
-            self.blacklist_token(address, f"auto_{reason}_x{self._failed_trades[address]}")
-    
-    def _get_blacklist_reason(self, address: str) -> str:
-        """Get why a token was blacklisted"""
-        if address in self._token_performance:
-            return self._token_performance[address].get("blacklist_reason", "unknown")
-        return "unknown"
+            self.blacklist_token(address, f"auto_{reason}")
     
     def record_trade_result(
         self, 
@@ -451,10 +689,7 @@ class MarketScanner:
         success: bool,
         pnl_pct: Optional[float] = None
     ):
-        """
-        🔄 FEEDBACK LOOP: Learn from trade results
-        Auto-blacklist tokens that consistently fail
-        """
+        """Record trade result for learning"""
         address = token_address.lower()
         
         if address not in self._token_performance:
@@ -479,7 +714,6 @@ class MarketScanner:
                 perf["consecutive_losses"] += 1
             perf["total_pnl"] += pnl_pct
         elif not success:
-            # Trade failed (e.g., execution error, slippage)
             perf["losses"] += 1
             perf["consecutive_losses"] += 1
             self._soft_blacklist(address, "trade_failure")
@@ -488,28 +722,27 @@ class MarketScanner:
         perf["avg_pnl"] = perf["total_pnl"] / perf["trades"] if perf["trades"] > 0 else 0
         
         # Auto-blacklist logic
-        if perf["trades"] >= 5:  # Need at least 5 trades
-            if perf["win_rate"] < 0.25:  # <25% win rate
+        if perf["trades"] >= 5:
+            if perf["win_rate"] < 0.25:
                 self.blacklist_token(address, f"low_winrate_{perf['win_rate']*100:.0f}%")
             elif perf["consecutive_losses"] >= 5:
-                self.blacklist_token(address, f"consecutive_losses_x{perf['consecutive_losses']}")
-            elif perf["avg_pnl"] < -5:  # Average loss >5%
+                self.blacklist_token(address, f"consecutive_losses")
+            elif perf["avg_pnl"] < -5:
                 self.blacklist_token(address, f"avg_loss_{perf['avg_pnl']:.1f}%")
-        
-        logger.debug(
-            f"📊 {token_symbol}: {perf['wins']}W/{perf['losses']}L "
-            f"({perf['win_rate']*100:.0f}% WR, {perf['avg_pnl']:+.1f}% avg)"
-        )
     
     def get_discovered_tokens(self) -> Dict[str, DiscoveredToken]:
-        """Get all currently discovered tokens"""
+        """Get all discovered tokens"""
         return self._discovered_tokens
     
     def get_top_opportunities(self, n: int = 10) -> List[DiscoveredToken]:
-        """Get top N opportunities by score"""
+        """Get top N opportunities"""
         tokens = sorted(
             self._discovered_tokens.values(),
             key=lambda t: t.opportunity_score,
             reverse=True
         )
         return tokens[:n]
+
+
+# Alias for backward compatibility
+MarketScanner = MultiAPIMarketScanner
