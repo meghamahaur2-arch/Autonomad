@@ -1,9 +1,9 @@
 """
-LLM Trading Brain - The "Vibes Check" Layer
-Provides high-level reasoning, market regime detection, and trade confirmation
+LLM Trading Brain - FIXED JSON parsing
 """
 import asyncio
 import json
+import re
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 
@@ -20,13 +20,6 @@ logger = get_logger("LLMBrain")
 class LLMBrain:
     """
     Elite LLM Brain for trading decisions
-    
-    Responsibilities:
-    - Token ranking (which tokens are worth trading?)
-    - Signal confirmation (is this a good setup?)
-    - Regime detection (trend vs chop vs crash)
-    - Trade rejection (vibes check)
-    - Reason generation (why did we do this?)
     """
     
     def __init__(self):
@@ -61,35 +54,46 @@ class LLMBrain:
             await self._session.close()
     
     def _extract_json(self, text: str) -> str:
-        """Extract JSON from LLM response (handles markdown code blocks)"""
+        """Extract JSON from LLM response - IMPROVED"""
         if not text:
             return ""
         
-        # Remove markdown code blocks
         text = text.strip()
         
-        # Try to find JSON between ```json and ```
+        # Method 1: Try markdown code blocks
         if "```json" in text:
-            start = text.find("```json") + 7
-            end = text.find("```", start)
-            if end != -1:
-                text = text[start:end].strip()
+            match = re.search(r'```json\s*(\{.*?\}|\[.*?\])\s*```', text, re.DOTALL)
+            if match:
+                return match.group(1).strip()
         elif "```" in text:
-            # Generic code block
-            start = text.find("```") + 3
-            end = text.find("```", start)
-            if end != -1:
-                text = text[start:end].strip()
+            match = re.search(r'```\s*(\{.*?\}|\[.*?\])\s*```', text, re.DOTALL)
+            if match:
+                return match.group(1).strip()
         
-        # Find JSON object/array boundaries
-        if not text.startswith('{') and not text.startswith('['):
-            # Try to find first { or [
-            json_start = min(
-                (text.find('{') if '{' in text else len(text)),
-                (text.find('[') if '[' in text else len(text))
-            )
-            if json_start < len(text):
-                text = text[json_start:]
+        # Method 2: Find JSON object/array
+        # Try to find { ... } first
+        brace_start = text.find('{')
+        if brace_start != -1:
+            brace_count = 0
+            for i in range(brace_start, len(text)):
+                if text[i] == '{':
+                    brace_count += 1
+                elif text[i] == '}':
+                    brace_count -= 1
+                    if brace_count == 0:
+                        return text[brace_start:i+1].strip()
+        
+        # Try to find [ ... ]
+        bracket_start = text.find('[')
+        if bracket_start != -1:
+            bracket_count = 0
+            for i in range(bracket_start, len(text)):
+                if text[i] == '[':
+                    bracket_count += 1
+                elif text[i] == ']':
+                    bracket_count -= 1
+                    if bracket_count == 0:
+                        return text[bracket_start:i+1].strip()
         
         return text.strip()
     
@@ -142,95 +146,89 @@ class LLMBrain:
     ) -> List[Tuple[DiscoveredToken, float, str]]:
         """
         🧠 BRAIN FUNCTION: Rank discovered tokens by trading potential
-        
-        Returns: List of (token, llm_score, reasoning)
         """
         if not self.enabled or not tokens:
-            # Fallback: use algorithmic scores
             return [(t, t.opportunity_score, "Algorithmic scoring") for t in tokens]
         
         logger.info(f"🧠 LLM ranking {len(tokens)} tokens...")
         
-        # Build context
-        top_tokens = tokens[:10]  # Only rank top 10 to save tokens
+        # Limit to top 15 to save tokens
+        top_tokens = tokens[:15]
         
         token_summaries = []
         for i, token in enumerate(top_tokens, 1):
-            # ✅ FIXED: Format market_cap outside f-string
             market_cap_str = f"${token.market_cap:,.0f}" if token.market_cap else "Unknown"
             
             token_summaries.append(
                 f"{i}. {token.symbol} on {token.chain}\n"
                 f"   Price: ${token.price:.6f} | Change: {token.change_24h_pct:+.2f}%\n"
                 f"   Volume: ${token.volume_24h:,.0f} | Liquidity: ${token.liquidity_usd:,.0f}\n"
-                f"   Market Cap: {market_cap_str}\n"
-                f"   Algo Score: {token.opportunity_score:.1f}"
+                f"   Market Cap: {market_cap_str} | Algo Score: {token.opportunity_score:.1f}"
             )
         
-        prompt = f"""You are an elite crypto trader. Analyze these tokens and rank them by SHORT-TERM trading potential (1-12 hours).
+        prompt = f"""Analyze these crypto tokens and rank them for SHORT-TERM trading (1-12 hours).
 
 MARKET CONTEXT:
 - Regime: {market_snapshot.regime.value}
 - Avg 24h Change: {market_snapshot.avg_change_24h:+.2f}%
 - Volatility: {market_snapshot.volatility:.2f}%
-- Bullish/Bearish: {market_snapshot.bullish_count}/{market_snapshot.bearish_count}
 
-TOKENS TO RANK:
+TOKENS:
 {chr(10).join(token_summaries)}
 
-For each token, provide:
-1. Score (0-10): Trading potential
-2. Reasoning (one line): Why this score?
+For EACH token, provide a score (0-10) and brief reason.
 
-Consider:
-- Is the price action sustainable or just a pump?
-- Is the volume real or wash trading?
-- Does the market cap make sense?
-- Is this regime good for this token?
-- Are there red flags?
-
-Respond in JSON format:
+CRITICAL: Respond ONLY with valid JSON. No other text. Format:
 {{
   "rankings": [
-    {{"symbol": "SYMBOL", "score": 8.5, "reason": "Strong momentum with healthy volume"}},
-    ...
+    {{"symbol": "ARB", "score": 8.5, "reason": "Strong momentum"}},
+    {{"symbol": "OP", "score": 7.0, "reason": "Moderate volume"}}
   ]
 }}"""
 
-        system = "You are a professional crypto trader with 10 years experience. Be skeptical, concise, and focus on SHORT-TERM trades."
+        system = "You are a crypto trader. Respond ONLY with valid JSON. No preamble, no markdown, just JSON."
         
         response = await self._call_llm(prompt, system)
         
         if not response:
-            logger.warning("⚠️ LLM ranking failed, using algorithmic scores")
-            return [(t, t.opportunity_score, "Algorithmic (LLM failed)") for t in top_tokens]
+            logger.warning("⚠️ LLM ranking failed, using algo scores")
+            return [(t, t.opportunity_score, "LLM failed") for t in top_tokens]
         
         try:
-            # Parse JSON response
+            # Extract JSON
             json_text = self._extract_json(response)
             
             if not json_text:
                 logger.warning("⚠️ No JSON found in LLM response")
-                logger.debug(f"Response was: {response[:500]}")
-                return [(t, t.opportunity_score, "Algorithmic (no JSON)") for t in top_tokens]
+                logger.debug(f"Response: {response[:300]}")
+                return [(t, t.opportunity_score, "No JSON") for t in top_tokens]
             
+            # Parse JSON
             data = json.loads(json_text)
             rankings = data.get("rankings", [])
+            
+            if not rankings:
+                logger.warning("⚠️ Empty rankings from LLM")
+                return [(t, t.opportunity_score, "Empty rankings") for t in top_tokens]
             
             # Match back to tokens
             results = []
             for ranking in rankings:
-                symbol = ranking.get("symbol", "")
+                symbol = ranking.get("symbol", "").upper()
                 llm_score = float(ranking.get("score", 0))
                 reason = ranking.get("reason", "No reason")
                 
                 # Find matching token
                 for token in top_tokens:
-                    if token.symbol == symbol:
+                    if token.symbol.upper() == symbol:
                         results.append((token, llm_score, reason))
                         break
             
-            logger.info(f"🧠 LLM ranked {len(results)} tokens")
+            if not results:
+                logger.warning("⚠️ No tokens matched from LLM rankings")
+                return [(t, t.opportunity_score, "No matches") for t in top_tokens]
+            
+            logger.info(f"🧠 LLM ranked {len(results)} tokens successfully")
             
             # Sort by LLM score
             results.sort(key=lambda x: x[1], reverse=True)
@@ -238,14 +236,12 @@ Respond in JSON format:
             return results
             
         except json.JSONDecodeError as e:
-            logger.error(f"❌ Failed to parse LLM rankings: {e}")
-            logger.debug(f"JSON text was: {json_text[:500] if 'json_text' in locals() else 'N/A'}")
-            logger.debug(f"Full response: {response[:500]}")
-            return [(t, t.opportunity_score, "Algorithmic (parse failed)") for t in top_tokens]
+            logger.error(f"❌ JSON parse error: {e}")
+            logger.debug(f"JSON text: {json_text[:300] if 'json_text' in locals() else 'N/A'}")
+            return [(t, t.opportunity_score, "Parse error") for t in top_tokens]
         except Exception as e:
-            logger.error(f"❌ Failed to parse LLM rankings: {e}")
-            logger.debug(f"Response was: {response[:500]}")
-            return [(t, t.opportunity_score, "Algorithmic (parse failed)") for t in top_tokens]
+            logger.error(f"❌ LLM ranking error: {e}")
+            return [(t, t.opportunity_score, "Error") for t in top_tokens]
     
     async def confirm_trade(
         self,
@@ -257,78 +253,56 @@ Respond in JSON format:
     ) -> Tuple[bool, str, Conviction]:
         """
         🧠 BRAIN FUNCTION: Confirm if this trade makes sense
-        
-        Returns: (approved, reasoning, adjusted_conviction)
         """
         if not self.enabled:
             return (True, "Algorithmic decision", conviction)
         
         logger.info(f"🧠 LLM confirming trade: {token.symbol} ({signal_type})")
         
-        # ✅ FIXED: Format market_cap outside f-string
         market_cap_str = f"${token.market_cap:,.0f}" if token.market_cap else "Unknown"
         
-        prompt = f"""You are reviewing a trade before execution. Should we take this trade?
+        prompt = f"""Should we take this crypto trade?
 
-TOKEN:
-- Symbol: {token.symbol} on {token.chain}
-- Price: ${token.price:.6f}
-- 24h Change: {token.change_24h_pct:+.2f}%
-- Volume: ${token.volume_24h:,.0f}
-- Liquidity: ${token.liquidity_usd:,.0f}
-- Market Cap: {market_cap_str}
+TOKEN: {token.symbol} on {token.chain}
+Price: ${token.price:.6f} | 24h: {token.change_24h_pct:+.2f}%
+Volume: ${token.volume_24h:,.0f} | Liquidity: ${token.liquidity_usd:,.0f}
+Market Cap: {market_cap_str}
 
-SIGNAL:
-- Type: {signal_type}
-- Conviction: {conviction.value}
-
-MARKET:
-- Regime: {market_snapshot.regime.value}
-- Volatility: {market_snapshot.volatility:.2f}%
+SIGNAL: {signal_type} (Conviction: {conviction.value})
+MARKET: {market_snapshot.regime.value} | Volatility: {market_snapshot.volatility:.2f}%
 
 PORTFOLIO:
-- Open Positions: {portfolio_stats.get('positions', 0)}/5
-- Deployed Capital: {portfolio_stats.get('deployed_pct', 0)*100:.0f}%
-- Win Rate: {portfolio_stats.get('win_rate', 0)*100:.0f}%
-- Consecutive Losses: {portfolio_stats.get('consecutive_losses', 0)}
+Positions: {portfolio_stats.get('positions', 0)}/5
+Win Rate: {portfolio_stats.get('win_rate', 0)*100:.0f}%
+Consecutive Losses: {portfolio_stats.get('consecutive_losses', 0)}
 
-DECISION:
-Should we take this trade? Consider:
-- Is this signal reliable in current market regime?
-- Are we overexposed?
-- Is the token legitimate?
-- Any red flags?
-
-Respond in JSON:
+CRITICAL: Respond ONLY with valid JSON:
 {{
-  "approved": true/false,
-  "reasoning": "One line explanation",
-  "conviction": "HIGH/MEDIUM/LOW"
+  "approved": true,
+  "reasoning": "One sentence",
+  "conviction": "HIGH"
 }}"""
 
-        system = "You are a risk manager for a trading desk. Be conservative. Reject suspicious trades."
+        system = "You are a risk manager. Respond ONLY with valid JSON. No markdown."
         
         response = await self._call_llm(prompt, system)
         
         if not response:
-            logger.warning("⚠️ LLM confirmation failed, approving with original conviction")
-            return (True, "LLM unavailable, algo approved", conviction)
+            return (True, "LLM unavailable", conviction)
         
         try:
             json_text = self._extract_json(response)
             
             if not json_text:
-                logger.warning("⚠️ No JSON found in LLM confirmation")
-                return (True, "Parse failed, algo approved", conviction)
+                return (True, "No JSON", conviction)
             
             data = json.loads(json_text)
             approved = data.get("approved", True)
             reasoning = data.get("reasoning", "LLM confirmed")
-            new_conviction_str = data.get("conviction", conviction.value)
+            new_conviction_str = data.get("conviction", conviction.value).upper()
             
-            # Parse conviction
             try:
-                new_conviction = Conviction[new_conviction_str.upper()]
+                new_conviction = Conviction[new_conviction_str]
             except (KeyError, AttributeError):
                 new_conviction = conviction
             
@@ -339,124 +313,9 @@ Respond in JSON:
             
             return (approved, reasoning, new_conviction)
             
-        except json.JSONDecodeError as e:
-            logger.error(f"❌ Failed to parse LLM confirmation: {e}")
-            logger.debug(f"JSON text was: {json_text[:500] if 'json_text' in locals() else 'N/A'}")
-            logger.debug(f"Full response: {response[:500]}")
-            return (True, "Parse failed, algo approved", conviction)
         except Exception as e:
-            logger.error(f"❌ Failed to parse LLM confirmation: {e}")
-            logger.debug(f"Response was: {response[:500]}")
-            return (True, "Parse failed, algo approved", conviction)
-    
-    async def detect_market_regime(
-        self,
-        market_snapshot: MarketSnapshot,
-        recent_trades: List[Dict]
-    ) -> Tuple[str, str]:
-        """
-        🧠 BRAIN FUNCTION: Understand market conditions
-        
-        Returns: (regime_description, trading_advice)
-        """
-        if not self.enabled:
-            return (market_snapshot.regime.value, "Trade normally")
-        
-        # Build context from recent trades
-        trade_summary = "No recent trades"
-        if recent_trades:
-            wins = sum(1 for t in recent_trades if t.get("pnl_pct", 0) > 0)
-            losses = len(recent_trades) - wins
-            avg_pnl = sum(t.get("pnl_pct", 0) for t in recent_trades) / len(recent_trades)
-            trade_summary = f"{wins}W/{losses}L, Avg PnL: {avg_pnl:+.2f}%"
-        
-        prompt = f"""Analyze current market conditions and give trading advice.
-
-MARKET DATA:
-- Regime (algo): {market_snapshot.regime.value}
-- Avg 24h Change: {market_snapshot.avg_change_24h:+.2f}%
-- Volatility: {market_snapshot.volatility:.2f}%
-- Bullish Tokens: {market_snapshot.bullish_count}
-- Bearish Tokens: {market_snapshot.bearish_count}
-
-RECENT PERFORMANCE:
-- {trade_summary}
-
-Questions:
-1. What type of market are we in? (trending up/down, choppy, volatile, crash)
-2. What's the best strategy right now?
-3. Should we be more aggressive or defensive?
-
-Respond in JSON:
-{{
-  "regime": "One word description",
-  "advice": "One sentence trading advice"
-}}"""
-
-        system = "You are a veteran trader who's seen every market cycle. Be concise and actionable."
-        
-        response = await self._call_llm(prompt, system)
-        
-        if not response:
-            return (market_snapshot.regime.value, "LLM unavailable")
-        
-        try:
-            json_text = self._extract_json(response)
-            
-            if not json_text:
-                return (market_snapshot.regime.value, "LLM unavailable")
-            
-            data = json.loads(json_text)
-            regime = data.get("regime", market_snapshot.regime.value)
-            advice = data.get("advice", "Trade normally")
-            
-            logger.info(f"🧠 Market Regime: {regime}")
-            logger.info(f"📊 Trading Advice: {advice}")
-            
-            return (regime, advice)
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"❌ Failed to parse regime detection: {e}")
-            logger.debug(f"JSON text was: {json_text[:500] if 'json_text' in locals() else 'N/A'}")
-            return (market_snapshot.regime.value, "Parse failed")
-        except Exception as e:
-            logger.error(f"❌ Failed to parse regime detection: {e}")
-            return (market_snapshot.regime.value, "Parse failed")
-    
-    async def explain_trade_result(
-        self,
-        token_symbol: str,
-        entry_price: float,
-        exit_price: float,
-        pnl_pct: float,
-        hold_hours: float,
-        exit_reason: str
-    ) -> str:
-        """
-        🧠 BRAIN FUNCTION: Explain what happened (for learning)
-        
-        Returns: Human-readable explanation
-        """
-        if not self.enabled:
-            return f"Exited {exit_reason}: {pnl_pct:+.2f}%"
-        
-        prompt = f"""Explain this trade result in one sentence.
-
-TRADE:
-- Token: {token_symbol}
-- Entry: ${entry_price:.6f}
-- Exit: ${exit_price:.6f}
-- P&L: {pnl_pct:+.2f}%
-- Hold Time: {hold_hours:.1f} hours
-- Exit Reason: {exit_reason}
-
-Explain what happened and what we learned. Be concise (20 words max)."""
-
-        system = "You are a trading journal. Write clear, educational summaries."
-        
-        response = await self._call_llm(prompt, system)
-        
-        return response if response else f"{exit_reason}: {pnl_pct:+.2f}%"
+            logger.error(f"❌ LLM confirm error: {e}")
+            return (True, "Error, approved anyway", conviction)
     
     def get_stats(self) -> Dict:
         """Get LLM usage statistics"""

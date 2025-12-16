@@ -144,6 +144,7 @@ class MultiAPIMarketScanner:
         if chains is None:
             chains = ["ethereum", "polygon", "arbitrum", "base", "optimism", "solana"]
         
+        # LOWERED thresholds for more opportunities
         global_min_liquidity = min_liquidity or config.MIN_LIQUIDITY_USD
         global_min_volume = min_volume or config.MIN_VOLUME_24H_USD
         
@@ -157,26 +158,17 @@ class MultiAPIMarketScanner:
         # Parallel API calls
         tasks = []
         
-        # 1. DexScreener trending (all chains)
-        tasks.append(self._scan_dexscreener_trending())
+        # 1. DexScreener - Use profiles endpoint (better for discovery)
+        for chain in ["ethereum", "polygon", "arbitrum", "base", "optimism", "bsc"]:
+            if chain in chains:
+                tasks.append(self._scan_dexscreener_profiles(chain))
         
-        # 2. DexScreener chain-specific searches
-        for chain in chains:
-            if chain != "solana":  # Solana handled separately
-                chain_config = self.CHAIN_CONFIGS.get(chain, {})
-                tasks.append(self._scan_dexscreener_chain(
-                    chain,
-                    chain_config.get("min_liquidity", global_min_liquidity),
-                    chain_config.get("min_volume", global_min_volume)
-                ))
-        
-        # 3. CoinGecko top gainers/losers
+        # 2. CoinGecko top gainers/losers
         tasks.append(self._scan_coingecko_gainers())
         tasks.append(self._scan_coingecko_losers())
         
-        # 4. Birdeye for Solana
-        if "solana" in chains:
-            tasks.append(self._scan_birdeye_solana())
+        # 3. DexScreener trending (as fallback)
+        tasks.append(self._scan_dexscreener_trending())
         
         # Execute all tasks
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -184,7 +176,7 @@ class MultiAPIMarketScanner:
         # Collect results
         for result in results:
             if isinstance(result, Exception):
-                logger.warning(f"⚠️ API call failed: {result}")
+                logger.debug(f"API call failed: {result}")
                 continue
             if isinstance(result, list):
                 all_tokens.extend(result)
@@ -276,6 +268,70 @@ class MultiAPIMarketScanner:
         except Exception as e:
             logger.warning(f"   DexScreener trending failed: {e}")
             return []
+    
+    async def _scan_dexscreener_profiles(self, chain: str) -> List[DiscoveredToken]:
+        """Scan DexScreener profiles endpoint (better volume data)"""
+        try:
+            await self._rate_limit("dexscreener", 1.0)
+            session = await self._get_session()
+            
+            # Use profiles endpoint with boosted flag
+            url = f"{self.DEXSCREENER_BASE}/profiles/latest/dex/tokens"
+            
+            async with self._semaphore:
+                async with session.get(url, timeout=15) as resp:
+                    if resp.status != 200:
+                        logger.debug(f"   DexScreener profiles {chain}: HTTP {resp.status}")
+                        # Fallback to chain search
+                        return await self._scan_dexscreener_chain(
+                            chain, 
+                            config.MIN_LIQUIDITY_USD,
+                            config.MIN_VOLUME_24H_USD
+                        )
+                    
+                    data = await resp.json()
+                    
+                    # Parse profiles
+                    pairs = []
+                    if isinstance(data, list):
+                        for item in data:
+                            if isinstance(item, dict):
+                                item_pairs = item.get("pairs", [])
+                                if isinstance(item_pairs, list):
+                                    pairs.extend(item_pairs)
+                    elif isinstance(data, dict):
+                        pairs = data.get("pairs", [])
+                    
+                    tokens = []
+                    seen = set()
+                    
+                    for pair in pairs:
+                        try:
+                            # Filter by chain
+                            pair_chain = pair.get("chainId", "").lower()
+                            if pair_chain != chain:
+                                continue
+                            
+                            token = self._parse_dexscreener_pair(pair)
+                            if token and token.address not in seen:
+                                tokens.append(token)
+                                seen.add(token.address)
+                        
+                        except Exception as e:
+                            logger.debug(f"Failed to parse profile pair: {e}")
+                            continue
+                    
+                    logger.info(f"   DexScreener {chain}: {len(tokens)} tokens")
+                    return tokens
+        
+        except Exception as e:
+            logger.debug(f"   DexScreener profiles {chain} failed: {e}")
+            # Fallback to chain search
+            return await self._scan_dexscreener_chain(
+                chain,
+                config.MIN_LIQUIDITY_USD, 
+                config.MIN_VOLUME_24H_USD
+            )
     
     async def _scan_dexscreener_chain(
         self, 
@@ -854,11 +910,11 @@ class MultiAPIMarketScanner:
             
             token.opportunity_score = max(0.0, score)
         
-        # Sort and filter
+        # Sort and filter - LOWERED threshold from 6.0 to 4.0
         tokens.sort(key=lambda t: t.opportunity_score, reverse=True)
-        quality_tokens = [t for t in tokens if t.opportunity_score >= 6.0]
+        quality_tokens = [t for t in tokens if t.opportunity_score >= 4.0]
         
-        logger.info(f"   💎 {len(quality_tokens)} tokens scored >= 6.0")
+        logger.info(f"   💎 {len(quality_tokens)} tokens scored >= 4.0")
         
         return quality_tokens
     

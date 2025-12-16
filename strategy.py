@@ -1,6 +1,5 @@
 """
-Trading Strategy - Hybrid Algorithmic + LLM Decision Making
-FIXED: Ensures all trade decisions have required metadata
+Trading Strategy - FIXED position limit check
 """
 from typing import List, Dict, Optional, Tuple
 from config import config
@@ -16,9 +15,6 @@ logger = get_logger("Strategy")
 class TradingStrategy:
     """
     🔥 ELITE HYBRID STRATEGY
-    
-    Code does:  Market scanning, indicators, execution
-    LLM does:   Token ranking, signal confirmation, regime detection
     """
     
     def __init__(self, llm_brain=None):
@@ -32,23 +28,23 @@ class TradingStrategy:
         metrics: TradingMetrics,
         market_snapshot: MarketSnapshot
     ) -> TradeDecision:
-        """
-        Generate trade decision (hybrid approach)
-        
-        1. Code checks exits (fast reflexes)
-        2. LLM ranks opportunities (brain)
-        3. Code filters by rules
-        4. LLM confirms final trade (vibes check)
-        """
+        """Generate trade decision (hybrid approach)"""
         positions = portfolio.get("positions", [])
         
-        # STEP 1: Check exit signals (pure algorithmic - fast)
+        # STEP 1: Check exit signals first (PRIORITY)
         for position in positions:
             exit_decision = self._check_exit_signals(position, portfolio)
             if exit_decision:
                 return exit_decision
         
-        # STEP 2: Get LLM to rank opportunities (if enabled)
+        # STEP 2: Check if we can add more positions
+        if len(positions) >= config.MAX_POSITIONS:
+            return TradeDecision(
+                action=TradingAction.HOLD,
+                reason=f"📊 Max positions ({config.MAX_POSITIONS}) reached. Need to exit first."
+            )
+        
+        # STEP 3: Get LLM to rank opportunities
         if self.llm_brain and self.llm_brain.enabled and opportunities:
             logger.info("🧠 Getting LLM token rankings...")
             ranked_opportunities = await self.llm_brain.rank_tokens(
@@ -65,7 +61,7 @@ class TradingStrategy:
                 for token in opportunities
             ]
         
-        # STEP 3: Check for entry (algorithmic filtering)
+        # STEP 4: Check for entry
         entry_candidate = self._check_entry_signals(
             portfolio, 
             opportunities_with_scores,
@@ -75,11 +71,11 @@ class TradingStrategy:
         if entry_candidate.action == TradingAction.HOLD:
             return entry_candidate
         
-        # STEP 4: LLM confirmation (vibes check)
+        # STEP 5: LLM confirmation
         if self.llm_brain and self.llm_brain.enabled:
             logger.info("🧠 Getting LLM trade confirmation...")
             
-            # Extract token from decision
+            # Extract token
             token = None
             for opp, score, reason in opportunities_with_scores:
                 if opp.symbol == entry_candidate.to_token.split('_')[0]:
@@ -115,19 +111,15 @@ class TradingStrategy:
         return entry_candidate
     
     def _check_exit_signals(self, position: Position, portfolio: Dict) -> Optional[TradeDecision]:
-        """
-        ✅ FIXED: Exit signals now include proper metadata
-        """
-        # Get holdings to find token metadata
+        """Check exit signals"""
         holdings = portfolio.get("holdings", {})
         position_holding = holdings.get(position.symbol, {})
         
-        # Extract metadata for exit
         metadata = {
             "token_address": position_holding.get("tokenAddress", ""),
             "chain": position_holding.get("chain", "eth"),
             "price": position.current_price,
-            "liquidity": 999999,  # Assume sufficient for exits
+            "liquidity": 999999,
             "volume_24h": 999999,
             "score": 10.0
         }
@@ -142,7 +134,7 @@ class TradingStrategy:
                 conviction=Conviction.HIGH,
                 signal_type=SignalType.STOP_LOSS,
                 reason=f"🛑 Stop-loss: {position.pnl_pct:.1f}% loss on ${position.value:.2f}",
-                metadata=metadata  # ✅ FIXED: Added metadata
+                metadata=metadata
             )
         
         # Trailing Stop
@@ -155,10 +147,10 @@ class TradingStrategy:
                 conviction=Conviction.HIGH,
                 signal_type=SignalType.STOP_LOSS,
                 reason=f"📉 Trailing stop triggered",
-                metadata=metadata  # ✅ FIXED: Added metadata
+                metadata=metadata
             )
         
-        # Take Profit (partial)
+        # Take Profit
         if position.should_take_profit(config.TAKE_PROFIT_PCT):
             return TradeDecision(
                 action=TradingAction.SELL,
@@ -168,7 +160,7 @@ class TradingStrategy:
                 conviction=Conviction.MEDIUM,
                 signal_type=SignalType.TAKE_PROFIT,
                 reason=f"🎯 Take-profit: {position.pnl_pct:.1f}% gain (partial 50%)",
-                metadata=metadata  # ✅ FIXED: Added metadata
+                metadata=metadata
             )
         
         return None
@@ -225,15 +217,12 @@ class TradingStrategy:
             if symbol_key in existing_symbols:
                 continue
             
-            # Check max positions
-            if len(existing_symbols) >= config.MAX_POSITIONS:
-                return TradeDecision(
-                    action=TradingAction.HOLD,
-                    reason=f"📊 Max positions ({config.MAX_POSITIONS}) reached"
-                )
+            # Skip if base symbol is held (avoid duplicates across chains)
+            if token.symbol in existing_symbols:
+                continue
             
-            # Score must be above threshold
-            if score < config.OPPORTUNITY_SCORE_THRESHOLD:
+            # Score threshold (LOWERED from 6.0 to 4.0)
+            if score < 4.0:
                 continue
             
             # Determine signal type and conviction
@@ -252,7 +241,6 @@ class TradingStrategy:
             # Don't exceed available USDC
             position_size = min(position_size, usdc_value * 0.95)
             
-            # ✅ FIXED: Ensure complete metadata
             return TradeDecision(
                 action=TradingAction.BUY,
                 from_token="USDC",
@@ -262,8 +250,8 @@ class TradingStrategy:
                 signal_type=signal_type,
                 reason=f"🎯 {signal_type.value}: {token.symbol} | Score: {score:.1f} | {llm_reason}",
                 metadata={
-                    "token_address": token.address,  # ✅ Required
-                    "chain": token.chain,             # ✅ Required
+                    "token_address": token.address,
+                    "chain": token.chain,
                     "score": score,
                     "change_24h": token.change_24h_pct,
                     "volume_24h": token.volume_24h,
@@ -279,12 +267,11 @@ class TradingStrategy:
         )
     
     def _classify_opportunity(self, token: DiscoveredToken) -> tuple:
-        """Classify opportunity type and assign conviction"""
-        
+        """Classify opportunity type"""
         change = token.change_24h_pct
         score = token.opportunity_score
         
-        # High conviction signals
+        # High conviction
         if score > 15:
             if change > 10:
                 return SignalType.BREAKOUT, Conviction.HIGH
@@ -316,11 +303,9 @@ class TradingStrategy:
         conviction: Conviction,
         metrics: TradingMetrics
     ) -> float:
-        """Calculate position size based on conviction and metrics"""
-        
+        """Calculate position size"""
         base_size = config.BASE_POSITION_SIZE
         
-        # Conviction multiplier
         conviction_mult = {
             Conviction.HIGH: 1.5,
             Conviction.MEDIUM: 1.0,
@@ -329,18 +314,18 @@ class TradingStrategy:
         
         size = base_size * conviction_mult.get(conviction, 1.0)
         
-        # Reduce size after consecutive losses
+        # Reduce after losses
         if metrics.consecutive_losses >= 3:
             size *= 0.5
         
-        # Cap at max position percentage
+        # Cap at max position
         max_position = total_value * config.MAX_POSITION_PCT
         size = min(size, max_position)
         
         return max(size, config.MIN_TRADE_SIZE)
     
     def _get_deployed_pct(self, portfolio: Dict) -> float:
-        """Calculate percentage of capital deployed"""
+        """Calculate deployed percentage"""
         total_value = portfolio.get("total_value", 0)
         if total_value <= 0:
             return 0.0
@@ -354,7 +339,7 @@ class TradingStrategy:
         return deployed / total_value
     
     def _is_stablecoin(self, symbol: str) -> bool:
-        """Check if symbol is a stablecoin"""
+        """Check if stablecoin"""
         if symbol in config.TOKENS:
             return config.TOKENS[symbol].stable
         
@@ -362,7 +347,7 @@ class TradingStrategy:
         return any(pattern in symbol.upper() for pattern in stable_patterns)
     
     def _get_total_usdc(self, holdings: Dict) -> float:
-        """Get total USDC across all chains"""
+        """Get total USDC"""
         return sum(
             holding.get("value", 0)
             for symbol, holding in holdings.items()
