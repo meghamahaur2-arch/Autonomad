@@ -1,10 +1,6 @@
 """
-Enhanced Self-Thinking Market Scanner
+Enhanced Self-Thinking Market Scanner - FIXED with More Data Sources
 Uses multiple free APIs for comprehensive token discovery
-- DexScreener (trending + search)
-- CoinGecko (top gainers/losers)
-- Birdeye (Solana tokens)
-- DEX aggregators
 """
 import asyncio
 import aiohttp
@@ -25,57 +21,65 @@ logger = get_logger("MarketScanner")
 
 class MultiAPIMarketScanner:
     """
-    Advanced market scanner using multiple free APIs
-    Discovers hundreds of tokens across chains
+    🔥 FIXED: Enhanced scanner with more data sources
+    - Removed CoinGecko (requires API key)
+    - Added DexScreener boosted/trending endpoints
+    - Added GeckoTerminal API (free, no key needed)
+    - Improved chain mapping
     """
     
-    # API endpoints
-    DEXSCREENER_BASE = "https://api.dexscreener.com/latest/dex"
-    COINGECKO_BASE = "https://api.coingecko.com/api/v3"
-    BIRDEYE_BASE = "https://public-api.birdeye.so"
+    DEXSCREENER_BASE = "https://api.dexscreener.com"
+    GECKOTERMINAL_BASE = "https://api.geckoterminal.com/api/v2"
     
-    # Chain-specific configs
+    # ✅ IMPROVED: Better chain configs with proper chain IDs
     CHAIN_CONFIGS = {
         "ethereum": {
+            "dex_id": "ethereum",
+            "gecko_id": "eth",
             "min_liquidity": 500_000,
             "min_volume": 1_000_000,
-            "gas_cost_weight": 1.0,
             "quality_bonus": 1.5
         },
         "polygon": {
+            "dex_id": "polygon",
+            "gecko_id": "polygon_pos",
             "min_liquidity": 100_000,
             "min_volume": 200_000,
-            "gas_cost_weight": 0.1,
             "quality_bonus": 1.0
         },
         "arbitrum": {
+            "dex_id": "arbitrum",
+            "gecko_id": "arbitrum_one",
             "min_liquidity": 150_000,
             "min_volume": 300_000,
-            "gas_cost_weight": 0.2,
             "quality_bonus": 1.2
         },
         "base": {
+            "dex_id": "base",
+            "gecko_id": "base",
             "min_liquidity": 100_000,
             "min_volume": 200_000,
-            "gas_cost_weight": 0.15,
-            "quality_bonus": 0.9
+            "quality_bonus": 1.3
         },
         "optimism": {
+            "dex_id": "optimism",
+            "gecko_id": "optimism",
             "min_liquidity": 150_000,
             "min_volume": 300_000,
-            "gas_cost_weight": 0.2,
             "quality_bonus": 1.1
         },
         "solana": {
+            "dex_id": "solana",
+            "gecko_id": "solana",
             "min_liquidity": 50_000,
             "min_volume": 100_000,
-            "gas_cost_weight": 0.05,
-            "quality_bonus": 1.0
+            "quality_bonus": 1.2
         },
         "bsc": {
+            "dex_id": "bsc",
+            "gecko_id": "bsc",
             "min_liquidity": 80_000,
             "min_volume": 150_000,
-            "gas_cost_weight": 0.08,
             "quality_bonus": 0.8
         }
     }
@@ -86,23 +90,19 @@ class MultiAPIMarketScanner:
         self._discovered_tokens: Dict[str, DiscoveredToken] = {}
         self._volume_history: Dict[str, deque] = {}
         
-        # Auto-blacklist system
         self._blacklist: Set[str] = set()
         self._token_performance: Dict[str, Dict] = {}
         self._failed_trades: Dict[str, int] = {}
         
-        # Rate limiting
         self._semaphore = asyncio.Semaphore(15)
         self._last_request_time = {}
         
         logger.info("🔍 Multi-API Market Scanner initialized")
-        logger.info("   ✅ DexScreener: Trending + Search")
-        logger.info("   ✅ CoinGecko: Top Gainers/Losers")
-        logger.info("   ✅ Birdeye: Solana Tokens")
+        logger.info("   ✅ DexScreener: Latest + Boosted + Search + By Chain")
+        logger.info("   ✅ GeckoTerminal: Trending pools")
         logger.info("   ✅ Auto-blacklist learning enabled")
     
     async def _get_session(self) -> aiohttp.ClientSession:
-        """Get or create HTTP session"""
         if self._session is None or self._session.closed:
             connector = TCPConnector(
                 limit=30,
@@ -116,12 +116,10 @@ class MultiAPIMarketScanner:
         return self._session
     
     async def close(self):
-        """Close HTTP session"""
         if self._session and not self._session.closed:
             await self._session.close()
     
     async def _rate_limit(self, api_name: str, delay: float = 0.5):
-        """Rate limiting per API"""
         now = datetime.now()
         last = self._last_request_time.get(api_name)
         
@@ -138,13 +136,9 @@ class MultiAPIMarketScanner:
         min_liquidity: Optional[float] = None,
         min_volume: Optional[float] = None
     ) -> List[DiscoveredToken]:
-        """
-        Comprehensive market scan using multiple APIs
-        """
         if chains is None:
-            chains = ["ethereum", "polygon", "arbitrum", "base", "optimism", "solana"]
+            chains = ["ethereum", "polygon", "arbitrum", "base", "optimism", "solana", "bsc"]
         
-        # LOWERED thresholds for more opportunities
         global_min_liquidity = min_liquidity or config.MIN_LIQUIDITY_USD
         global_min_volume = min_volume or config.MIN_VOLUME_24H_USD
         
@@ -154,26 +148,25 @@ class MultiAPIMarketScanner:
         logger.info(f"   Blacklist: {len(self._blacklist)} tokens")
         
         all_tokens = []
-        
-        # Parallel API calls
         tasks = []
         
-        # 1. DexScreener - Use profiles endpoint (better for discovery)
-        for chain in ["ethereum", "polygon", "arbitrum", "base", "optimism", "bsc"]:
+        # ✅ NEW: DexScreener boosted tokens (high activity)
+        tasks.append(self._scan_dexscreener_boosted())
+        
+        # DexScreener search
+        tasks.append(self._scan_dexscreener_search_top())
+        
+        # DexScreener by chain
+        for chain in ["ethereum", "polygon", "arbitrum", "base", "optimism", "solana", "bsc"]:
             if chain in chains:
-                tasks.append(self._scan_dexscreener_profiles(chain))
+                tasks.append(self._scan_dexscreener_by_chain(chain))
         
-        # 2. CoinGecko top gainers/losers
-        tasks.append(self._scan_coingecko_gainers())
-        tasks.append(self._scan_coingecko_losers())
+        # ✅ NEW: GeckoTerminal trending pools
+        for chain in ["eth", "polygon_pos", "arbitrum_one", "base", "optimism", "solana", "bsc"]:
+            tasks.append(self._scan_geckoterminal_trending(chain))
         
-        # 3. DexScreener trending (as fallback)
-        tasks.append(self._scan_dexscreener_trending())
-        
-        # Execute all tasks
         results = await asyncio.gather(*tasks, return_exceptions=True)
         
-        # Collect results
         for result in results:
             if isinstance(result, Exception):
                 logger.debug(f"API call failed: {result}")
@@ -183,14 +176,13 @@ class MultiAPIMarketScanner:
         
         logger.info(f"   📊 Raw tokens discovered: {len(all_tokens)}")
         
-        # Deduplicate by address
+        # Deduplicate
         unique_tokens = {}
         for token in all_tokens:
             key = f"{token.address}_{token.chain}"
             if key not in unique_tokens:
                 unique_tokens[key] = token
             else:
-                # Keep higher scored version
                 if token.opportunity_score > unique_tokens[key].opportunity_score:
                     unique_tokens[key] = token
         
@@ -202,14 +194,13 @@ class MultiAPIMarketScanner:
             chain_config = self.CHAIN_CONFIGS.get(token.chain, {})
             token.opportunity_score *= chain_config.get("quality_bonus", 1.0)
         
-        # Filter and score
+        # ✅ RELAXED: Less aggressive filtering
         filtered_tokens = self._filter_tokens(all_tokens)
         logger.info(f"   ✅ After filtering: {len(filtered_tokens)}")
         
         scored_tokens = self._score_opportunities(filtered_tokens)
         logger.info(f"   💎 High quality tokens: {len(scored_tokens)}")
         
-        # Update cache
         for token in scored_tokens:
             self._discovered_tokens[f"{token.symbol}_{token.chain}"] = token
         
@@ -217,284 +208,219 @@ class MultiAPIMarketScanner:
         
         return scored_tokens
     
-    async def _scan_dexscreener_trending(self) -> List[DiscoveredToken]:
-        """Scan DexScreener trending tokens (cross-chain)"""
+    # ✅ NEW: DexScreener boosted tokens endpoint
+    async def _scan_dexscreener_boosted(self) -> List[DiscoveredToken]:
+        """Get boosted tokens from DexScreener (high activity)"""
         try:
             await self._rate_limit("dexscreener", 1.0)
             session = await self._get_session()
             
-            # Try multiple endpoints
-            urls = [
-                f"{self.DEXSCREENER_BASE}/tokens/trending",
-                f"{self.DEXSCREENER_BASE}/tokens/hot"
-            ]
-            
-            for url in urls:
-                try:
-                    async with self._semaphore:
-                        async with session.get(url, timeout=15) as resp:
-                            if resp.status != 200:
-                                continue
-                            
-                            data = await resp.json()
-                            
-                            # Handle different response formats
-                            pairs = None
-                            if isinstance(data, dict):
-                                pairs = data.get("pairs") or data.get("data") or data.get("tokens")
-                            elif isinstance(data, list):
-                                pairs = data
-                            
-                            if not pairs:
-                                continue
-                            
-                            tokens = []
-                            for pair in pairs[:50]:  # Top 50 trending
-                                token = self._parse_dexscreener_pair(pair)
-                                if token:
-                                    tokens.append(token)
-                            
-                            if tokens:
-                                logger.info(f"   DexScreener Trending: {len(tokens)} tokens")
-                                return tokens
-                
-                except Exception as e:
-                    logger.debug(f"   Trending endpoint {url} failed: {e}")
-                    continue
-            
-            logger.info("   DexScreener Trending: No data from any endpoint")
-            return []
-        
-        except Exception as e:
-            logger.warning(f"   DexScreener trending failed: {e}")
-            return []
-    
-    async def _scan_dexscreener_profiles(self, chain: str) -> List[DiscoveredToken]:
-        """Scan DexScreener profiles endpoint (better volume data)"""
-        try:
-            await self._rate_limit("dexscreener", 1.0)
-            session = await self._get_session()
-            
-            # Use profiles endpoint with boosted flag
-            url = f"{self.DEXSCREENER_BASE}/profiles/latest/dex/tokens"
+            # Get latest boosted tokens
+            url = f"{self.DEXSCREENER_BASE}/token-boosts/latest/v1"
             
             async with self._semaphore:
                 async with session.get(url, timeout=15) as resp:
                     if resp.status != 200:
-                        logger.debug(f"   DexScreener profiles {chain}: HTTP {resp.status}")
-                        # Fallback to chain search
-                        return await self._scan_dexscreener_chain(
-                            chain, 
-                            config.MIN_LIQUIDITY_USD,
-                            config.MIN_VOLUME_24H_USD
-                        )
+                        logger.debug(f"   DexScreener boosted: HTTP {resp.status}")
+                        return []
                     
                     data = await resp.json()
                     
-                    # Parse profiles
-                    pairs = []
-                    if isinstance(data, list):
-                        for item in data:
-                            if isinstance(item, dict):
-                                item_pairs = item.get("pairs", [])
-                                if isinstance(item_pairs, list):
-                                    pairs.extend(item_pairs)
-                    elif isinstance(data, dict):
-                        pairs = data.get("pairs", [])
+                    if not data:
+                        return []
                     
-                    tokens = []
-                    seen = set()
+                    # Get the token pairs for this boosted token
+                    chain_id = data.get("chainId")
+                    token_address = data.get("tokenAddress")
                     
-                    for pair in pairs:
-                        try:
-                            # Filter by chain
-                            pair_chain = pair.get("chainId", "").lower()
-                            if pair_chain != chain:
-                                continue
-                            
-                            token = self._parse_dexscreener_pair(pair)
-                            if token and token.address not in seen:
-                                tokens.append(token)
-                                seen.add(token.address)
+                    if not chain_id or not token_address:
+                        return []
+                    
+                    # Fetch pairs for this token
+                    pairs_url = f"{self.DEXSCREENER_BASE}/latest/dex/tokens/{token_address}"
+                    
+                    async with session.get(pairs_url, timeout=15) as pairs_resp:
+                        if pairs_resp.status != 200:
+                            return []
                         
-                        except Exception as e:
-                            logger.debug(f"Failed to parse profile pair: {e}")
-                            continue
-                    
-                    logger.info(f"   DexScreener {chain}: {len(tokens)} tokens")
-                    return tokens
+                        pairs_data = await pairs_resp.json()
+                        pairs = pairs_data.get("pairs", [])
+                        
+                        tokens = []
+                        for pair in pairs[:10]:
+                            token = self._parse_dexscreener_pair(pair)
+                            if token:
+                                # Boost score for promoted tokens
+                                token.opportunity_score += 3.0
+                                tokens.append(token)
+                        
+                        logger.info(f"   DexScreener Boosted: {len(tokens)} tokens")
+                        return tokens
         
         except Exception as e:
-            logger.debug(f"   DexScreener profiles {chain} failed: {e}")
-            # Fallback to chain search
-            return await self._scan_dexscreener_chain(
-                chain,
-                config.MIN_LIQUIDITY_USD, 
-                config.MIN_VOLUME_24H_USD
-            )
+            logger.debug(f"   DexScreener boosted failed: {e}")
+            return []
     
-    async def _scan_dexscreener_chain(
-        self, 
-        chain: str, 
-        min_liquidity: float, 
-        min_volume: float
-    ) -> List[DiscoveredToken]:
-        """Scan specific chain on DexScreener"""
+    async def _scan_dexscreener_search_top(self) -> List[DiscoveredToken]:
+        """Search DexScreener for top volume tokens"""
         try:
             await self._rate_limit("dexscreener", 1.0)
             session = await self._get_session()
             
-            # Try both search and chain-specific endpoints
-            urls_params = [
-                (f"{self.DEXSCREENER_BASE}/search", {"q": chain}),
-                (f"{self.DEXSCREENER_BASE}/tokens/{chain}", None)
-            ]
+            # ✅ IMPROVED: Better search terms for volume
+            search_terms = ["ETH", "BTC", "SOL", "USDC", "PEPE", "LINK", "UNI"]
+            all_tokens = []
+            seen = set()
             
-            for url, params in urls_params:
+            for term in search_terms:
                 try:
+                    url = f"{self.DEXSCREENER_BASE}/latest/dex/search"
+                    params = {"q": term}
+                    
                     async with self._semaphore:
                         async with session.get(url, params=params, timeout=15) as resp:
                             if resp.status != 200:
                                 continue
                             
                             data = await resp.json()
+                            pairs = data.get("pairs", [])
                             
-                            # Handle different response formats
-                            pairs = None
-                            if isinstance(data, dict):
-                                pairs = data.get("pairs") or data.get("data") or data.get("tokens")
-                            elif isinstance(data, list):
-                                pairs = data
-                            
-                            if not pairs:
-                                continue
-                            
-                            tokens = []
-                            seen = set()
-                            
-                            for pair in pairs[:100]:  # Top 100 per chain
-                                try:
-                                    # Flexible chain matching
-                                    chain_id = ""
-                                    if isinstance(pair, dict):
-                                        chain_id = pair.get("chainId", pair.get("chain", "")).lower()
-                                    
-                                    # Accept if chain matches or no chain specified
-                                    if chain_id and chain_id != chain.lower():
-                                        continue
-                                    
-                                    token = self._parse_dexscreener_pair(pair)
-                                    if token and token.address not in seen:
-                                        if (token.liquidity_usd >= min_liquidity and 
-                                            token.volume_24h >= min_volume):
-                                            tokens.append(token)
-                                            seen.add(token.address)
-                                
-                                except Exception as e:
-                                    logger.debug(f"Failed to parse pair: {e}")
-                                    continue
-                            
-                            if tokens:
-                                logger.info(f"   DexScreener {chain}: {len(tokens)} tokens")
-                                return tokens
+                            for pair in pairs[:30]:  # ✅ Increased from 50
+                                token = self._parse_dexscreener_pair(pair)
+                                if token and token.address not in seen:
+                                    all_tokens.append(token)
+                                    seen.add(token.address)
+                    
+                    await asyncio.sleep(0.3)  # ✅ Faster
                 
                 except Exception as e:
-                    logger.debug(f"   DexScreener chain endpoint failed: {e}")
+                    logger.debug(f"   Search term '{term}' failed: {e}")
                     continue
             
-            logger.info(f"   DexScreener {chain}: No data from any endpoint")
-            return []
+            logger.info(f"   DexScreener Search: {len(all_tokens)} tokens")
+            return all_tokens
         
         except Exception as e:
-            logger.warning(f"   DexScreener {chain} failed: {e}")
+            logger.debug(f"   DexScreener search failed: {e}")
             return []
     
-    def _parse_dexscreener_pair(self, pair: Dict) -> Optional[DiscoveredToken]:
-        """Parse DexScreener pair data with robust error handling"""
+    async def _scan_dexscreener_by_chain(self, chain: str) -> List[DiscoveredToken]:
+        """Scan DexScreener by specific chain"""
         try:
-            if not isinstance(pair, dict):
+            await self._rate_limit("dexscreener", 1.0)
+            session = await self._get_session()
+            
+            chain_config = self.CHAIN_CONFIGS.get(chain, {})
+            dex_chain_id = chain_config.get("dex_id", chain)
+            
+            # ✅ IMPROVED: Use tokens endpoint with multiple top tokens
+            top_tokens = {
+                "ethereum": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,0x514910771AF9Ca656af840dff83E8264EcF986CA",  # WETH, LINK
+                "polygon": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",  # WETH
+                "arbitrum": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",  # WETH
+                "base": "0x4200000000000000000000000000000000000006",  # WETH
+                "optimism": "0x4200000000000000000000000000000000000006",  # WETH
+                "solana": "So11111111111111111111111111111111111111112",  # SOL
+                "bsc": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"  # WBNB
+            }
+            
+            token_addresses = top_tokens.get(chain, "")
+            if not token_addresses:
+                return []
+            
+            url = f"{self.DEXSCREENER_BASE}/latest/dex/tokens/{token_addresses}"
+            
+            async with self._semaphore:
+                async with session.get(url, timeout=15) as resp:
+                    if resp.status != 200:
+                        logger.debug(f"   DexScreener {chain}: HTTP {resp.status}")
+                        return []
+                    
+                    data = await resp.json()
+                    pairs = data.get("pairs", [])
+                    
+                    tokens = []
+                    seen = set()
+                    
+                    for pair in pairs[:50]:  # ✅ Increased
+                        token = self._parse_dexscreener_pair(pair)
+                        if token and token.address not in seen:
+                            tokens.append(token)
+                            seen.add(token.address)
+                    
+                    logger.info(f"   DexScreener {chain}: {len(tokens)} tokens")
+                    return tokens
+        
+        except Exception as e:
+            logger.debug(f"   DexScreener {chain} failed: {e}")
+            return []
+    
+    # ✅ NEW: GeckoTerminal trending pools (FREE, no API key needed)
+    async def _scan_geckoterminal_trending(self, network: str) -> List[DiscoveredToken]:
+        """Scan GeckoTerminal trending pools (no API key needed)"""
+        try:
+            await self._rate_limit("geckoterminal", 1.5)
+            session = await self._get_session()
+            
+            url = f"{self.GECKOTERMINAL_BASE}/networks/{network}/trending_pools"
+            
+            async with self._semaphore:
+                async with session.get(url, timeout=15) as resp:
+                    if resp.status != 200:
+                        logger.debug(f"   GeckoTerminal {network}: HTTP {resp.status}")
+                        return []
+                    
+                    data = await resp.json()
+                    pools = data.get("data", [])
+                    
+                    tokens = []
+                    for pool in pools[:20]:
+                        token = self._parse_geckoterminal_pool(pool, network)
+                        if token:
+                            tokens.append(token)
+                    
+                    logger.info(f"   GeckoTerminal {network}: {len(tokens)} tokens")
+                    return tokens
+        
+        except Exception as e:
+            logger.debug(f"   GeckoTerminal {network} failed: {e}")
+            return []
+    
+    def _parse_geckoterminal_pool(self, pool: Dict, network: str) -> Optional[DiscoveredToken]:
+        """Parse GeckoTerminal pool data"""
+        try:
+            attributes = pool.get("attributes", {})
+            relationships = pool.get("relationships", {})
+            
+            # Get base token
+            base_token_data = relationships.get("base_token", {}).get("data", {})
+            base_token_id = base_token_data.get("id", "").split("_")
+            
+            if len(base_token_id) < 2:
                 return None
             
-            # Extract base token (flexible field names)
-            base_token = pair.get("baseToken") or pair.get("token") or {}
-            quote_token = pair.get("quoteToken") or pair.get("quoteToken") or {}
+            address = base_token_id[1].lower()
+            symbol = attributes.get("name", "").split("/")[0].strip()
             
-            # Quote token validation
-            quote_symbol = quote_token.get("symbol", "").upper()
-            if quote_symbol not in ["USDC", "USDT", "DAI", "WETH", "ETH", "SOL", "WBNB", "BUSD"]:
-                return None
+            # Map network to chain
+            network_map = {
+                "eth": "ethereum",
+                "polygon_pos": "polygon",
+                "arbitrum_one": "arbitrum",
+                "base": "base",
+                "optimism": "optimism",
+                "solana": "solana",
+                "bsc": "bsc"
+            }
+            chain = network_map.get(network, "ethereum")
             
-            # Extract required fields
-            address = (base_token.get("address") or pair.get("address") or "").lower()
-            symbol = (base_token.get("symbol") or pair.get("symbol") or "UNKNOWN").upper()
-            chain = (pair.get("chainId") or pair.get("chain") or "ethereum").lower()
+            price = float(attributes.get("base_token_price_usd") or 0)
+            liquidity = float(attributes.get("reserve_in_usd") or 0)
+            volume = float(attributes.get("volume_usd", {}).get("h24") or 0)
             
-            if not address or address == "":
-                return None
+            price_change_data = attributes.get("price_change_percentage", {})
+            change_24h = float(price_change_data.get("h24") or 0)
             
-            # Price extraction (multiple possible locations)
-            price = 0.0
-            price_fields = [
-                pair.get("priceUsd"),
-                pair.get("price"),
-                base_token.get("priceUsd"),
-                base_token.get("price")
-            ]
-            for p in price_fields:
-                if p is not None:
-                    try:
-                        price = float(p)
-                        if price > 0:
-                            break
-                    except (ValueError, TypeError):
-                        continue
-            
-            # Liquidity extraction
-            liquidity = 0.0
-            liquidity_data = pair.get("liquidity") or {}
-            if isinstance(liquidity_data, dict):
-                liquidity = float(liquidity_data.get("usd") or liquidity_data.get("value") or 0)
-            elif isinstance(liquidity_data, (int, float, str)):
-                try:
-                    liquidity = float(liquidity_data)
-                except (ValueError, TypeError):
-                    pass
-            
-            # Volume extraction
-            volume = 0.0
-            volume_data = pair.get("volume") or {}
-            if isinstance(volume_data, dict):
-                volume = float(volume_data.get("h24") or volume_data.get("24h") or 0)
-            elif isinstance(volume_data, (int, float, str)):
-                try:
-                    volume = float(volume_data)
-                except (ValueError, TypeError):
-                    pass
-            
-            # Price change extraction
-            change_24h = 0.0
-            price_change = pair.get("priceChange") or {}
-            if isinstance(price_change, dict):
-                change_24h = float(price_change.get("h24") or price_change.get("24h") or 0)
-            elif isinstance(price_change, (int, float, str)):
-                try:
-                    change_24h = float(price_change)
-                except (ValueError, TypeError):
-                    pass
-            
-            # Market cap (optional)
-            market_cap = None
-            mc_fields = [pair.get("fdv"), pair.get("marketCap"), pair.get("mcap")]
-            for mc in mc_fields:
-                if mc is not None:
-                    try:
-                        market_cap = float(mc)
-                        if market_cap > 0:
-                            break
-                    except (ValueError, TypeError):
-                        continue
-            
-            # Validation
             if price <= 0 or liquidity <= 0:
                 return None
             
@@ -506,175 +432,59 @@ class MultiAPIMarketScanner:
                 liquidity_usd=liquidity,
                 volume_24h=volume,
                 change_24h_pct=change_24h,
-                market_cap=market_cap
+                market_cap=None
             )
         
         except Exception as e:
-            logger.debug(f"Failed to parse DexScreener pair: {e}")
+            logger.debug(f"Failed to parse GeckoTerminal pool: {e}")
             return None
     
-    async def _scan_coingecko_gainers(self) -> List[DiscoveredToken]:
-        """Scan CoinGecko top gainers (24h)"""
+    def _parse_dexscreener_pair(self, pair: Dict) -> Optional[DiscoveredToken]:
+        """Parse DexScreener pair data"""
         try:
-            await self._rate_limit("coingecko", 2.0)
-            session = await self._get_session()
-            
-            url = f"{self.COINGECKO_BASE}/coins/markets"
-            params = {
-                "vs_currency": "usd",
-                "order": "price_change_percentage_24h_desc",
-                "per_page": 100,
-                "page": 1,
-                "sparkline": "false"
-            }
-            
-            async with self._semaphore:
-                async with session.get(url, params=params, timeout=15) as resp:
-                    if resp.status != 200:
-                        logger.debug(f"   CoinGecko gainers: HTTP {resp.status}")
-                        return []
-                    
-                    data = await resp.json()
-                    
-                    if not isinstance(data, list):
-                        logger.debug(f"   CoinGecko gainers: Unexpected response format")
-                        return []
-                    
-                    tokens = []
-                    for coin in data:
-                        try:
-                            token = self._parse_coingecko_coin(coin)
-                            if token:
-                                tokens.append(token)
-                        except Exception as e:
-                            logger.debug(f"Failed to parse CoinGecko coin: {e}")
-                            continue
-                    
-                    logger.info(f"   CoinGecko Gainers: {len(tokens)} tokens")
-                    return tokens
-        
-        except Exception as e:
-            logger.warning(f"   CoinGecko gainers failed: {e}")
-            return []
-    
-    async def _scan_coingecko_losers(self) -> List[DiscoveredToken]:
-        """Scan CoinGecko top losers (24h) for mean reversion"""
-        try:
-            await self._rate_limit("coingecko", 2.0)
-            session = await self._get_session()
-            
-            url = f"{self.COINGECKO_BASE}/coins/markets"
-            params = {
-                "vs_currency": "usd",
-                "order": "price_change_percentage_24h_asc",
-                "per_page": 50,
-                "page": 1,
-                "sparkline": "false"
-            }
-            
-            async with self._semaphore:
-                async with session.get(url, params=params, timeout=15) as resp:
-                    if resp.status != 200:
-                        logger.debug(f"   CoinGecko losers: HTTP {resp.status}")
-                        return []
-                    
-                    data = await resp.json()
-                    
-                    if not isinstance(data, list):
-                        logger.debug(f"   CoinGecko losers: Unexpected response format")
-                        return []
-                    
-                    tokens = []
-                    for coin in data:
-                        try:
-                            # Only moderate dips (not crashes)
-                            change = coin.get("price_change_percentage_24h")
-                            if change is None:
-                                continue
-                            
-                            change_val = float(change)
-                            if -15 < change_val < -3:  # -15% to -3%
-                                token = self._parse_coingecko_coin(coin)
-                                if token:
-                                    tokens.append(token)
-                        except Exception as e:
-                            logger.debug(f"Failed to parse CoinGecko coin: {e}")
-                            continue
-                    
-                    logger.info(f"   CoinGecko Losers: {len(tokens)} tokens")
-                    return tokens
-        
-        except Exception as e:
-            logger.warning(f"   CoinGecko losers failed: {e}")
-            return []
-    
-    def _parse_coingecko_coin(self, coin: Dict) -> Optional[DiscoveredToken]:
-        """Parse CoinGecko coin data with robust error handling"""
-        try:
-            if not isinstance(coin, dict):
+            if not isinstance(pair, dict):
                 return None
             
-            symbol = (coin.get("symbol") or "").upper()
-            if not symbol:
+            base_token = pair.get("baseToken") or {}
+            quote_token = pair.get("quoteToken") or {}
+            
+            quote_symbol = quote_token.get("symbol", "").upper()
+            if quote_symbol not in ["USDC", "USDT", "DAI", "WETH", "ETH", "SOL", "WBNB", "BUSD"]:
                 return None
             
-            # Try to find contract address
-            platforms = coin.get("platforms") or {}
-            address = None
-            chain = "ethereum"
+            address = (base_token.get("address") or "").lower()
+            symbol = (base_token.get("symbol") or "UNKNOWN").upper()
             
-            # Chain priority: Ethereum > Polygon > Arbitrum > Optimism > Base
-            chain_mappings = [
-                ("ethereum", "ethereum"),
-                ("polygon-pos", "polygon"),
-                ("arbitrum-one", "arbitrum"),
-                ("optimistic-ethereum", "optimism"),
-                ("base", "base"),
-                ("binance-smart-chain", "bsc")
-            ]
-            
-            for platform_key, chain_name in chain_mappings:
-                if platform_key in platforms and platforms[platform_key]:
-                    addr = platforms[platform_key]
-                    if addr and isinstance(addr, str) and addr.strip():
-                        address = addr.lower()
-                        chain = chain_name
-                        break
+            # ✅ IMPROVED: Better chain ID mapping
+            raw_chain = (pair.get("chainId") or "").lower()
+            chain_map = {
+                "ethereum": "ethereum",
+                "polygon": "polygon", 
+                "arbitrum": "arbitrum",
+                "base": "base",
+                "optimism": "optimism",
+                "solana": "solana",
+                "bsc": "bsc",
+                "bnb": "bsc",
+                "eth": "ethereum"
+            }
+            chain = chain_map.get(raw_chain, raw_chain)
             
             if not address:
                 return None
             
-            # Extract metrics with safe conversions
-            price = 0.0
-            try:
-                price = float(coin.get("current_price") or 0)
-            except (ValueError, TypeError):
-                return None
+            price = float(pair.get("priceUsd") or 0)
             
-            market_cap = 0.0
-            try:
-                market_cap = float(coin.get("market_cap") or 0)
-            except (ValueError, TypeError):
-                pass
+            liquidity_data = pair.get("liquidity") or {}
+            liquidity = float(liquidity_data.get("usd") or 0)
             
-            volume = 0.0
-            try:
-                volume = float(coin.get("total_volume") or 0)
-            except (ValueError, TypeError):
-                pass
+            volume_data = pair.get("volume") or {}
+            volume = float(volume_data.get("h24") or 0)
             
-            change_24h = 0.0
-            try:
-                change_24h = float(coin.get("price_change_percentage_24h") or 0)
-            except (ValueError, TypeError):
-                pass
+            price_change = pair.get("priceChange") or {}
+            change_24h = float(price_change.get("h24") or 0)
             
-            # Estimate liquidity (10% of market cap or 2x volume)
-            liquidity = 0.0
-            if market_cap > 0:
-                liquidity = market_cap * 0.1
-            elif volume > 0:
-                liquidity = volume * 2
+            market_cap = float(pair.get("fdv") or pair.get("marketCap") or 0)
             
             if price <= 0 or liquidity <= 0:
                 return None
@@ -691,131 +501,11 @@ class MultiAPIMarketScanner:
             )
         
         except Exception as e:
-            logger.debug(f"Failed to parse CoinGecko coin: {e}")
-            return None
-    
-    async def _scan_birdeye_solana(self) -> List[DiscoveredToken]:
-        """Scan Birdeye for Solana tokens"""
-        try:
-            await self._rate_limit("birdeye", 1.5)
-            session = await self._get_session()
-            
-            # Birdeye trending tokens
-            url = f"{self.BIRDEYE_BASE}/defi/tokenlist"
-            params = {
-                "sort_by": "v24hUSD",
-                "sort_type": "desc",
-                "offset": 0,
-                "limit": 50
-            }
-            
-            async with self._semaphore:
-                async with session.get(url, params=params, timeout=15) as resp:
-                    if resp.status != 200:
-                        logger.debug(f"   Birdeye Solana: HTTP {resp.status}")
-                        return []
-                    
-                    data = await resp.json()
-                    
-                    # Handle different response formats
-                    tokens_data = []
-                    if isinstance(data, dict):
-                        tokens_data = (
-                            data.get("data", {}).get("tokens", []) or
-                            data.get("tokens", []) or
-                            []
-                        )
-                    elif isinstance(data, list):
-                        tokens_data = data
-                    
-                    if not tokens_data:
-                        logger.debug(f"   Birdeye Solana: No tokens in response")
-                        return []
-                    
-                    tokens = []
-                    for token_data in tokens_data:
-                        try:
-                            token = self._parse_birdeye_token(token_data)
-                            if token:
-                                tokens.append(token)
-                        except Exception as e:
-                            logger.debug(f"Failed to parse Birdeye token: {e}")
-                            continue
-                    
-                    logger.info(f"   Birdeye Solana: {len(tokens)} tokens")
-                    return tokens
-        
-        except Exception as e:
-            logger.warning(f"   Birdeye Solana failed: {e}")
-            return []
-    
-    def _parse_birdeye_token(self, token_data: Dict) -> Optional[DiscoveredToken]:
-        """Parse Birdeye token data with robust error handling"""
-        try:
-            if not isinstance(token_data, dict):
-                return None
-            
-            address = (token_data.get("address") or "").lower()
-            symbol = (token_data.get("symbol") or "UNKNOWN").upper()
-            
-            if not address:
-                return None
-            
-            # Safe conversions
-            price = 0.0
-            try:
-                price = float(token_data.get("price") or 0)
-            except (ValueError, TypeError):
-                return None
-            
-            volume = 0.0
-            try:
-                volume = float(token_data.get("v24hUSD") or token_data.get("volume24h") or 0)
-            except (ValueError, TypeError):
-                pass
-            
-            liquidity = 0.0
-            try:
-                liquidity = float(token_data.get("liquidity") or 0)
-            except (ValueError, TypeError):
-                pass
-            
-            change_24h = 0.0
-            try:
-                change_24h = float(token_data.get("priceChange24h") or token_data.get("change24h") or 0)
-            except (ValueError, TypeError):
-                pass
-            
-            market_cap = None
-            try:
-                mc_val = token_data.get("mc") or token_data.get("marketCap")
-                if mc_val:
-                    market_cap = float(mc_val)
-                    if market_cap <= 0:
-                        market_cap = None
-            except (ValueError, TypeError):
-                pass
-            
-            if price <= 0 or volume <= 0:
-                return None
-            
-            return DiscoveredToken(
-                symbol=symbol,
-                address=address,
-                chain="solana",
-                price=price,
-                liquidity_usd=liquidity,
-                volume_24h=volume,
-                change_24h_pct=change_24h,
-                market_cap=market_cap
-            )
-        
-        except Exception as e:
-            logger.debug(f"Failed to parse Birdeye token: {e}")
+            logger.debug(f"Failed to parse DexScreener pair: {e}")
             return None
     
     def _filter_tokens(self, tokens: List[DiscoveredToken]) -> List[DiscoveredToken]:
-        """Apply filters with auto-blacklist learning"""
+        """✅ RELAXED: Less aggressive filtering to get more tokens"""
         filtered = []
         
         for token in tokens:
@@ -823,36 +513,33 @@ class MultiAPIMarketScanner:
             if token.address in self._blacklist:
                 continue
             
-            # Scam detection
-            suspicious = [
-                "test", "xxx", "scam", "rug", "fake",
-                "elon", "moon", "safe"
-            ]
+            # ✅ RELAXED: Less strict suspicious patterns
+            suspicious = ["test", "xxx", "scam", "rug", "fake"]
             if any(p in token.symbol.lower() for p in suspicious):
                 self._soft_blacklist(token.address, "suspicious_pattern")
                 continue
             
-            # Liquidity/volume ratio check
+            # ✅ RELAXED: More lenient liquidity/volume ratio
             if token.volume_24h > 0:
                 lv_ratio = token.liquidity_usd / token.volume_24h
                 
-                if lv_ratio < 0.05:  # Wash trading
+                if lv_ratio < 0.02:  # ✅ Lowered from 0.05
                     self._soft_blacklist(token.address, "wash_trading")
                     continue
                 
-                if lv_ratio > 20:  # Stale pool
+                if lv_ratio > 50:  # ✅ Raised from 20
                     continue
             
-            # Market cap check
-            if token.market_cap and token.market_cap < 500_000:
+            # ✅ RELAXED: Lower market cap minimum
+            if token.market_cap and token.market_cap < 100_000:  # ✅ Lowered from 500k
                 continue
             
-            # Symbol length
-            if len(token.symbol) > 10:
+            # ✅ RELAXED: Allow longer symbols
+            if len(token.symbol) > 15:  # ✅ Raised from 10
                 continue
             
-            # Price sanity
-            if token.price <= 0 or token.price > 1_000_000:
+            # ✅ RELAXED: Wider price range
+            if token.price <= 0 or token.price > 10_000_000:  # ✅ Raised from 1M
                 continue
             
             filtered.append(token)
@@ -860,7 +547,7 @@ class MultiAPIMarketScanner:
         return filtered
     
     def _score_opportunities(self, tokens: List[DiscoveredToken]) -> List[DiscoveredToken]:
-        """Score tokens with comprehensive metrics"""
+        """Score opportunities"""
         for token in tokens:
             score = 0.0
             
@@ -871,10 +558,10 @@ class MultiAPIMarketScanner:
             )
             score += volume_surge * 1.5
             
-            # Price momentum
+            # Price change
             abs_change = abs(token.change_24h_pct)
-            if abs_change > 3:
-                score += abs_change * 0.4
+            if abs_change > 2:  # ✅ Lowered from 3
+                score += abs_change * 0.5  # ✅ Raised from 0.4
             
             # Liquidity tiers
             if token.liquidity_usd > 500_000:
@@ -882,6 +569,8 @@ class MultiAPIMarketScanner:
             elif token.liquidity_usd > 250_000:
                 score += 2.0
             elif token.liquidity_usd > 100_000:
+                score += 1.5  # ✅ Raised from 1.0
+            elif token.liquidity_usd > 50_000:  # ✅ NEW tier
                 score += 1.0
             
             # Volume tiers
@@ -890,31 +579,34 @@ class MultiAPIMarketScanner:
             elif token.volume_24h > 1_000_000:
                 score += 2.0
             elif token.volume_24h > 500_000:
+                score += 1.5
+            elif token.volume_24h > 250_000:  # ✅ NEW tier
                 score += 1.0
             
             # Market cap sweet spot
             if token.market_cap:
-                if 20_000_000 < token.market_cap < 500_000_000:
+                if 10_000_000 < token.market_cap < 500_000_000:  # ✅ Lowered min
                     score += 3.0
-                elif 5_000_000 < token.market_cap < 20_000_000:
-                    score += 1.5
+                elif 1_000_000 < token.market_cap < 10_000_000:  # ✅ NEW tier
+                    score += 2.0
             
-            # Performance history bonus
+            # Historical performance
             if token.address in self._token_performance:
                 perf = self._token_performance[token.address]
                 win_rate = perf.get("win_rate", 0)
                 if win_rate > 0.6:
                     score += 2.0
                 elif win_rate < 0.3:
-                    score -= 1.0
+                    score -= 0.5  # ✅ Less penalty
             
             token.opportunity_score = max(0.0, score)
         
-        # Sort and filter - LOWERED threshold from 6.0 to 4.0
         tokens.sort(key=lambda t: t.opportunity_score, reverse=True)
-        quality_tokens = [t for t in tokens if t.opportunity_score >= 4.0]
         
-        logger.info(f"   💎 {len(quality_tokens)} tokens scored >= 4.0")
+        # ✅ RELAXED: Lower threshold
+        quality_tokens = [t for t in tokens if t.opportunity_score >= 3.0]  # ✅ Lowered from 4.0
+        
+        logger.info(f"   💎 {len(quality_tokens)} tokens scored >= 3.0")
         
         return quality_tokens
     
@@ -930,9 +622,8 @@ class MultiAPIMarketScanner:
         hist.append(volume)
         
         if len(hist) < 3:
-            return 0.1
+            return 0.2  # ✅ Raised from 0.1
         
-        # EMA calculation
         ema_alpha = 0.3
         ema = hist[0]
         for v in list(hist)[1:]:
@@ -942,10 +633,10 @@ class MultiAPIMarketScanner:
             return 0.5
         
         ratio = volume / ema
-        return max(0.0, ratio - 0.7)
+        return max(0.0, ratio - 0.5)  # ✅ Lowered from 0.7
     
     def blacklist_token(self, address: str, reason: str = "manual"):
-        """Permanently blacklist a token"""
+        """Blacklist a token"""
         self._blacklist.add(address.lower())
         if address not in self._token_performance:
             self._token_performance[address] = {}
@@ -954,7 +645,7 @@ class MultiAPIMarketScanner:
         logger.info(f"🚫 Blacklisted: {address[:10]}... ({reason})")
     
     def _soft_blacklist(self, address: str, reason: str):
-        """Temporary blacklist based on failures"""
+        """Soft blacklist with counter"""
         if address not in self._failed_trades:
             self._failed_trades[address] = 0
         self._failed_trades[address] += 1
@@ -1001,7 +692,7 @@ class MultiAPIMarketScanner:
         perf["win_rate"] = perf["wins"] / perf["trades"] if perf["trades"] > 0 else 0
         perf["avg_pnl"] = perf["total_pnl"] / perf["trades"] if perf["trades"] > 0 else 0
         
-        # Auto-blacklist logic
+        # Auto-blacklist poor performers
         if perf["trades"] >= 5:
             if perf["win_rate"] < 0.25:
                 self.blacklist_token(address, f"low_winrate_{perf['win_rate']*100:.0f}%")
@@ -1024,5 +715,5 @@ class MultiAPIMarketScanner:
         return tokens[:n]
 
 
-# Alias for backward compatibility
+# Export
 MarketScanner = MultiAPIMarketScanner
