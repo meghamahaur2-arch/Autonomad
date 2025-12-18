@@ -1,6 +1,7 @@
 """
-Enhanced Self-Thinking Market Scanner - FIXED with More Data Sources
+Enhanced Self-Thinking Market Scanner - INTEGRATED WITH TOKEN VALIDATOR
 Uses multiple free APIs for comprehensive token discovery
+✅ NOW VALIDATES ALL ADDRESSES BEFORE RETURNING
 """
 import asyncio
 import aiohttp
@@ -15,23 +16,22 @@ from models import (
     Conviction, InsufficientLiquidityError
 )
 from logging_manager import get_logger
+from token_validator import token_validator  # ✅ ADDED
 
 logger = get_logger("MarketScanner")
 
 
 class MultiAPIMarketScanner:
     """
-    🔥 FIXED: Enhanced scanner with more data sources
-    - Removed CoinGecko (requires API key)
-    - Added DexScreener boosted/trending endpoints
-    - Added GeckoTerminal API (free, no key needed)
-    - Improved chain mapping
+    🔥 FIXED: Enhanced scanner with token address validation
+    - DexScreener boosted/trending endpoints
+    - GeckoTerminal API (free, no key needed)
+    - ✅ TOKEN VALIDATION on all discovered tokens
     """
     
     DEXSCREENER_BASE = "https://api.dexscreener.com"
     GECKOTERMINAL_BASE = "https://api.geckoterminal.com/api/v2"
     
-    # ✅ IMPROVED: Better chain configs with proper chain IDs
     CHAIN_CONFIGS = {
         "ethereum": {
             "dex_id": "ethereum",
@@ -100,6 +100,7 @@ class MultiAPIMarketScanner:
         logger.info("🔍 Multi-API Market Scanner initialized")
         logger.info("   ✅ DexScreener: Latest + Boosted + Search + By Chain")
         logger.info("   ✅ GeckoTerminal: Trending pools")
+        logger.info("   ✅ Token Validator: Address validation enabled")
         logger.info("   ✅ Auto-blacklist learning enabled")
     
     async def _get_session(self) -> aiohttp.ClientSession:
@@ -150,7 +151,7 @@ class MultiAPIMarketScanner:
         all_tokens = []
         tasks = []
         
-        # ✅ NEW: DexScreener boosted tokens (high activity)
+        # DexScreener boosted tokens
         tasks.append(self._scan_dexscreener_boosted())
         
         # DexScreener search
@@ -161,7 +162,7 @@ class MultiAPIMarketScanner:
             if chain in chains:
                 tasks.append(self._scan_dexscreener_by_chain(chain))
         
-        # ✅ NEW: GeckoTerminal trending pools
+        # GeckoTerminal trending pools
         for chain in ["eth", "polygon_pos", "arbitrum_one", "base", "optimism", "solana", "bsc"]:
             tasks.append(self._scan_geckoterminal_trending(chain))
         
@@ -194,7 +195,7 @@ class MultiAPIMarketScanner:
             chain_config = self.CHAIN_CONFIGS.get(token.chain, {})
             token.opportunity_score *= chain_config.get("quality_bonus", 1.0)
         
-        # ✅ RELAXED: Less aggressive filtering
+        # Filter tokens
         filtered_tokens = self._filter_tokens(all_tokens)
         logger.info(f"   ✅ After filtering: {len(filtered_tokens)}")
         
@@ -208,14 +209,12 @@ class MultiAPIMarketScanner:
         
         return scored_tokens
     
-    # ✅ NEW: DexScreener boosted tokens endpoint
     async def _scan_dexscreener_boosted(self) -> List[DiscoveredToken]:
-        """Get boosted tokens from DexScreener (high activity)"""
+        """Get boosted tokens from DexScreener"""
         try:
             await self._rate_limit("dexscreener", 1.0)
             session = await self._get_session()
             
-            # Get latest boosted tokens
             url = f"{self.DEXSCREENER_BASE}/token-boosts/latest/v1"
             
             async with self._semaphore:
@@ -229,14 +228,12 @@ class MultiAPIMarketScanner:
                     if not data:
                         return []
                     
-                    # Get the token pairs for this boosted token
                     chain_id = data.get("chainId")
                     token_address = data.get("tokenAddress")
                     
                     if not chain_id or not token_address:
                         return []
                     
-                    # Fetch pairs for this token
                     pairs_url = f"{self.DEXSCREENER_BASE}/latest/dex/tokens/{token_address}"
                     
                     async with session.get(pairs_url, timeout=15) as pairs_resp:
@@ -250,7 +247,6 @@ class MultiAPIMarketScanner:
                         for pair in pairs[:10]:
                             token = self._parse_dexscreener_pair(pair)
                             if token:
-                                # Boost score for promoted tokens
                                 token.opportunity_score += 3.0
                                 tokens.append(token)
                         
@@ -267,7 +263,6 @@ class MultiAPIMarketScanner:
             await self._rate_limit("dexscreener", 1.0)
             session = await self._get_session()
             
-            # ✅ IMPROVED: Better search terms for volume
             search_terms = ["ETH", "BTC", "SOL", "USDC", "PEPE", "LINK", "UNI"]
             all_tokens = []
             seen = set()
@@ -285,13 +280,13 @@ class MultiAPIMarketScanner:
                             data = await resp.json()
                             pairs = data.get("pairs", [])
                             
-                            for pair in pairs[:30]:  # ✅ Increased from 50
+                            for pair in pairs[:30]:
                                 token = self._parse_dexscreener_pair(pair)
                                 if token and token.address not in seen:
                                     all_tokens.append(token)
                                     seen.add(token.address)
                     
-                    await asyncio.sleep(0.3)  # ✅ Faster
+                    await asyncio.sleep(0.3)
                 
                 except Exception as e:
                     logger.debug(f"   Search term '{term}' failed: {e}")
@@ -313,15 +308,14 @@ class MultiAPIMarketScanner:
             chain_config = self.CHAIN_CONFIGS.get(chain, {})
             dex_chain_id = chain_config.get("dex_id", chain)
             
-            # ✅ IMPROVED: Use tokens endpoint with multiple top tokens
             top_tokens = {
-                "ethereum": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,0x514910771AF9Ca656af840dff83E8264EcF986CA",  # WETH, LINK
-                "polygon": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",  # WETH
-                "arbitrum": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",  # WETH
-                "base": "0x4200000000000000000000000000000000000006",  # WETH
-                "optimism": "0x4200000000000000000000000000000000000006",  # WETH
-                "solana": "So11111111111111111111111111111111111111112",  # SOL
-                "bsc": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"  # WBNB
+                "ethereum": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,0x514910771AF9Ca656af840dff83E8264EcF986CA",
+                "polygon": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
+                "arbitrum": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+                "base": "0x4200000000000000000000000000000000000006",
+                "optimism": "0x4200000000000000000000000000000000000006",
+                "solana": "So11111111111111111111111111111111111111112",
+                "bsc": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"
             }
             
             token_addresses = top_tokens.get(chain, "")
@@ -342,7 +336,7 @@ class MultiAPIMarketScanner:
                     tokens = []
                     seen = set()
                     
-                    for pair in pairs[:50]:  # ✅ Increased
+                    for pair in pairs[:50]:
                         token = self._parse_dexscreener_pair(pair)
                         if token and token.address not in seen:
                             tokens.append(token)
@@ -355,9 +349,8 @@ class MultiAPIMarketScanner:
             logger.debug(f"   DexScreener {chain} failed: {e}")
             return []
     
-    # ✅ NEW: GeckoTerminal trending pools (FREE, no API key needed)
     async def _scan_geckoterminal_trending(self, network: str) -> List[DiscoveredToken]:
-        """Scan GeckoTerminal trending pools (no API key needed)"""
+        """Scan GeckoTerminal trending pools"""
         try:
             await self._rate_limit("geckoterminal", 1.5)
             session = await self._get_session()
@@ -387,12 +380,11 @@ class MultiAPIMarketScanner:
             return []
     
     def _parse_geckoterminal_pool(self, pool: Dict, network: str) -> Optional[DiscoveredToken]:
-        """Parse GeckoTerminal pool data"""
+        """Parse GeckoTerminal pool data with validation"""
         try:
             attributes = pool.get("attributes", {})
             relationships = pool.get("relationships", {})
             
-            # Get base token
             base_token_data = relationships.get("base_token", {}).get("data", {})
             base_token_id = base_token_data.get("id", "").split("_")
             
@@ -402,7 +394,6 @@ class MultiAPIMarketScanner:
             address = base_token_id[1].lower()
             symbol = attributes.get("name", "").split("/")[0].strip()
             
-            # Map network to chain
             network_map = {
                 "eth": "ethereum",
                 "polygon_pos": "polygon",
@@ -424,6 +415,19 @@ class MultiAPIMarketScanner:
             if price <= 0 or liquidity <= 0:
                 return None
             
+            # ✅ VALIDATE TOKEN BEFORE RETURNING
+            is_valid, reason = token_validator.validate_token(
+                address=address,
+                chain=chain,
+                symbol=symbol,
+                price=price,
+                liquidity=liquidity
+            )
+            
+            if not is_valid:
+                logger.debug(f"❌ Invalid token {symbol} from GeckoTerminal: {reason}")
+                return None
+            
             return DiscoveredToken(
                 symbol=symbol,
                 address=address,
@@ -440,7 +444,7 @@ class MultiAPIMarketScanner:
             return None
     
     def _parse_dexscreener_pair(self, pair: Dict) -> Optional[DiscoveredToken]:
-        """Parse DexScreener pair data"""
+        """Parse DexScreener pair data with validation"""
         try:
             if not isinstance(pair, dict):
                 return None
@@ -455,7 +459,6 @@ class MultiAPIMarketScanner:
             address = (base_token.get("address") or "").lower()
             symbol = (base_token.get("symbol") or "UNKNOWN").upper()
             
-            # ✅ IMPROVED: Better chain ID mapping
             raw_chain = (pair.get("chainId") or "").lower()
             chain_map = {
                 "ethereum": "ethereum",
@@ -489,6 +492,19 @@ class MultiAPIMarketScanner:
             if price <= 0 or liquidity <= 0:
                 return None
             
+            # ✅ VALIDATE TOKEN BEFORE RETURNING
+            is_valid, reason = token_validator.validate_token(
+                address=address,
+                chain=chain,
+                symbol=symbol,
+                price=price,
+                liquidity=liquidity
+            )
+            
+            if not is_valid:
+                logger.debug(f"❌ Invalid token {symbol} from DexScreener: {reason}")
+                return None
+            
             return DiscoveredToken(
                 symbol=symbol,
                 address=address,
@@ -505,7 +521,7 @@ class MultiAPIMarketScanner:
             return None
     
     def _filter_tokens(self, tokens: List[DiscoveredToken]) -> List[DiscoveredToken]:
-        """✅ RELAXED: Less aggressive filtering to get more tokens"""
+        """Filter tokens with validation"""
         filtered = []
         
         for token in tokens:
@@ -513,33 +529,38 @@ class MultiAPIMarketScanner:
             if token.address in self._blacklist:
                 continue
             
-            # ✅ RELAXED: Less strict suspicious patterns
+            # Skip validator-blacklisted addresses
+            if token_validator.is_blacklisted(token.address):
+                logger.debug(f"⚫ Skipping blacklisted: {token.symbol}")
+                continue
+            
+            # Suspicious patterns
             suspicious = ["test", "xxx", "scam", "rug", "fake"]
             if any(p in token.symbol.lower() for p in suspicious):
                 self._soft_blacklist(token.address, "suspicious_pattern")
                 continue
             
-            # ✅ RELAXED: More lenient liquidity/volume ratio
+            # Liquidity/volume ratio
             if token.volume_24h > 0:
                 lv_ratio = token.liquidity_usd / token.volume_24h
                 
-                if lv_ratio < 0.02:  # ✅ Lowered from 0.05
+                if lv_ratio < 0.02:
                     self._soft_blacklist(token.address, "wash_trading")
                     continue
                 
-                if lv_ratio > 50:  # ✅ Raised from 20
+                if lv_ratio > 50:
                     continue
             
-            # ✅ RELAXED: Lower market cap minimum
-            if token.market_cap and token.market_cap < 100_000:  # ✅ Lowered from 500k
+            # Market cap minimum
+            if token.market_cap and token.market_cap < 100_000:
                 continue
             
-            # ✅ RELAXED: Allow longer symbols
-            if len(token.symbol) > 15:  # ✅ Raised from 10
+            # Symbol length
+            if len(token.symbol) > 15:
                 continue
             
-            # ✅ RELAXED: Wider price range
-            if token.price <= 0 or token.price > 10_000_000:  # ✅ Raised from 1M
+            # Price range
+            if token.price <= 0 or token.price > 10_000_000:
                 continue
             
             filtered.append(token)
@@ -560,8 +581,8 @@ class MultiAPIMarketScanner:
             
             # Price change
             abs_change = abs(token.change_24h_pct)
-            if abs_change > 2:  # ✅ Lowered from 3
-                score += abs_change * 0.5  # ✅ Raised from 0.4
+            if abs_change > 2:
+                score += abs_change * 0.5
             
             # Liquidity tiers
             if token.liquidity_usd > 500_000:
@@ -569,8 +590,8 @@ class MultiAPIMarketScanner:
             elif token.liquidity_usd > 250_000:
                 score += 2.0
             elif token.liquidity_usd > 100_000:
-                score += 1.5  # ✅ Raised from 1.0
-            elif token.liquidity_usd > 50_000:  # ✅ NEW tier
+                score += 1.5
+            elif token.liquidity_usd > 50_000:
                 score += 1.0
             
             # Volume tiers
@@ -580,14 +601,14 @@ class MultiAPIMarketScanner:
                 score += 2.0
             elif token.volume_24h > 500_000:
                 score += 1.5
-            elif token.volume_24h > 250_000:  # ✅ NEW tier
+            elif token.volume_24h > 250_000:
                 score += 1.0
             
             # Market cap sweet spot
             if token.market_cap:
-                if 10_000_000 < token.market_cap < 500_000_000:  # ✅ Lowered min
+                if 10_000_000 < token.market_cap < 500_000_000:
                     score += 3.0
-                elif 1_000_000 < token.market_cap < 10_000_000:  # ✅ NEW tier
+                elif 1_000_000 < token.market_cap < 10_000_000:
                     score += 2.0
             
             # Historical performance
@@ -597,14 +618,13 @@ class MultiAPIMarketScanner:
                 if win_rate > 0.6:
                     score += 2.0
                 elif win_rate < 0.3:
-                    score -= 0.5  # ✅ Less penalty
+                    score -= 0.5
             
             token.opportunity_score = max(0.0, score)
         
         tokens.sort(key=lambda t: t.opportunity_score, reverse=True)
         
-        # ✅ RELAXED: Lower threshold
-        quality_tokens = [t for t in tokens if t.opportunity_score >= 3.0]  # ✅ Lowered from 4.0
+        quality_tokens = [t for t in tokens if t.opportunity_score >= 3.0]
         
         logger.info(f"   💎 {len(quality_tokens)} tokens scored >= 3.0")
         
@@ -622,7 +642,7 @@ class MultiAPIMarketScanner:
         hist.append(volume)
         
         if len(hist) < 3:
-            return 0.2  # ✅ Raised from 0.1
+            return 0.2
         
         ema_alpha = 0.3
         ema = hist[0]
@@ -633,11 +653,15 @@ class MultiAPIMarketScanner:
             return 0.5
         
         ratio = volume / ema
-        return max(0.0, ratio - 0.5)  # ✅ Lowered from 0.7
+        return max(0.0, ratio - 0.5)
     
     def blacklist_token(self, address: str, reason: str = "manual"):
         """Blacklist a token"""
         self._blacklist.add(address.lower())
+        
+        # Also blacklist in validator
+        token_validator.record_trade_failure(address, "unknown")
+        
         if address not in self._token_performance:
             self._token_performance[address] = {}
         self._token_performance[address]["blacklist_reason"] = reason

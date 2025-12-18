@@ -1,56 +1,6 @@
 """
 Token Address Validator - CRITICAL FIX
 Validates token addresses before trading to prevent API errors
-
-INTEGRATION INSTRUCTIONS:
-1. Add to market_scanner.py imports:
-   from token_validator import token_validator
-
-2. In _parse_dexscreener_pair() and _parse_geckoterminal_pool(), add validation BEFORE returning:
-   
-   # Validate before returning
-   is_valid, reason = token_validator.validate_token(
-       address=address,
-       chain=chain,
-       symbol=symbol,
-       price=price,
-       liquidity=liquidity
-   )
-   
-   if not is_valid:
-       logger.debug(f"❌ Invalid token {symbol}: {reason}")
-       return None
-
-3. In portfolio_manager.py execute_trade(), add validation check:
-   
-   # Validate token before trade
-   from token_validator import token_validator
-   
-   is_valid, reason = token_validator.validate_token(
-       token_address,
-       chain,
-       to_symbol,
-       metadata.get("price", 0),
-       metadata.get("liquidity", 0)
-   )
-   
-   if not is_valid:
-       logger.error(f"❌ Token validation failed: {reason}")
-       return False
-   
-   # If blacklisted, don't trade
-   if token_validator.is_blacklisted(token_address):
-       logger.error(f"🚫 Token is blacklisted")
-       return False
-
-4. In portfolio_manager.py, when trade fails with "Unable to determine price":
-   
-   except Exception as e:
-       error_msg = str(e)
-       if "Unable to determine price" in error_msg:
-           token_validator.record_trade_failure(token_address, chain)
-       logger.error(f"❌ Trade error: {e}")
-       return False
 """
 import re
 from typing import Optional, Dict, Tuple

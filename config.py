@@ -29,7 +29,7 @@ class Config:
     # API Configuration
     # =========================================================================
     RECALL_API_KEY: str = os.getenv("RECALL_API_KEY", "")
-    USE_SANDBOX: bool = os.getenv("RECALL_USE_SANDBOX", "true").lower() == "true"
+    USE_SANDBOX: bool = os.getenv("RECALL_USE_SANDBOX", "false").lower() == "true"
     COMPETITION_ID: str = os.getenv("COMPETITION_ID", "")
     SANDBOX_URL: str = "https://api.sandbox.competitions.recall.network"
     PRODUCTION_URL: str = "https://api.competitions.recall.network"
