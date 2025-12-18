@@ -411,10 +411,19 @@ class TradingAgent:
         try:
             holdings = portfolio.get("holdings", {})
             tracked_symbols = set(self.portfolio_manager.tracked_positions.keys())
-            actual_symbols = set(
-                sym for sym, h in holdings.items()
-                if not self._is_stablecoin(sym) and h.get("value", 0) >= config.MIN_POSITION_VALUE
-            )
+            
+            # ✅ FIX: Only consider non-stablecoin holdings above minimum value
+            actual_symbols = set()
+            for sym, h in holdings.items():
+                # Skip stablecoins
+                if self._is_stablecoin(sym):
+                    continue
+                
+                # Skip positions below minimum value
+                if h.get("value", 0) < config.MIN_POSITION_VALUE:
+                    continue
+                
+                actual_symbols.add(sym)
             
             # Find orphaned tracked positions (no longer in portfolio)
             orphaned = tracked_symbols - actual_symbols

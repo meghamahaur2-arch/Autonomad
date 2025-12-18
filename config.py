@@ -1,6 +1,6 @@
 """
-Configuration Management Module
-Handles all configuration, validation, and token registry
+Configuration Management Module - UPDATED USDC ADDRESSES
+✅ Fixed Polygon USDC address (native USDC, not bridged)
 """
 import os
 from dataclasses import dataclass
@@ -123,14 +123,21 @@ class Config:
     
     # =========================================================================
     # Token Registry - Multi-Chain Support
+    # ✅ UPDATED: Correct USDC addresses for all chains
     # =========================================================================
     TOKENS: Dict[str, TokenConfig] = {
         # Stablecoins (Multiple Chains)
         "USDC": TokenConfig("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "eth", True, 6),
         "DAI": TokenConfig("0x6B175474E89094C44Da98b954EedeAC495271d0F", "eth", True, 18),
-        "USDC_POLYGON": TokenConfig("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", "polygon", True, 6),
+        
+        # ✅ CRITICAL FIX: Polygon now uses native USDC (not bridged)
+        # Old bridged USDC: 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174
+        # New native USDC: 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359
+        "USDC_POLYGON": TokenConfig("0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "polygon", True, 6),
+        "USDC.e_POLYGON": TokenConfig("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", "polygon", True, 6),  # Bridged (legacy)
+        
         "USDC_ARBITRUM": TokenConfig("0xaf88d065e77c8cc2239327c5edb3a432268e5831", "arbitrum", True, 6),
-        "USDC_OPTIMISM": TokenConfig("0x7f5c764cbc14f9669b88837ca1490cca17c31607", "optimism", True, 6),
+        "USDC_OPTIMISM": TokenConfig("0x0b2c639c533813f4aa9d7837caf62653d097ff85", "optimism", True, 6),
         "USDBC_BASE": TokenConfig("0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA", "base", True, 6),
         "USDC_SOLANA": TokenConfig("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "svm", True, 6),
         
@@ -171,7 +178,7 @@ class Config:
     
     # Map display symbols to their chain variants
     SYMBOL_TO_CHAINS: Dict[str, List[str]] = {
-        "USDC": ["USDC", "USDC_POLYGON", "USDC_ARBITRUM", "USDC_OPTIMISM", "USDBC_BASE", "USDC_SOLANA"],
+        "USDC": ["USDC", "USDC_POLYGON", "USDC.e_POLYGON", "USDC_ARBITRUM", "USDC_OPTIMISM", "USDBC_BASE", "USDC_SOLANA"],
         "WETH": ["WETH", "WETH_POLYGON", "WETH_ARBITRUM", "WETH_BASE"],
         "WBTC": ["WBTC", "WBTC_POLYGON", "WBTC_ARBITRUM"],
         "LINK": ["LINK", "LINK_POLYGON", "LINK_ARBITRUM"],

@@ -1,8 +1,8 @@
 """
-Portfolio Manager - FINAL FIXED VERSION
-✅ Fixed USDC config lookup
-✅ Fixed stablecoin detection
+Portfolio Manager - FINAL FIXED VERSION v2
+✅ Fixed USDC config lookup (case-insensitive)
 ✅ Integrated token validation
+✅ Better error handling
 """
 from datetime import datetime, timezone
 from typing import Dict, Optional
@@ -61,14 +61,11 @@ class PortfolioManager:
                 matched_symbol = self._match_token_config(token_address, chain, symbol)
                 
                 if matched_symbol:
-                    # ✅ FIX: Check if it's a stablecoin using address and chain (both lowercase)
-                    is_stablecoin = False
-                    for _, token_config in config.TOKENS.items():
-                        if (token_config.address.lower() == token_address.lower() and 
-                            token_config.chain.lower() == chain.lower() and
-                            token_config.stable):
-                            is_stablecoin = True
-                            break
+                    # ✅ FIX: Check if it's a stablecoin (by address OR by symbol pattern)
+                    is_stablecoin = (
+                        self._is_stablecoin_by_address(token_address, chain) or
+                        self._is_stablecoin_by_symbol(symbol)
+                    )
                     
                     holdings[matched_symbol] = {
                         "symbol": matched_symbol,
@@ -142,13 +139,33 @@ class PortfolioManager:
             return {}
     
     def _match_token_config(self, address: str, chain: str, symbol: str) -> Optional[str]:
-        """Match token to config entry"""
+        """Match token to config entry (case-insensitive)"""
+        address_lower = address.lower()
+        chain_lower = chain.lower()
+        
         for config_symbol, token_config in config.TOKENS.items():
-            if (token_config.address.lower() == address.lower() and 
-                token_config.chain == chain):
+            if (token_config.address.lower() == address_lower and 
+                token_config.chain.lower() == chain_lower):
                 return config_symbol
         
         return f"{symbol}_{chain}"
+    
+    def _is_stablecoin_by_address(self, address: str, chain: str) -> bool:
+        """Check if token is stablecoin by address lookup (case-insensitive)"""
+        address_lower = address.lower()
+        chain_lower = chain.lower()
+        
+        # Check exact match in config
+        for token_config in config.TOKENS.values():
+            if (token_config.address.lower() == address_lower and 
+                token_config.chain.lower() == chain_lower and
+                token_config.stable):
+                return True
+        
+        # Fallback: Check by symbol patterns (for USDC variants not in config)
+        stable_patterns = ["USDC", "USDT", "DAI", "USD", "BUSD", "TUSD", "FRAX"]
+        # We don't have the symbol here, so we'll check in the caller
+        return False
     
     async def execute_trade(
         self,
@@ -215,7 +232,7 @@ class PortfolioManager:
             logger.error("❌ No USDC available")
             return False
         
-        # ✅ FIX: Handle chain-suffixed USDC symbols
+        # ✅ FIX: Handle chain-suffixed USDC symbols with case-insensitive matching
         usdc_holding = holdings.get(usdc_symbol, {})
         usdc_address = usdc_holding.get("tokenAddress", "")
         usdc_chain = usdc_holding.get("chain", "").lower()  # Normalize to lowercase
@@ -224,25 +241,21 @@ class PortfolioManager:
             logger.error(f"❌ Missing USDC metadata for {usdc_symbol}")
             return False
         
-        # Find matching config entry by address and chain
-        from_config = None
-        matched_config_symbol = None
-        for config_symbol, token_config in config.TOKENS.items():
-            # Compare addresses and chains (both lowercase)
-            if (token_config.address.lower() == usdc_address.lower() and 
-                token_config.chain.lower() == usdc_chain and
-                token_config.stable):
-                from_config = token_config
-                matched_config_symbol = config_symbol
-                logger.info(f"✅ Matched {usdc_symbol} to config {config_symbol} on {token_config.chain}")
-                break
+        # ✅ FIX: Use new helper method to find USDC config
+        result = self._find_usdc_config(usdc_address, usdc_chain)
         
-        if not from_config:
-            logger.error(f"❌ No config found for {usdc_symbol}")
+        if not result:
+            logger.error(f"❌ No USDC config found for {usdc_symbol}")
             logger.error(f"   Address: {usdc_address}")
             logger.error(f"   Chain: {usdc_chain}")
-            logger.error(f"   Available USDC configs: {[s for s in config.TOKENS.keys() if 'USDC' in s]}")
+            logger.error(f"   Available USDC configs:")
+            for cs, tc in config.TOKENS.items():
+                if tc.stable:
+                    logger.error(f"      {cs}: {tc.address[:10]}... on {tc.chain}")
             return False
+        
+        matched_config_symbol, from_config = result
+        logger.info(f"✅ Matched {usdc_symbol} to config {matched_config_symbol} on {from_config.chain}")
         
         # Calculate trade amount
         available_amount = usdc_holding.get("amount", 0)
@@ -394,7 +407,7 @@ class PortfolioManager:
         holdings = portfolio.get("holdings", {})
         total_usdc = sum(
             h["value"] for s, h in holdings.items()
-            if "USDC" in s or "USD" in s
+            if "USDC" in s.upper() or "USD" in s.upper()
         )
         if total_usdc < decision.amount_usd:
             return {
@@ -405,7 +418,7 @@ class PortfolioManager:
         total_value = portfolio.get("total_value", 0)
         deployed = sum(
             h["value"] for s, h in holdings.items()
-            if "USDC" not in s and "USD" not in s
+            if "USDC" not in s.upper() and "USD" not in s.upper()
         )
         
         new_deployed = deployed + decision.amount_usd
@@ -477,16 +490,58 @@ class PortfolioManager:
             del self.tracked_positions[symbol]
             logger.info(f"📍 Closed position: {symbol} (P&L: {pnl_pct:+.1f}%)")
     
+    def _is_stablecoin_by_symbol(self, symbol: str) -> bool:
+        """Check if symbol indicates stablecoin (fallback method)"""
+        stable_patterns = ["USDC", "USDT", "DAI", "USD", "BUSD", "TUSD", "FRAX"]
+        symbol_upper = symbol.upper()
+        return any(pattern in symbol_upper for pattern in stable_patterns)
+    
+    def _find_usdc_config(self, address: str, chain: str) -> Optional[tuple]:
+        """
+        Find USDC config - handles multiple USDC addresses per chain
+        Returns: (config_symbol, token_config) or None
+        """
+        address_lower = address.lower()
+        chain_lower = chain.lower()
+        
+        # Try exact match first
+        for config_symbol, token_config in config.TOKENS.items():
+            if (token_config.address.lower() == address_lower and 
+                token_config.chain.lower() == chain_lower and
+                token_config.stable):
+                return (config_symbol, token_config)
+        
+        # Fallback: Find any USDC on the same chain
+        for config_symbol, token_config in config.TOKENS.items():
+            if (token_config.chain.lower() == chain_lower and
+                token_config.stable and
+                "USDC" in config_symbol.upper()):
+                logger.warning(
+                    f"⚠️ Using fallback USDC config: {config_symbol} "
+                    f"(address mismatch: {address_lower[:10]}... != {token_config.address.lower()[:10]}...)"
+                )
+                return (config_symbol, token_config)
+        
+        return None
+    
     def _find_best_usdc(self, holdings: Dict) -> tuple:
-        """Find best USDC balance"""
+        """Find best USDC balance (case-insensitive)"""
         usdc_balances = []
         
         for symbol, holding in holdings.items():
-            if "USDC" in symbol or "USD" in symbol:
+            # Case-insensitive check
+            if "USDC" in symbol.upper() or "USD" in symbol.upper():
                 value = holding.get("value", 0)
                 if value >= 10:
-                    chain = holding.get("chain", "eth")
-                    gas_rank = {"polygon": 1, "arbitrum": 2, "base": 3, "optimism": 4, "eth": 5}.get(chain, 10)
+                    chain = holding.get("chain", "eth").lower()
+                    gas_rank = {
+                        "polygon": 1, 
+                        "arbitrum": 2, 
+                        "base": 3, 
+                        "optimism": 4, 
+                        "eth": 5,
+                        "ethereum": 5
+                    }.get(chain, 10)
                     usdc_balances.append((symbol, value, gas_rank))
         
         if not usdc_balances:
