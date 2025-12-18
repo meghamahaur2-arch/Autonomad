@@ -1,7 +1,8 @@
 """
-Portfolio Manager - INTEGRATED WITH TOKEN VALIDATOR
-Handles portfolio state and trade execution
-✅ NOW VALIDATES ALL TOKENS BEFORE TRADING
+Portfolio Manager - FINAL FIXED VERSION
+✅ Fixed USDC config lookup
+✅ Fixed stablecoin detection
+✅ Integrated token validation
 """
 from datetime import datetime, timezone
 from typing import Dict, Optional
@@ -13,7 +14,7 @@ from models import (
 )
 from api_client import RecallAPIClient
 from logging_manager import get_logger
-from token_validator import token_validator  # ✅ ADDED
+from token_validator import token_validator
 
 logger = get_logger("PortfolioManager")
 
@@ -21,8 +22,7 @@ logger = get_logger("PortfolioManager")
 class PortfolioManager:
     """
     Manages portfolio state, tracking, and trade execution
-    Feeds results back to market scanner for learning
-    ✅ VALIDATES ALL TOKENS BEFORE TRADING
+    ✅ ALL CRITICAL FIXES APPLIED
     """
     
     def __init__(self, api_client: RecallAPIClient, market_scanner=None):
@@ -61,7 +61,14 @@ class PortfolioManager:
                 matched_symbol = self._match_token_config(token_address, chain, symbol)
                 
                 if matched_symbol:
-                    is_stablecoin = matched_symbol in config.TOKENS and config.TOKENS[matched_symbol].stable
+                    # ✅ FIX: Check if it's a stablecoin using address and chain (both lowercase)
+                    is_stablecoin = False
+                    for _, token_config in config.TOKENS.items():
+                        if (token_config.address.lower() == token_address.lower() and 
+                            token_config.chain.lower() == chain.lower() and
+                            token_config.stable):
+                            is_stablecoin = True
+                            break
                     
                     holdings[matched_symbol] = {
                         "symbol": matched_symbol,
@@ -178,7 +185,6 @@ class PortfolioManager:
             logger.error(f"❌ Token validation failed: {reason}")
             token_validator.record_trade_failure(token_address, chain)
             
-            # Tell scanner this address is bad
             if self.market_scanner:
                 self.market_scanner.blacklist_token(token_address, f"validation_failed_{reason}")
             
@@ -209,16 +215,38 @@ class PortfolioManager:
             logger.error("❌ No USDC available")
             return False
         
-        from_config = config.TOKENS.get(usdc_symbol)
+        # ✅ FIX: Handle chain-suffixed USDC symbols
+        usdc_holding = holdings.get(usdc_symbol, {})
+        usdc_address = usdc_holding.get("tokenAddress", "")
+        usdc_chain = usdc_holding.get("chain", "").lower()  # Normalize to lowercase
+        
+        if not usdc_address or not usdc_chain:
+            logger.error(f"❌ Missing USDC metadata for {usdc_symbol}")
+            return False
+        
+        # Find matching config entry by address and chain
+        from_config = None
+        matched_config_symbol = None
+        for config_symbol, token_config in config.TOKENS.items():
+            # Compare addresses and chains (both lowercase)
+            if (token_config.address.lower() == usdc_address.lower() and 
+                token_config.chain.lower() == usdc_chain and
+                token_config.stable):
+                from_config = token_config
+                matched_config_symbol = config_symbol
+                logger.info(f"✅ Matched {usdc_symbol} to config {config_symbol} on {token_config.chain}")
+                break
         
         if not from_config:
-            logger.error(f"❌ Invalid from token: {usdc_symbol}")
+            logger.error(f"❌ No config found for {usdc_symbol}")
+            logger.error(f"   Address: {usdc_address}")
+            logger.error(f"   Chain: {usdc_chain}")
+            logger.error(f"   Available USDC configs: {[s for s in config.TOKENS.keys() if 'USDC' in s]}")
             return False
         
         # Calculate trade amount
-        usdc_balance = holdings.get(usdc_symbol, {})
-        available_amount = usdc_balance.get("amount", 0)
-        from_price = usdc_balance.get("price", 1.0)
+        available_amount = usdc_holding.get("amount", 0)
+        from_price = usdc_holding.get("price", 1.0)
         
         max_safe_amount = available_amount * 0.98
         max_safe_value = max_safe_amount * from_price
@@ -230,7 +258,7 @@ class PortfolioManager:
             trade_amount = max_safe_amount
         
         if trade_amount < config.MIN_TRADE_SIZE:
-            logger.warning(f"❌ Trade too small")
+            logger.warning(f"❌ Trade too small: {trade_amount:.6f} < {config.MIN_TRADE_SIZE}")
             return False
         
         decimals = from_config.decimals
@@ -238,9 +266,9 @@ class PortfolioManager:
         
         logger.info("=" * 70)
         logger.info(f"📤 EXECUTING {decision.action.name}")
-        logger.info(f"   From: {usdc_symbol} on {from_config.chain}")
+        logger.info(f"   From: {usdc_symbol} (→ {matched_config_symbol}) on {from_config.chain}")
         logger.info(f"   To: {to_symbol} ({token_address[:10]}...) on {chain}")
-        logger.info(f"   Amount: {amount_str} USDC")
+        logger.info(f"   Amount: {amount_str} {matched_config_symbol}")
         logger.info(f"   Value: ${trade_value:.2f}")
         logger.info(f"   Signal: {decision.signal_type.value}")
         logger.info(f"   Conviction: {decision.conviction.value}")
@@ -377,7 +405,7 @@ class PortfolioManager:
         total_value = portfolio.get("total_value", 0)
         deployed = sum(
             h["value"] for s, h in holdings.items()
-            if s != "USDC" and not config.TOKENS.get(s, config.TOKENS.get("USDC")).stable
+            if "USDC" not in s and "USD" not in s
         )
         
         new_deployed = deployed + decision.amount_usd
@@ -458,12 +486,13 @@ class PortfolioManager:
                 value = holding.get("value", 0)
                 if value >= 10:
                     chain = holding.get("chain", "eth")
-                    gas_rank = {"polygon": 1, "arbitrum": 2, "base": 3, "eth": 5}.get(chain, 10)
+                    gas_rank = {"polygon": 1, "arbitrum": 2, "base": 3, "optimism": 4, "eth": 5}.get(chain, 10)
                     usdc_balances.append((symbol, value, gas_rank))
         
         if not usdc_balances:
             return None, 0
         
+        # Sort by gas cost (lowest first), then by value (highest first)
         usdc_balances.sort(key=lambda x: (x[2], -x[1]))
         
         return usdc_balances[0][0], usdc_balances[0][1]
