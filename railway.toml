@@ -1,13 +1,26 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "pip install -r requirements.txt"
+buildCommand = "pip install --no-cache-dir -r requirements.txt"
 
 [deploy]
-startCommand = "python agent.py"
+startCommand = "python main.py"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 
+# Health check configuration
 [healthcheck]
-path = "/"
-interval = 300
-timeout = 30
+path = "/health"
+port = 8000
+interval = 300      # 5 minutes
+timeout = 30        # 30 seconds
+startPeriod = 120   # 2 minutes to start
+
+# Memory configuration
+[memory]
+limit = "1GB"       # Adjust based on needs
+
+# Logging
+[logging]
+driver = "json-file"
+maxSize = "10m"
+maxFiles = 3

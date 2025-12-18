@@ -1,5 +1,8 @@
 """
-Portfolio Manager - Handles portfolio state and trade execution
+Portfolio Manager - FINAL FIXED VERSION v2
+✅ Fixed USDC config lookup (case-insensitive)
+✅ Integrated token validation
+✅ Better error handling
 """
 from datetime import datetime, timezone
 from typing import Dict, Optional
@@ -11,6 +14,7 @@ from models import (
 )
 from api_client import RecallAPIClient
 from logging_manager import get_logger
+from token_validator import token_validator
 
 logger = get_logger("PortfolioManager")
 
@@ -18,14 +22,13 @@ logger = get_logger("PortfolioManager")
 class PortfolioManager:
     """
     Manages portfolio state, tracking, and trade execution
-    Feeds results back to market scanner for learning
+    ✅ ALL CRITICAL FIXES APPLIED
     """
     
     def __init__(self, api_client: RecallAPIClient, market_scanner=None):
         self.client = api_client
-        self.market_scanner = market_scanner  # For feedback loop
+        self.market_scanner = market_scanner
         self.tracked_positions: Dict[str, TrackedPosition] = {}
-        # ✅ FIXED: Use deque with maxlen to prevent memory leaks
         self.position_history: deque = deque(maxlen=500)
         self.trade_history: deque = deque(maxlen=1000)
         self.price_history: Dict[str, deque] = {}
@@ -33,6 +36,7 @@ class PortfolioManager:
         logger.info("💼 Portfolio Manager initialized")
         if market_scanner:
             logger.info("   ✅ Feedback loop to scanner enabled")
+        logger.info("   ✅ Token validation enabled")
     
     async def get_portfolio_state(self, competition_id: str) -> Dict:
         """Get comprehensive portfolio state"""
@@ -54,12 +58,14 @@ class PortfolioManager:
                 value = amount * current_price
                 total_value += value
                 
-                # Find matching config
                 matched_symbol = self._match_token_config(token_address, chain, symbol)
                 
                 if matched_symbol:
-                    # Check if it's a stablecoin or discovered token
-                    is_stablecoin = matched_symbol in config.TOKENS and config.TOKENS[matched_symbol].stable
+                    # ✅ FIX: Check if it's a stablecoin (by address OR by symbol pattern)
+                    is_stablecoin = (
+                        self._is_stablecoin_by_address(token_address, chain) or
+                        self._is_stablecoin_by_symbol(symbol)
+                    )
                     
                     holdings[matched_symbol] = {
                         "symbol": matched_symbol,
@@ -68,10 +74,10 @@ class PortfolioManager:
                         "value": value,
                         "price": current_price,
                         "chain": chain,
+                        "tokenAddress": token_address,
                         "pct": 0
                     }
                     
-                    # Build position objects for non-stables with value > minimum
                     if not is_stablecoin and amount > 0 and value >= config.MIN_POSITION_VALUE:
                         tracked = self.tracked_positions.get(matched_symbol)
                         
@@ -95,7 +101,6 @@ class PortfolioManager:
                                 lowest_price=tracked.lowest_price_since_entry
                             ))
                         else:
-                            # Create tracking for existing position
                             logger.info(f"📍 Creating tracker for: {matched_symbol}")
                             self.tracked_positions[matched_symbol] = TrackedPosition(
                                 symbol=matched_symbol,
@@ -103,8 +108,8 @@ class PortfolioManager:
                                 entry_amount=amount,
                                 entry_value_usd=value,
                                 entry_timestamp=datetime.now(timezone.utc).isoformat(),
-                                token_address=token_address,  # ✅ ADDED
-                                chain=chain  # ✅ ADDED
+                                token_address=token_address,
+                                chain=chain
                             )
                             
                             positions.append(Position(
@@ -118,7 +123,6 @@ class PortfolioManager:
                                 lowest_price=current_price
                             ))
             
-            # Calculate percentages
             for symbol in holdings:
                 if total_value > 0:
                     holdings[symbol]["pct"] = holdings[symbol]["value"] / total_value * 100
@@ -135,19 +139,33 @@ class PortfolioManager:
             return {}
     
     def _match_token_config(self, address: str, chain: str, symbol: str) -> Optional[str]:
-        """
-        Match token to config entry
-        Only stablecoins are in config - discovered tokens are handled dynamically
-        """
-        # Check if it's a stablecoin (these are in config)
+        """Match token to config entry (case-insensitive)"""
+        address_lower = address.lower()
+        chain_lower = chain.lower()
+        
         for config_symbol, token_config in config.TOKENS.items():
-            if (token_config.address.lower() == address.lower() and 
-                token_config.chain == chain):
+            if (token_config.address.lower() == address_lower and 
+                token_config.chain.lower() == chain_lower):
                 return config_symbol
         
-        # For discovered tokens (not in config), create identifier
-        # Format: SYMBOL_CHAIN (e.g., PEPE_ethereum, ARB_arbitrum)
         return f"{symbol}_{chain}"
+    
+    def _is_stablecoin_by_address(self, address: str, chain: str) -> bool:
+        """Check if token is stablecoin by address lookup (case-insensitive)"""
+        address_lower = address.lower()
+        chain_lower = chain.lower()
+        
+        # Check exact match in config
+        for token_config in config.TOKENS.values():
+            if (token_config.address.lower() == address_lower and 
+                token_config.chain.lower() == chain_lower and
+                token_config.stable):
+                return True
+        
+        # Fallback: Check by symbol patterns (for USDC variants not in config)
+        stable_patterns = ["USDC", "USDT", "DAI", "USD", "BUSD", "TUSD", "FRAX"]
+        # We don't have the symbol here, so we'll check in the caller
+        return False
     
     async def execute_trade(
         self,
@@ -155,32 +173,55 @@ class PortfolioManager:
         portfolio: Dict,
         competition_id: str
     ) -> bool:
-        """Execute trade with comprehensive pre-trade validation"""
+        """Execute trade with comprehensive validation"""
         
         if decision.action == TradingAction.HOLD:
-            return False
-        
-        # PRODUCTION: Pre-trade validation
-        validation_result = self._validate_trade(decision, portfolio)
-        if not validation_result["valid"]:
-            logger.warning(f"⚠️ Trade validation failed: {validation_result['reason']}")
             return False
         
         # Extract metadata
         metadata = decision.metadata
         token_address = metadata.get("token_address")
         chain = metadata.get("chain")
+        to_symbol = decision.to_token.split('_')[0]
         
         if not token_address or not chain:
             logger.error("❌ Missing token metadata")
             return False
         
+        # ✅ CRITICAL: Validate token before trading
+        logger.info(f"🔍 Validating token {to_symbol} ({token_address[:10]}...)")
+        is_valid, reason = token_validator.validate_token(
+            address=token_address,
+            chain=chain,
+            symbol=to_symbol,
+            price=metadata.get("price", 0),
+            liquidity=metadata.get("liquidity", 0)
+        )
+        
+        if not is_valid:
+            logger.error(f"❌ Token validation failed: {reason}")
+            token_validator.record_trade_failure(token_address, chain)
+            
+            if self.market_scanner:
+                self.market_scanner.blacklist_token(token_address, f"validation_failed_{reason}")
+            
+            return False
+        
+        # ✅ CRITICAL: Check if blacklisted
+        if token_validator.is_blacklisted(token_address):
+            logger.error(f"🚫 Token {to_symbol} is blacklisted (3+ failures)")
+            return False
+        
+        logger.info(f"✅ Token validation passed")
+        
+        # ✅ REMOVED: Pre-trade validation moved to strategy layer for fallback support
+        # The strategy now handles validation BEFORE creating decisions
+        
         # Get stablecoin for trade
         from_symbol = decision.from_token
-        to_symbol = decision.to_token
+        to_symbol_full = decision.to_token
         amount_usd = decision.amount_usd
         
-        # Find best USDC balance
         holdings = portfolio.get("holdings", {})
         usdc_symbol, usdc_available = self._find_best_usdc(holdings)
         
@@ -188,17 +229,34 @@ class PortfolioManager:
             logger.error("❌ No USDC available")
             return False
         
-        # Get token configs
-        from_config = config.TOKENS.get(usdc_symbol)
+        # ✅ FIX: Handle chain-suffixed USDC symbols with case-insensitive matching
+        usdc_holding = holdings.get(usdc_symbol, {})
+        usdc_address = usdc_holding.get("tokenAddress", "")
+        usdc_chain = usdc_holding.get("chain", "").lower()  # Normalize to lowercase
         
-        if not from_config:
-            logger.error(f"❌ Invalid from token: {usdc_symbol}")
+        if not usdc_address or not usdc_chain:
+            logger.error(f"❌ Missing USDC metadata for {usdc_symbol}")
             return False
         
+        # ✅ FIX: Use new helper method to find USDC config
+        result = self._find_usdc_config(usdc_address, usdc_chain)
+        
+        if not result:
+            logger.error(f"❌ No USDC config found for {usdc_symbol}")
+            logger.error(f"   Address: {usdc_address}")
+            logger.error(f"   Chain: {usdc_chain}")
+            logger.error(f"   Available USDC configs:")
+            for cs, tc in config.TOKENS.items():
+                if tc.stable:
+                    logger.error(f"      {cs}: {tc.address[:10]}... on {tc.chain}")
+            return False
+        
+        matched_config_symbol, from_config = result
+        logger.info(f"✅ Matched {usdc_symbol} to config {matched_config_symbol} on {from_config.chain}")
+        
         # Calculate trade amount
-        usdc_balance = holdings.get(usdc_symbol, {})
-        available_amount = usdc_balance.get("amount", 0)
-        from_price = usdc_balance.get("price", 1.0)
+        available_amount = usdc_holding.get("amount", 0)
+        from_price = usdc_holding.get("price", 1.0)
         
         max_safe_amount = available_amount * 0.98
         max_safe_value = max_safe_amount * from_price
@@ -210,18 +268,23 @@ class PortfolioManager:
             trade_amount = max_safe_amount
         
         if trade_amount < config.MIN_TRADE_SIZE:
-            logger.warning(f"❌ Trade too small")
+            logger.warning(f"❌ Trade too small: {trade_amount:.6f} < {config.MIN_TRADE_SIZE}")
             return False
         
-        # Format amount
+        # ✅ NEW: Final sanity check (this should never fail if strategy validation worked)
+        final_validation = self._validate_trade_final(decision, portfolio)
+        if not final_validation["valid"]:
+            logger.error(f"❌ Final validation failed: {final_validation['reason']}")
+            return False
+        
         decimals = from_config.decimals
         amount_str = f"{trade_amount:.{decimals}f}"
         
         logger.info("=" * 70)
         logger.info(f"📤 EXECUTING {decision.action.name}")
-        logger.info(f"   From: {usdc_symbol} on {from_config.chain}")
-        logger.info(f"   To: {to_symbol} ({token_address[:10]}...)")
-        logger.info(f"   Amount: {amount_str} USDC")
+        logger.info(f"   From: {usdc_symbol} (→ {matched_config_symbol}) on {from_config.chain}")
+        logger.info(f"   To: {to_symbol} ({token_address[:10]}...) on {chain}")
+        logger.info(f"   Amount: {amount_str} {matched_config_symbol}")
         logger.info(f"   Value: ${trade_value:.2f}")
         logger.info(f"   Signal: {decision.signal_type.value}")
         logger.info(f"   Conviction: {decision.conviction.value}")
@@ -241,29 +304,26 @@ class PortfolioManager:
             if result.get("success"):
                 logger.info("✅ TRADE SUCCESSFUL!")
                 
-                # Track position
                 if decision.action == TradingAction.BUY:
-                    await self._track_buy(to_symbol, trade_value, metadata)
+                    await self._track_buy(to_symbol_full, trade_value, metadata)
                 elif decision.action == TradingAction.SELL:
-                    # ✅ FIXED: Pass current_price for better tracking
                     current_price = metadata.get("price", 0)
                     await self._track_sell(from_symbol, trade_value, current_price)
                 
-                # 🔄 FEEDBACK TO SCANNER: Trade succeeded
+                # Feedback to scanner: Trade succeeded
                 if self.market_scanner and token_address:
                     self.market_scanner.record_trade_result(
                         token_address,
                         to_symbol,
                         success=True,
-                        pnl_pct=None  # Don't know PnL yet (just entry)
+                        pnl_pct=None
                     )
                 
-                # Record in history
                 self.trade_history.append({
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                     "action": decision.action.name,
                     "from": from_symbol,
-                    "to": to_symbol,
+                    "to": to_symbol_full,
                     "amount_usd": trade_value,
                     "signal_type": decision.signal_type.value,
                     "conviction": decision.conviction.value,
@@ -272,9 +332,12 @@ class PortfolioManager:
                 
                 return True
             else:
-                logger.error(f"❌ Trade failed: {result.get('error')}")
+                error_msg = result.get('error', 'Unknown error')
+                logger.error(f"❌ Trade failed: {error_msg}")
                 
-                # 🔄 FEEDBACK TO SCANNER: Trade failed
+                # Record failure
+                token_validator.record_trade_failure(token_address, chain)
+                
                 if self.market_scanner and token_address:
                     self.market_scanner.record_trade_result(
                         token_address,
@@ -285,22 +348,33 @@ class PortfolioManager:
                 return False
                 
         except Exception as e:
-            logger.error(f"❌ Trade error: {e}")
+            error_msg = str(e)
+            logger.error(f"❌ Trade error: {error_msg}")
+            
+            # ✅ CRITICAL: Record failure for blacklisting
+            if "Unable to determine price" in error_msg or "400" in error_msg:
+                logger.error(f"🚫 Recording failed address for blacklisting")
+                token_validator.record_trade_failure(token_address, chain)
+                
+                if self.market_scanner:
+                    self.market_scanner.blacklist_token(
+                        token_address,
+                        "unable_to_price"
+                    )
+            
             return False
     
-    def _validate_trade(self, decision: TradeDecision, portfolio: Dict) -> Dict:
+    def _validate_trade_final(self, decision: TradeDecision, portfolio: Dict) -> Dict:
         """
-        PRODUCTION: Comprehensive pre-trade validation
-        Returns: {"valid": bool, "reason": str}
+        ✅ RENAMED: Final validation before API call (after strategy has chosen this token)
+        This is the last check before hitting the API
         """
-        # Check 1: Minimum trade size
         if decision.amount_usd < config.MIN_TRADE_SIZE:
             return {
                 "valid": False,
                 "reason": f"Trade size ${decision.amount_usd:.2f} < minimum ${config.MIN_TRADE_SIZE}"
             }
         
-        # Check 2: Token metadata present
         metadata = decision.metadata
         if not metadata.get("token_address") or not metadata.get("chain"):
             return {
@@ -308,7 +382,6 @@ class PortfolioManager:
                 "reason": "Missing token metadata"
             }
         
-        # Check 3: Liquidity validation
         liquidity = metadata.get("liquidity", 0)
         if liquidity < config.MIN_LIQUIDITY_USD:
             return {
@@ -316,7 +389,6 @@ class PortfolioManager:
                 "reason": f"Insufficient liquidity ${liquidity:,.0f} < ${config.MIN_LIQUIDITY_USD:,.0f}"
             }
         
-        # Check 4: Volume validation
         volume = metadata.get("volume_24h", 0)
         if volume < config.MIN_VOLUME_24H_USD:
             return {
@@ -324,7 +396,6 @@ class PortfolioManager:
                 "reason": f"Insufficient volume ${volume:,.0f} < ${config.MIN_VOLUME_24H_USD:,.0f}"
             }
         
-        # Check 5: Opportunity score
         score = metadata.get("score", 0)
         if score < config.OPPORTUNITY_SCORE_THRESHOLD:
             return {
@@ -332,7 +403,6 @@ class PortfolioManager:
                 "reason": f"Score {score:.1f} < threshold {config.OPPORTUNITY_SCORE_THRESHOLD}"
             }
         
-        # Check 6: Portfolio capacity
         positions = portfolio.get("positions", [])
         if len(positions) >= config.MAX_POSITIONS:
             return {
@@ -340,11 +410,10 @@ class PortfolioManager:
                 "reason": f"Max positions reached ({len(positions)}/{config.MAX_POSITIONS})"
             }
         
-        # Check 7: USDC availability
         holdings = portfolio.get("holdings", {})
         total_usdc = sum(
             h["value"] for s, h in holdings.items()
-            if "USDC" in s or "USD" in s
+            if "USDC" in s.upper() or "USD" in s.upper()
         )
         if total_usdc < decision.amount_usd:
             return {
@@ -352,14 +421,12 @@ class PortfolioManager:
                 "reason": f"Insufficient USDC (${total_usdc:.2f} < ${decision.amount_usd:.2f})"
             }
         
-        # Check 8: Risk limits
         total_value = portfolio.get("total_value", 0)
         deployed = sum(
             h["value"] for s, h in holdings.items()
-            if s != "USDC" and not config.TOKENS.get(s, config.TOKENS.get("USDC")).stable
+            if "USDC" not in s.upper() and "USD" not in s.upper()
         )
         
-        # Would this trade exceed max risk?
         new_deployed = deployed + decision.amount_usd
         new_deployed_pct = new_deployed / total_value if total_value > 0 else 0
         
@@ -369,14 +436,13 @@ class PortfolioManager:
                 "reason": f"Would exceed max risk ({new_deployed_pct*100:.0f}% > {config.MAX_PORTFOLIO_RISK*100:.0f}%)"
             }
         
-        # All checks passed
         return {"valid": True, "reason": "All validations passed"}
     
     async def _track_buy(self, symbol: str, value_usd: float, metadata: Dict):
         """Track buy trade"""
         price = metadata.get("price", 0)
-        token_address = metadata.get("token_address", "")  # ✅ ADDED
-        chain = metadata.get("chain", "")  # ✅ ADDED
+        token_address = metadata.get("token_address", "")
+        chain = metadata.get("chain", "")
         
         if symbol in self.tracked_positions:
             self.tracked_positions[symbol].update_for_add(
@@ -392,26 +458,21 @@ class PortfolioManager:
                 entry_amount=value_usd / price if price > 0 else 0,
                 entry_value_usd=value_usd,
                 entry_timestamp=datetime.now(timezone.utc).isoformat(),
-                token_address=token_address,  # ✅ ADDED
-                chain=chain  # ✅ ADDED
+                token_address=token_address,
+                chain=chain
             )
             logger.info(f"📍 New position: {symbol} @ ${price:.4f}")
     
     async def _track_sell(self, symbol: str, value_usd: float, current_price: float = 0):
-        """
-        Track sell trade with feedback to scanner
-        ✅ FIXED: Now calculates actual PnL using current_price
-        """
+        """Track sell trade with feedback to scanner"""
         if symbol in self.tracked_positions:
             tracked = self.tracked_positions[symbol]
             
-            # ✅ IMPROVED: Calculate actual PnL if we have current price
             if current_price > 0 and tracked.entry_price > 0:
                 pnl_pct = ((current_price - tracked.entry_price) / tracked.entry_price) * 100
             else:
                 pnl_pct = 0
             
-            # Archive to history
             position_data = {
                 "symbol": symbol,
                 "entry_price": tracked.entry_price,
@@ -422,8 +483,7 @@ class PortfolioManager:
             }
             self.position_history.append(position_data)
             
-            # 🔄 FEEDBACK TO SCANNER: Record exit result
-            # ✅ FIXED: Now properly checks for token_address (was causing hasattr error)
+            # Feedback to scanner
             if self.market_scanner and tracked.token_address:
                 self.market_scanner.record_trade_result(
                     tracked.token_address,
@@ -433,26 +493,67 @@ class PortfolioManager:
                 )
                 logger.debug(f"📊 Feedback sent to scanner: {symbol} ({pnl_pct:+.1f}% PnL)")
             
-            # Remove from tracking
             del self.tracked_positions[symbol]
             logger.info(f"📍 Closed position: {symbol} (P&L: {pnl_pct:+.1f}%)")
     
+    def _is_stablecoin_by_symbol(self, symbol: str) -> bool:
+        """Check if symbol indicates stablecoin (fallback method)"""
+        stable_patterns = ["USDC", "USDT", "DAI", "USD", "BUSD", "TUSD", "FRAX"]
+        symbol_upper = symbol.upper()
+        return any(pattern in symbol_upper for pattern in stable_patterns)
+    
+    def _find_usdc_config(self, address: str, chain: str) -> Optional[tuple]:
+        """
+        Find USDC config - handles multiple USDC addresses per chain
+        Returns: (config_symbol, token_config) or None
+        """
+        address_lower = address.lower()
+        chain_lower = chain.lower()
+        
+        # Try exact match first
+        for config_symbol, token_config in config.TOKENS.items():
+            if (token_config.address.lower() == address_lower and 
+                token_config.chain.lower() == chain_lower and
+                token_config.stable):
+                return (config_symbol, token_config)
+        
+        # Fallback: Find any USDC on the same chain
+        for config_symbol, token_config in config.TOKENS.items():
+            if (token_config.chain.lower() == chain_lower and
+                token_config.stable and
+                "USDC" in config_symbol.upper()):
+                logger.warning(
+                    f"⚠️ Using fallback USDC config: {config_symbol} "
+                    f"(address mismatch: {address_lower[:10]}... != {token_config.address.lower()[:10]}...)"
+                )
+                return (config_symbol, token_config)
+        
+        return None
+    
     def _find_best_usdc(self, holdings: Dict) -> tuple:
-        """Find best USDC balance"""
+        """Find best USDC balance (case-insensitive)"""
         usdc_balances = []
         
         for symbol, holding in holdings.items():
-            if "USDC" in symbol or "USD" in symbol:
+            # Case-insensitive check
+            if "USDC" in symbol.upper() or "USD" in symbol.upper():
                 value = holding.get("value", 0)
                 if value >= 10:
-                    chain = holding.get("chain", "eth")
-                    gas_rank = {"polygon": 1, "arbitrum": 2, "base": 3, "eth": 5}.get(chain, 10)
+                    chain = holding.get("chain", "eth").lower()
+                    gas_rank = {
+                        "polygon": 1, 
+                        "arbitrum": 2, 
+                        "base": 3, 
+                        "optimism": 4, 
+                        "eth": 5,
+                        "ethereum": 5
+                    }.get(chain, 10)
                     usdc_balances.append((symbol, value, gas_rank))
         
         if not usdc_balances:
             return None, 0
         
-        # Sort by gas cost then value
+        # Sort by gas cost (lowest first), then by value (highest first)
         usdc_balances.sort(key=lambda x: (x[2], -x[1]))
         
         return usdc_balances[0][0], usdc_balances[0][1]
@@ -463,7 +564,6 @@ class PortfolioManager:
             "tracked_positions": {
                 k: v.to_dict() for k, v in self.tracked_positions.items()
             },
-            # ✅ FIXED: No need to slice anymore - deque handles it
             "position_history": list(self.position_history),
             "trade_history": list(self.trade_history)
         }
@@ -479,7 +579,6 @@ class PortfolioManager:
                     for k, v in ps["tracked_positions"].items()
                 }
             
-            # ✅ FIXED: Restore into deques
             if "position_history" in ps:
                 self.position_history.extend(ps["position_history"])
             if "trade_history" in ps:
