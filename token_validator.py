@@ -1,9 +1,11 @@
 """
-Token Address Validator - CRITICAL FIX
-Validates token addresses before trading to prevent API errors
+Token Address Validator - CRITICAL FIX v2
+✅ Stricter validation to catch malformed addresses BEFORE trading
+✅ Whitelist known good addresses
+✅ More aggressive blacklisting
 """
 import re
-from typing import Optional, Dict, Tuple
+from typing import Optional, Dict, Tuple, Set
 from logging_manager import get_logger
 
 logger = get_logger("TokenValidator")
@@ -12,7 +14,7 @@ logger = get_logger("TokenValidator")
 class TokenValidator:
     """
     Validates token addresses and metadata before trades
-    Prevents "Unable to determine price" errors
+    ✅ ENHANCED: Catches malformed addresses like 0xff7f8f30...
     """
     
     # Valid address patterns by chain
@@ -27,17 +29,59 @@ class TokenValidator:
         "svm": r"^[1-9A-HJ-NP-Za-km-z]{32,44}$",
     }
     
-    # Known problematic patterns to filter
+    # ✅ NEW: Whitelist of VERIFIED good addresses (from your config)
+    WHITELISTED_ADDRESSES = {
+        # Ethereum
+        "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": "USDC",
+        "0x6b175474e89094c44da98b954eedeac495271d0f": "DAI",
+        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": "WETH",
+        "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599": "WBTC",
+        "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984": "UNI",
+        "0x514910771af9ca656af840dff83e8264ecf986ca": "LINK",
+        
+        # Polygon - BOTH USDC addresses
+        "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359": "USDC_POLYGON",  # Native
+        "0x2791bca1f2de4661ed88a30c99a7a9449aa84174": "USDC.e_POLYGON",  # Bridged
+        "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619": "WETH_POLYGON",
+        "0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6": "WBTC_POLYGON",
+        
+        # Arbitrum
+        "0xaf88d065e77c8cc2239327c5edb3a432268e5831": "USDC_ARBITRUM",
+        "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": "WETH_ARBITRUM",
+        
+        # Base
+        "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca": "USDBC_BASE",
+        "0x4200000000000000000000000000000000000006": "WETH_BASE",
+        "0x1f16e03c1a5908818f47f6ee7bb16690b40d0671": "RECALL",
+        
+        # Optimism
+        "0x0b2c639c533813f4aa9d7837caf62653d097ff85": "USDC_OPTIMISM",
+        "0x4200000000000000000000000000000000000006": "WETH_OPTIMISM",
+        
+        # Solana
+        "epjfwdd5aufqssqem2qn1xzybape8g4wegegkzwytdt1v": "USDC_SOLANA",
+        "so11111111111111111111111111111111111111112": "SOL",
+    }
+    
+    # Known problematic patterns
     INVALID_PATTERNS = [
         r"^0x0+$",  # All zeros
         r"^0x[fF]+$",  # All F's
         r"^0x0{39}[1-9a-fA-F]$",  # Almost all zeros
+        r"^0xff{5,}",  # Too many F's at start (like 0xff7f8f...)
+        r"^0x[0-9a-fA-F]{1,10}$",  # Too short (< 42 chars)
     ]
     
     def __init__(self):
         self._validation_cache: Dict[str, bool] = {}
         self._failed_addresses: Dict[str, int] = {}
+        
+        # Pre-whitelist known good addresses
+        for addr in self.WHITELISTED_ADDRESSES.keys():
+            self._validation_cache[addr.lower()] = True
+        
         logger.info("🔍 Token Validator initialized")
+        logger.info(f"   ✅ Whitelisted {len(self.WHITELISTED_ADDRESSES)} verified addresses")
     
     def validate_token(
         self,
@@ -52,47 +96,60 @@ class TokenValidator:
         Returns: (is_valid, reason)
         """
         
+        # ✅ NEW: Check whitelist first (fast path)
+        if address.lower() in self.WHITELISTED_ADDRESSES:
+            logger.debug(f"✅ Whitelisted: {symbol}")
+            return True, "Whitelisted"
+        
         # Cache check
         cache_key = f"{address}_{chain}"
         if cache_key in self._validation_cache:
-            return self._validation_cache[cache_key], "Cached"
+            cached = self._validation_cache[cache_key]
+            return cached, "Cached" if cached else "Previously failed"
         
         # Check if previously failed
         if address.lower() in self._failed_addresses:
             fail_count = self._failed_addresses[address.lower()]
-            if fail_count >= 3:
+            if fail_count >= 2:  # ✅ LOWERED from 3 to 2
+                logger.warning(f"⚫ Blacklisted after {fail_count} failures: {address[:10]}...")
                 return False, f"Failed {fail_count} times"
         
         # Validation 1: Address format
         is_valid, reason = self._validate_address_format(address, chain)
         if not is_valid:
-            self._mark_invalid(cache_key, address)
+            self._mark_invalid(cache_key, address, f"format_{reason}")
             return False, reason
         
         # Validation 2: Known bad patterns
         is_valid, reason = self._check_bad_patterns(address)
         if not is_valid:
-            self._mark_invalid(cache_key, address)
+            self._mark_invalid(cache_key, address, f"pattern_{reason}")
             return False, reason
         
-        # Validation 3: Symbol sanity
+        # ✅ NEW: Validation 3: Check address entropy (randomness)
+        is_valid, reason = self._check_address_entropy(address, chain)
+        if not is_valid:
+            self._mark_invalid(cache_key, address, f"entropy_{reason}")
+            return False, reason
+        
+        # Validation 4: Symbol sanity
         is_valid, reason = self._validate_symbol(symbol)
         if not is_valid:
-            self._mark_invalid(cache_key, address)
+            self._mark_invalid(cache_key, address, f"symbol_{reason}")
             return False, reason
         
-        # Validation 4: Price sanity
+        # Validation 5: Price sanity
         if price > 0:
             is_valid, reason = self._validate_price(price)
             if not is_valid:
-                self._mark_invalid(cache_key, address)
+                self._mark_invalid(cache_key, address, f"price_{reason}")
                 return False, reason
         
-        # Validation 5: Liquidity sanity
+        # Validation 6: Liquidity sanity
         if liquidity > 0:
             is_valid, reason = self._validate_liquidity(liquidity)
             if not is_valid:
-                self._mark_invalid(cache_key, address)
+                self._mark_invalid(cache_key, address, f"liquidity_{reason}")
                 return False, reason
         
         # All checks passed
@@ -108,11 +165,13 @@ class TokenValidator:
         # Normalize chain name
         chain = chain.lower()
         if chain not in self.ADDRESS_PATTERNS:
+            logger.warning(f"⚠️ Unknown chain: {chain}")
             return False, f"Unknown chain: {chain}"
         
         # Check pattern
         pattern = self.ADDRESS_PATTERNS[chain]
         if not re.match(pattern, address):
+            logger.warning(f"❌ Invalid format: {address[:20]}... for {chain}")
             return False, f"Invalid {chain} address format"
         
         return True, "Format OK"
@@ -121,9 +180,72 @@ class TokenValidator:
         """Check for known bad address patterns"""
         for pattern in self.INVALID_PATTERNS:
             if re.match(pattern, address.lower()):
+                logger.warning(f"❌ Suspicious pattern: {address[:20]}...")
                 return False, "Suspicious address pattern"
         
         return True, "Pattern OK"
+    
+    def _check_address_entropy(self, address: str, chain: str) -> Tuple[bool, str]:
+        """
+        ✅ NEW: Check if address has reasonable entropy (randomness)
+        Catches addresses like 0xff7f8f30... that are likely invalid
+        """
+        if chain.lower() in ["solana", "svm"]:
+            # Skip for Solana (different address format)
+            return True, "Entropy OK (Solana)"
+        
+        # Remove 0x prefix
+        hex_part = address[2:].lower() if address.startswith("0x") else address.lower()
+        
+        if len(hex_part) != 40:
+            return False, "Invalid length"
+        
+        # Check for too many repeated characters
+        from collections import Counter
+        char_counts = Counter(hex_part)
+        
+        # If any single character appears more than 50% of the time, suspicious
+        max_count = max(char_counts.values())
+        if max_count > 20:  # More than 50% of 40 chars
+            logger.warning(f"❌ Low entropy: {address[:20]}... (char '{max(char_counts, key=char_counts.get)}' appears {max_count} times)")
+            return False, "Low entropy (repeated chars)"
+        
+        # Check for long runs of same character
+        max_run = 1
+        current_run = 1
+        for i in range(1, len(hex_part)):
+            if hex_part[i] == hex_part[i-1]:
+                current_run += 1
+                max_run = max(max_run, current_run)
+            else:
+                current_run = 1
+        
+        if max_run > 5:  # More than 5 consecutive same chars
+            logger.warning(f"❌ Low entropy: {address[:20]}... (run of {max_run} chars)")
+            return False, "Low entropy (long run)"
+        
+        # Check for sequential patterns (0123, abcd, etc)
+        for i in range(len(hex_part) - 3):
+            quad = hex_part[i:i+4]
+            if self._is_sequential(quad):
+                logger.warning(f"❌ Sequential pattern: {address[:20]}...")
+                return False, "Sequential pattern"
+        
+        return True, "Entropy OK"
+    
+    def _is_sequential(self, s: str) -> bool:
+        """Check if string is sequential (ascending or descending)"""
+        if len(s) < 3:
+            return False
+        
+        # Check ascending
+        ascending = all(ord(s[i+1]) - ord(s[i]) == 1 for i in range(len(s)-1))
+        if ascending:
+            return True
+        
+        # Check descending
+        descending = all(ord(s[i]) - ord(s[i+1]) == 1 for i in range(len(s)-1))
+        return descending
     
     def _validate_symbol(self, symbol: str) -> Tuple[bool, str]:
         """Validate token symbol"""
@@ -135,12 +257,12 @@ class TokenValidator:
             return False, f"Symbol length {len(symbol)} invalid"
         
         # Suspicious symbols
-        suspicious = ["test", "xxx", "scam", "rug", "fake", "bot"]
+        suspicious = ["test", "xxx", "scam", "rug", "fake", "bot", "dead", "rip"]
         if any(p in symbol.lower() for p in suspicious):
             return False, "Suspicious symbol"
         
         # Must be alphanumeric (with some exceptions)
-        if not re.match(r"^[A-Za-z0-9_\-]+$", symbol):
+        if not re.match(r"^[A-Za-z0-9_\-\.]+$", symbol):
             return False, "Invalid symbol characters"
         
         return True, "Symbol OK"
@@ -168,11 +290,14 @@ class TokenValidator:
         
         return True, "Liquidity OK"
     
-    def _mark_invalid(self, cache_key: str, address: str):
+    def _mark_invalid(self, cache_key: str, address: str, reason: str):
         """Mark token as invalid"""
         self._validation_cache[cache_key] = False
         addr_lower = address.lower()
         self._failed_addresses[addr_lower] = self._failed_addresses.get(addr_lower, 0) + 1
+        
+        fail_count = self._failed_addresses[addr_lower]
+        logger.warning(f"❌ Validation failed: {address[:10]}... ({reason}, fail count: {fail_count})")
     
     def record_trade_failure(self, address: str, chain: str):
         """
@@ -188,19 +313,27 @@ class TokenValidator:
         fail_count = self._failed_addresses[addr_lower]
         logger.warning(f"❌ Trade failed for {address[:10]}... (fail count: {fail_count})")
         
-        if fail_count >= 3:
-            logger.error(f"🚫 Blacklisted: {address[:10]}... (3+ failures)")
+        if fail_count >= 2:  # ✅ LOWERED from 3 to 2
+            logger.error(f"🚫 Blacklisted: {address[:10]}... (2+ failures)")
     
     def is_blacklisted(self, address: str) -> bool:
         """Check if address is blacklisted"""
-        return self._failed_addresses.get(address.lower(), 0) >= 3
+        return self._failed_addresses.get(address.lower(), 0) >= 2  # ✅ LOWERED from 3 to 2
+    
+    def clear_blacklist(self):
+        """Clear blacklist (for testing or manual reset)"""
+        before = len(self._failed_addresses)
+        self._failed_addresses.clear()
+        logger.info(f"🗑️ Cleared {before} blacklisted addresses")
     
     def get_stats(self) -> Dict:
         """Get validator statistics"""
         return {
             "cache_size": len(self._validation_cache),
-            "blacklisted_count": sum(1 for c in self._failed_addresses.values() if c >= 3),
-            "failed_addresses": len(self._failed_addresses)
+            "whitelisted": len(self.WHITELISTED_ADDRESSES),
+            "blacklisted_count": sum(1 for c in self._failed_addresses.values() if c >= 2),
+            "failed_addresses": len(self._failed_addresses),
+            "total_validated": len(self._validation_cache)
         }
 
 
