@@ -161,6 +161,13 @@ class Config:
         "WETH_POLYGON": TokenConfig("0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619", "polygon", False, 18),
         "WBTC_POLYGON": TokenConfig("0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6", "polygon", False, 8),
         "LINK_POLYGON": TokenConfig("0x53E0bca35eC356BD5ddDFebbD1Fc0fD03FaBad39", "polygon", False, 18),
+
+        # Base - BOTH native and bridged USDC
+                # Base - BOTH native and bridged USDC
+        "USDC_BASE": TokenConfig("0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", "base", True, 6),  # Native USDC
+        "USDBC_BASE": TokenConfig("0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA", "base", True, 6),  # Bridged (legacy)
+        
+        "USDC_SOLANA": TokenConfig("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "svm", True, 6),
         
         # Arbitrum
         "WETH_ARBITRUM": TokenConfig("0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", "arbitrum", False, 18),
@@ -178,7 +185,7 @@ class Config:
     
     # Map display symbols to their chain variants
     SYMBOL_TO_CHAINS: Dict[str, List[str]] = {
-        "USDC": ["USDC", "USDC_POLYGON", "USDC.e_POLYGON", "USDC_ARBITRUM", "USDC_OPTIMISM", "USDBC_BASE", "USDC_SOLANA"],
+        "USDC": ["USDC", "USDC_POLYGON", "USDC.e_POLYGON", "USDC_ARBITRUM", "USDC_OPTIMISM", "USDBC_BASE", "USDC_SOLANA", "USDC_BASE"],
         "WETH": ["WETH", "WETH_POLYGON", "WETH_ARBITRUM", "WETH_BASE"],
         "WBTC": ["WBTC", "WBTC_POLYGON", "WBTC_ARBITRUM"],
         "LINK": ["LINK", "LINK_POLYGON", "LINK_ARBITRUM"],
