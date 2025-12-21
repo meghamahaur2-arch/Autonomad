@@ -1,32 +1,130 @@
 """
-Enhanced Self-Thinking Market Scanner - INTEGRATED WITH TOKEN VALIDATOR
-Uses multiple free APIs for comprehensive token discovery
-✅ NOW VALIDATES ALL ADDRESSES BEFORE RETURNING
+Enhanced Market Scanner - FIXED VERSION
+✅ Added circuit breakers for all external APIs
+✅ Added proper rate limiting per API
+✅ Better error handling and recovery
 """
 import asyncio
 import aiohttp
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Set, Tuple
 from collections import deque
 from aiohttp import ClientTimeout, TCPConnector
 
 from config import config
 from models import (
-    DiscoveredToken, MarketSnapshot, SignalType, 
-    Conviction, InsufficientLiquidityError
+    DiscoveredToken, CircuitBreakerOpenError, CircuitState
 )
 from logging_manager import get_logger
-from token_validator import token_validator  # ✅ ADDED
+from token_validator import token_validator
 
 logger = get_logger("MarketScanner")
 
 
+class RateLimiter:
+    """✅ NEW: Rate limiter for API calls"""
+    
+    def __init__(self, requests_per_minute: int = 30):
+        self.requests_per_minute = requests_per_minute
+        self.interval = 60.0 / requests_per_minute  # Seconds between requests
+        self.last_request: Dict[str, datetime] = {}
+        self._lock = asyncio.Lock()
+    
+    async def acquire(self, key: str = "default"):
+        """Wait until we can make a request"""
+        async with self._lock:
+            now = datetime.now(timezone.utc)
+            last = self.last_request.get(key)
+            
+            if last:
+                elapsed = (now - last).total_seconds()
+                if elapsed < self.interval:
+                    wait_time = self.interval - elapsed
+                    logger.debug(f"⏳ Rate limit: waiting {wait_time:.2f}s for {key}")
+                    await asyncio.sleep(wait_time)
+            
+            self.last_request[key] = datetime.now(timezone.utc)
+
+
+class CircuitBreaker:
+    """Circuit breaker for API resilience"""
+    
+    def __init__(
+        self,
+        failure_threshold: int = 5,
+        recovery_timeout: int = 60,
+        name: str = "default"
+    ):
+        self.failure_threshold = failure_threshold
+        self.recovery_timeout = recovery_timeout
+        self.name = name
+        self.state = CircuitState.CLOSED
+        self.failure_count = 0
+        self.last_failure_time: Optional[datetime] = None
+        self.success_count = 0
+        self._lock = asyncio.Lock()
+    
+    async def call(self, func, *args, **kwargs):
+        """Execute function with circuit breaker protection"""
+        async with self._lock:
+            if self.state == CircuitState.OPEN:
+                if self._should_attempt_reset():
+                    self.state = CircuitState.HALF_OPEN
+                    logger.info(f"🔄 Circuit breaker '{self.name}' entering HALF_OPEN")
+                else:
+                    raise CircuitBreakerOpenError(
+                        f"Circuit breaker '{self.name}' is OPEN. "
+                        f"Retry after {self._time_until_reset():.0f}s"
+                    )
+        
+        try:
+            result = await func(*args, **kwargs)
+            await self._on_success()
+            return result
+        except Exception as e:
+            await self._on_failure()
+            raise
+    
+    def _should_attempt_reset(self) -> bool:
+        if self.last_failure_time is None:
+            return True
+        elapsed = (datetime.now(timezone.utc) - self.last_failure_time).total_seconds()
+        return elapsed >= self.recovery_timeout
+    
+    def _time_until_reset(self) -> float:
+        if self.last_failure_time is None:
+            return 0
+        elapsed = (datetime.now(timezone.utc) - self.last_failure_time).total_seconds()
+        return max(0, self.recovery_timeout - elapsed)
+    
+    async def _on_success(self):
+        async with self._lock:
+            if self.state == CircuitState.HALF_OPEN:
+                self.success_count += 1
+                if self.success_count >= 2:
+                    self.state = CircuitState.CLOSED
+                    self.failure_count = 0
+                    self.success_count = 0
+                    logger.info(f"✅ Circuit breaker '{self.name}' CLOSED (recovered)")
+            else:
+                self.failure_count = 0
+    
+    async def _on_failure(self):
+        async with self._lock:
+            self.failure_count += 1
+            self.last_failure_time = datetime.now(timezone.utc)
+            self.success_count = 0
+            
+            if self.failure_count >= self.failure_threshold:
+                self.state = CircuitState.OPEN
+                logger.warning(
+                    f"⚠️ Circuit breaker '{self.name}' OPEN after {self.failure_count} failures"
+                )
+
+
 class MultiAPIMarketScanner:
     """
-    🔥 FIXED: Enhanced scanner with token address validation
-    - DexScreener boosted/trending endpoints
-    - GeckoTerminal API (free, no key needed)
-    - ✅ TOKEN VALIDATION on all discovered tokens
+    ✅ FIXED: Enhanced scanner with circuit breakers and rate limiting
     """
     
     DEXSCREENER_BASE = "https://api.dexscreener.com"
@@ -94,24 +192,51 @@ class MultiAPIMarketScanner:
         self._token_performance: Dict[str, Dict] = {}
         self._failed_trades: Dict[str, int] = {}
         
-        self._semaphore = asyncio.Semaphore(15)
-        self._last_request_time = {}
+        self._semaphore = asyncio.Semaphore(10)  # ✅ Reduced from 15 to 10
+        
+        # ✅ NEW: Circuit breakers for each API
+        self._circuit_breakers = {
+            "dexscreener": CircuitBreaker(
+                failure_threshold=5,
+                recovery_timeout=120,  # 2 minutes
+                name="DexScreener"
+            ),
+            "geckoterminal": CircuitBreaker(
+                failure_threshold=5,
+                recovery_timeout=120,
+                name="GeckoTerminal"
+            )
+        }
+        
+        # ✅ NEW: Rate limiters for each API
+        self._rate_limiters = {
+            "dexscreener": RateLimiter(requests_per_minute=30),
+            "geckoterminal": RateLimiter(requests_per_minute=20)
+        }
+        
+        # ✅ NEW: API health tracking
+        self._api_health = {
+            "dexscreener": {"available": True, "last_success": None, "consecutive_failures": 0},
+            "geckoterminal": {"available": True, "last_success": None, "consecutive_failures": 0}
+        }
         
         logger.info("🔍 Multi-API Market Scanner initialized")
         logger.info("   ✅ DexScreener: Latest + Boosted + Search + By Chain")
         logger.info("   ✅ GeckoTerminal: Trending pools")
         logger.info("   ✅ Token Validator: Address validation enabled")
+        logger.info("   ✅ Circuit breakers: ENABLED")
+        logger.info("   ✅ Rate limiting: ENABLED")
         logger.info("   ✅ Auto-blacklist learning enabled")
     
     async def _get_session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
             connector = TCPConnector(
-                limit=30,
-                limit_per_host=15,
+                limit=10,  # ✅ Reduced from 30
+                limit_per_host=5,  # ✅ Reduced from 15
                 ttl_dns_cache=300
             )
             self._session = aiohttp.ClientSession(
-                timeout=ClientTimeout(total=20),
+                timeout=ClientTimeout(total=15),  # ✅ Reduced from 20
                 connector=connector
             )
         return self._session
@@ -120,23 +245,14 @@ class MultiAPIMarketScanner:
         if self._session and not self._session.closed:
             await self._session.close()
     
-    async def _rate_limit(self, api_name: str, delay: float = 0.5):
-        now = datetime.now()
-        last = self._last_request_time.get(api_name)
-        
-        if last:
-            elapsed = (now - last).total_seconds()
-            if elapsed < delay:
-                await asyncio.sleep(delay - elapsed)
-        
-        self._last_request_time[api_name] = datetime.now()
-    
     async def scan_market(
         self, 
         chains: Optional[List[str]] = None,
         min_liquidity: Optional[float] = None,
         min_volume: Optional[float] = None
     ) -> List[DiscoveredToken]:
+        """✅ FIXED: Market scan with circuit breaker protection"""
+        
         if chains is None:
             chains = ["ethereum", "polygon", "arbitrum", "base", "optimism", "solana", "bsc"]
         
@@ -148,27 +264,36 @@ class MultiAPIMarketScanner:
         logger.info(f"   Min Volume: ${global_min_volume:,.0f}")
         logger.info(f"   Blacklist: {len(self._blacklist)} tokens")
         
+        # ✅ NEW: Log API health
+        self._log_api_health()
+        
         all_tokens = []
         tasks = []
         
-        # DexScreener boosted tokens
-        tasks.append(self._scan_dexscreener_boosted())
+        # Only add tasks for healthy APIs
+        if self._is_api_healthy("dexscreener"):
+            tasks.append(self._scan_with_circuit_breaker("dexscreener", self._scan_dexscreener_boosted))
+            tasks.append(self._scan_with_circuit_breaker("dexscreener", self._scan_dexscreener_search_top))
+            
+            for chain in ["ethereum", "polygon", "arbitrum", "base", "optimism", "solana", "bsc"]:
+                if chain in chains:
+                    tasks.append(self._scan_with_circuit_breaker("dexscreener", self._scan_dexscreener_by_chain, chain))
+        else:
+            logger.warning("⚠️ DexScreener circuit breaker OPEN - skipping")
         
-        # DexScreener search
-        tasks.append(self._scan_dexscreener_search_top())
+        if self._is_api_healthy("geckoterminal"):
+            for chain in ["eth", "polygon_pos", "arbitrum_one", "base", "optimism", "solana", "bsc"]:
+                tasks.append(self._scan_with_circuit_breaker("geckoterminal", self._scan_geckoterminal_trending, chain))
+        else:
+            logger.warning("⚠️ GeckoTerminal circuit breaker OPEN - skipping")
         
-        # DexScreener by chain
-        for chain in ["ethereum", "polygon", "arbitrum", "base", "optimism", "solana", "bsc"]:
-            if chain in chains:
-                tasks.append(self._scan_dexscreener_by_chain(chain))
-        
-        # GeckoTerminal trending pools
-        for chain in ["eth", "polygon_pos", "arbitrum_one", "base", "optimism", "solana", "bsc"]:
-            tasks.append(self._scan_geckoterminal_trending(chain))
-        
+        # Execute all tasks
         results = await asyncio.gather(*tasks, return_exceptions=True)
         
         for result in results:
+            if isinstance(result, CircuitBreakerOpenError):
+                logger.debug(f"Circuit breaker prevented call: {result}")
+                continue
             if isinstance(result, Exception):
                 logger.debug(f"API call failed: {result}")
                 continue
@@ -209,16 +334,77 @@ class MultiAPIMarketScanner:
         
         return scored_tokens
     
+    async def _scan_with_circuit_breaker(self, api_name: str, func, *args, **kwargs):
+        """✅ NEW: Wrap API call with circuit breaker and rate limiter"""
+        try:
+            # Rate limiting
+            await self._rate_limiters[api_name].acquire(func.__name__)
+            
+            # Circuit breaker
+            result = await self._circuit_breakers[api_name].call(func, *args, **kwargs)
+            
+            # ✅ Record success
+            self._api_health[api_name]["available"] = True
+            self._api_health[api_name]["last_success"] = datetime.now(timezone.utc)
+            self._api_health[api_name]["consecutive_failures"] = 0
+            
+            return result
+            
+        except CircuitBreakerOpenError as e:
+            # Circuit breaker open - don't count as failure
+            raise
+        except Exception as e:
+            # ✅ Record failure
+            self._api_health[api_name]["consecutive_failures"] += 1
+            logger.warning(f"⚠️ {api_name} call failed: {e}")
+            
+            if self._api_health[api_name]["consecutive_failures"] >= 3:
+                self._api_health[api_name]["available"] = False
+                logger.error(f"❌ {api_name} marked as unavailable after 3 failures")
+            
+            raise
+    
+    def _is_api_healthy(self, api_name: str) -> bool:
+        """✅ NEW: Check if API is healthy"""
+        health = self._api_health.get(api_name, {})
+        
+        # Check circuit breaker state
+        breaker = self._circuit_breakers.get(api_name)
+        if breaker and breaker.state == CircuitState.OPEN:
+            return False
+        
+        # Check consecutive failures
+        if health.get("consecutive_failures", 0) >= 3:
+            # But allow recovery after 5 minutes
+            last_success = health.get("last_success")
+            if last_success:
+                age = (datetime.now(timezone.utc) - last_success).total_seconds()
+                if age > 300:  # 5 minutes
+                    logger.info(f"🔄 {api_name} recovery timeout passed, allowing retry")
+                    health["consecutive_failures"] = 0
+                    return True
+            return False
+        
+        return health.get("available", True)
+    
+    def _log_api_health(self):
+        """✅ NEW: Log current API health status"""
+        for api_name, health in self._api_health.items():
+            breaker = self._circuit_breakers.get(api_name)
+            state = breaker.state.name if breaker else "UNKNOWN"
+            failures = health.get("consecutive_failures", 0)
+            
+            status = "🟢" if health.get("available") else "🔴"
+            logger.debug(f"   {status} {api_name}: {state}, failures: {failures}")
+    
     async def _scan_dexscreener_boosted(self) -> List[DiscoveredToken]:
         """Get boosted tokens from DexScreener"""
         try:
-            await self._rate_limit("dexscreener", 1.0)
             session = await self._get_session()
-            
             url = f"{self.DEXSCREENER_BASE}/token-boosts/latest/v1"
             
             async with self._semaphore:
-                async with session.get(url, timeout=15) as resp:
+                async with session.get(url) as resp:
                     if resp.status != 200:
                         logger.debug(f"   DexScreener boosted: HTTP {resp.status}")
                         return []
@@ -236,7 +422,7 @@ class MultiAPIMarketScanner:
                     
                     pairs_url = f"{self.DEXSCREENER_BASE}/latest/dex/tokens/{token_address}"
                     
-                    async with session.get(pairs_url, timeout=15) as pairs_resp:
+                    async with session.get(pairs_url) as pairs_resp:
                         if pairs_resp.status != 200:
                             return []
                         
@@ -255,15 +441,14 @@ class MultiAPIMarketScanner:
         
         except Exception as e:
             logger.debug(f"   DexScreener boosted failed: {e}")
-            return []
+            raise  # ✅ Re-raise for circuit breaker
     
     async def _scan_dexscreener_search_top(self) -> List[DiscoveredToken]:
         """Search DexScreener for top volume tokens"""
         try:
-            await self._rate_limit("dexscreener", 1.0)
             session = await self._get_session()
             
-            search_terms = ["ETH", "BTC", "SOL", "USDC", "PEPE", "LINK", "UNI"]
+            search_terms = ["ETH", "BTC", "SOL", "USDC", "PEPE"]
             all_tokens = []
             seen = set()
             
@@ -273,7 +458,7 @@ class MultiAPIMarketScanner:
                     params = {"q": term}
                     
                     async with self._semaphore:
-                        async with session.get(url, params=params, timeout=15) as resp:
+                        async with session.get(url, params=params) as resp:
                             if resp.status != 200:
                                 continue
                             
@@ -297,19 +482,18 @@ class MultiAPIMarketScanner:
         
         except Exception as e:
             logger.debug(f"   DexScreener search failed: {e}")
-            return []
+            raise
     
     async def _scan_dexscreener_by_chain(self, chain: str) -> List[DiscoveredToken]:
         """Scan DexScreener by specific chain"""
         try:
-            await self._rate_limit("dexscreener", 1.0)
             session = await self._get_session()
             
             chain_config = self.CHAIN_CONFIGS.get(chain, {})
             dex_chain_id = chain_config.get("dex_id", chain)
             
             top_tokens = {
-                "ethereum": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,0x514910771AF9Ca656af840dff83E8264EcF986CA",
+                "ethereum": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
                 "polygon": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
                 "arbitrum": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
                 "base": "0x4200000000000000000000000000000000000006",
@@ -325,7 +509,7 @@ class MultiAPIMarketScanner:
             url = f"{self.DEXSCREENER_BASE}/latest/dex/tokens/{token_addresses}"
             
             async with self._semaphore:
-                async with session.get(url, timeout=15) as resp:
+                async with session.get(url) as resp:
                     if resp.status != 200:
                         logger.debug(f"   DexScreener {chain}: HTTP {resp.status}")
                         return []
@@ -347,18 +531,16 @@ class MultiAPIMarketScanner:
         
         except Exception as e:
             logger.debug(f"   DexScreener {chain} failed: {e}")
-            return []
+            raise
     
     async def _scan_geckoterminal_trending(self, network: str) -> List[DiscoveredToken]:
         """Scan GeckoTerminal trending pools"""
         try:
-            await self._rate_limit("geckoterminal", 1.5)
             session = await self._get_session()
-            
             url = f"{self.GECKOTERMINAL_BASE}/networks/{network}/trending_pools"
             
             async with self._semaphore:
-                async with session.get(url, timeout=15) as resp:
+                async with session.get(url) as resp:
                     if resp.status != 200:
                         logger.debug(f"   GeckoTerminal {network}: HTTP {resp.status}")
                         return []
@@ -377,7 +559,7 @@ class MultiAPIMarketScanner:
         
         except Exception as e:
             logger.debug(f"   GeckoTerminal {network} failed: {e}")
-            return []
+            raise
     
     def _parse_geckoterminal_pool(self, pool: Dict, network: str) -> Optional[DiscoveredToken]:
         """Parse GeckoTerminal pool data with validation"""
@@ -415,7 +597,7 @@ class MultiAPIMarketScanner:
             if price <= 0 or liquidity <= 0:
                 return None
             
-            # ✅ VALIDATE TOKEN BEFORE RETURNING
+            # ✅ VALIDATE during parsing (not after)
             is_valid, reason = token_validator.validate_token(
                 address=address,
                 chain=chain,
@@ -425,7 +607,6 @@ class MultiAPIMarketScanner:
             )
             
             if not is_valid:
-                logger.debug(f"❌ Invalid token {symbol} from GeckoTerminal: {reason}")
                 return None
             
             return DiscoveredToken(
@@ -492,7 +673,7 @@ class MultiAPIMarketScanner:
             if price <= 0 or liquidity <= 0:
                 return None
             
-            # ✅ VALIDATE TOKEN BEFORE RETURNING
+            # ✅ VALIDATE during parsing
             is_valid, reason = token_validator.validate_token(
                 address=address,
                 chain=chain,
@@ -502,7 +683,6 @@ class MultiAPIMarketScanner:
             )
             
             if not is_valid:
-                logger.debug(f"❌ Invalid token {symbol} from DexScreener: {reason}")
                 return None
             
             return DiscoveredToken(
@@ -521,26 +701,21 @@ class MultiAPIMarketScanner:
             return None
     
     def _filter_tokens(self, tokens: List[DiscoveredToken]) -> List[DiscoveredToken]:
-        """Filter tokens with validation"""
+        """Filter tokens"""
         filtered = []
         
         for token in tokens:
-            # Skip blacklisted
             if token.address in self._blacklist:
                 continue
             
-            # Skip validator-blacklisted addresses
             if token_validator.is_blacklisted(token.address):
-                logger.debug(f"⚫ Skipping blacklisted: {token.symbol}")
                 continue
             
-            # Suspicious patterns
             suspicious = ["test", "xxx", "scam", "rug", "fake"]
             if any(p in token.symbol.lower() for p in suspicious):
                 self._soft_blacklist(token.address, "suspicious_pattern")
                 continue
             
-            # Liquidity/volume ratio
             if token.volume_24h > 0:
                 lv_ratio = token.liquidity_usd / token.volume_24h
                 
@@ -551,15 +726,12 @@ class MultiAPIMarketScanner:
                 if lv_ratio > 50:
                     continue
             
-            # Market cap minimum
             if token.market_cap and token.market_cap < 100_000:
                 continue
             
-            # Symbol length
             if len(token.symbol) > 15:
                 continue
             
-            # Price range
             if token.price <= 0 or token.price > 10_000_000:
                 continue
             
@@ -572,19 +744,16 @@ class MultiAPIMarketScanner:
         for token in tokens:
             score = 0.0
             
-            # Volume surge
             volume_surge = self._calc_volume_surge(
                 f"{token.symbol}_{token.chain}", 
                 token.volume_24h
             )
             score += volume_surge * 1.5
             
-            # Price change
             abs_change = abs(token.change_24h_pct)
             if abs_change > 2:
                 score += abs_change * 0.5
             
-            # Liquidity tiers
             if token.liquidity_usd > 500_000:
                 score += 3.0
             elif token.liquidity_usd > 250_000:
@@ -594,7 +763,6 @@ class MultiAPIMarketScanner:
             elif token.liquidity_usd > 50_000:
                 score += 1.0
             
-            # Volume tiers
             if token.volume_24h > 2_000_000:
                 score += 3.0
             elif token.volume_24h > 1_000_000:
@@ -604,14 +772,12 @@ class MultiAPIMarketScanner:
             elif token.volume_24h > 250_000:
                 score += 1.0
             
-            # Market cap sweet spot
             if token.market_cap:
                 if 10_000_000 < token.market_cap < 500_000_000:
                     score += 3.0
                 elif 1_000_000 < token.market_cap < 10_000_000:
                     score += 2.0
             
-            # Historical performance
             if token.address in self._token_performance:
                 perf = self._token_performance[token.address]
                 win_rate = perf.get("win_rate", 0)
@@ -623,7 +789,6 @@ class MultiAPIMarketScanner:
             token.opportunity_score = max(0.0, score)
         
         tokens.sort(key=lambda t: t.opportunity_score, reverse=True)
-        
         quality_tokens = [t for t in tokens if t.opportunity_score >= 3.0]
         
         logger.info(f"   💎 {len(quality_tokens)} tokens scored >= 3.0")
@@ -658,8 +823,6 @@ class MultiAPIMarketScanner:
     def blacklist_token(self, address: str, reason: str = "manual"):
         """Blacklist a token"""
         self._blacklist.add(address.lower())
-        
-        # Also blacklist in validator
         token_validator.record_trade_failure(address, "unknown")
         
         if address not in self._token_performance:
@@ -716,7 +879,6 @@ class MultiAPIMarketScanner:
         perf["win_rate"] = perf["wins"] / perf["trades"] if perf["trades"] > 0 else 0
         perf["avg_pnl"] = perf["total_pnl"] / perf["trades"] if perf["trades"] > 0 else 0
         
-        # Auto-blacklist poor performers
         if perf["trades"] >= 5:
             if perf["win_rate"] < 0.25:
                 self.blacklist_token(address, f"low_winrate_{perf['win_rate']*100:.0f}%")
@@ -737,6 +899,22 @@ class MultiAPIMarketScanner:
             reverse=True
         )
         return tokens[:n]
+    
+    def get_health_status(self) -> Dict:
+        """✅ NEW: Get scanner health status"""
+        return {
+            "api_health": {
+                api: {
+                    "available": health["available"],
+                    "consecutive_failures": health["consecutive_failures"],
+                    "circuit_breaker": self._circuit_breakers[api].state.name,
+                    "last_success": health["last_success"].isoformat() if health["last_success"] else None
+                }
+                for api, health in self._api_health.items()
+            },
+            "discovered_tokens": len(self._discovered_tokens),
+            "blacklisted_tokens": len(self._blacklist)
+        }
 
 
 # Export
