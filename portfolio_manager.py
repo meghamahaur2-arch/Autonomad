@@ -182,40 +182,41 @@ class PortfolioManager:
         metadata = decision.metadata
         token_address = metadata.get("token_address")
         chain = metadata.get("chain")
-        to_symbol = decision.to_token.split('_')[0]
         
         if not token_address or not chain:
             logger.error("❌ Missing token metadata")
             return False
         
-        # ✅ CRITICAL: Validate token before trading
-        logger.info(f"🔍 Validating token {to_symbol} ({token_address[:10]}...)")
-        is_valid, reason = token_validator.validate_token(
-            address=token_address,
-            chain=chain,
-            symbol=to_symbol,
-            price=metadata.get("price", 0),
-            liquidity=metadata.get("liquidity", 0)
-        )
-        
-        if not is_valid:
-            logger.error(f"❌ Token validation failed: {reason}")
-            token_validator.record_trade_failure(token_address, chain)
+        # ✅ CRITICAL FIX: Only validate token for BUY trades
+        # SELL trades are always valid (we're selling what we already own)
+        if decision.action == TradingAction.BUY:
+            to_symbol = decision.to_token.split('_')[0]
             
-            if self.market_scanner:
-                self.market_scanner.blacklist_token(token_address, f"validation_failed_{reason}")
+            # Validate token before trading
+            logger.info(f"🔍 Validating token {to_symbol} ({token_address[:10]}...)")
+            is_valid, reason = token_validator.validate_token(
+                address=token_address,
+                chain=chain,
+                symbol=to_symbol,
+                price=metadata.get("price", 0),
+                liquidity=metadata.get("liquidity", 0)
+            )
             
-            return False
-        
-        # ✅ CRITICAL: Check if blacklisted
-        if token_validator.is_blacklisted(token_address):
-            logger.error(f"🚫 Token {to_symbol} is blacklisted (3+ failures)")
-            return False
-        
-        logger.info(f"✅ Token validation passed")
-        
-        # ✅ REMOVED: Pre-trade validation moved to strategy layer for fallback support
-        # The strategy now handles validation BEFORE creating decisions
+            if not is_valid:
+                logger.error(f"❌ Token validation failed: {reason}")
+                token_validator.record_trade_failure(token_address, chain)
+                
+                if self.market_scanner:
+                    self.market_scanner.blacklist_token(token_address, f"validation_failed_{reason}")
+                
+                return False
+            
+            # Check if blacklisted
+            if token_validator.is_blacklisted(token_address):
+                logger.error(f"🚫 Token {to_symbol} is blacklisted (3+ failures)")
+                return False
+            
+            logger.info(f"✅ Token validation passed")
         
         # Get stablecoin for trade
         from_symbol = decision.from_token
@@ -223,82 +224,127 @@ class PortfolioManager:
         amount_usd = decision.amount_usd
         
         holdings = portfolio.get("holdings", {})
-        usdc_symbol, usdc_available = self._find_best_usdc(holdings)
         
-        if not usdc_symbol:
-            logger.error("❌ No USDC available")
-            return False
+        # ✅ CRITICAL FIX: Different logic for BUY vs SELL
+        if decision.action == TradingAction.BUY:
+            # BUY: Need USDC
+            usdc_symbol, usdc_available = self._find_best_usdc(holdings)
+            
+            if not usdc_symbol:
+                logger.error("❌ No USDC available for BUY")
+                return False
+            
+            from_symbol = usdc_symbol
+            from_holding = holdings.get(usdc_symbol, {})
+            from_address = from_holding.get("tokenAddress", "")
+            from_chain = from_holding.get("chain", "").lower()
+            
+            if not from_address or not from_chain:
+                logger.error(f"❌ Missing USDC metadata for {usdc_symbol}")
+                return False
+            
+            # Find USDC config
+            result = self._find_usdc_config(from_address, from_chain)
+            
+            if not result:
+                logger.error(f"❌ No USDC config found for {usdc_symbol}")
+                return False
+            
+            matched_config_symbol, from_config = result
+            logger.info(f"✅ Matched {usdc_symbol} to config {matched_config_symbol} on {from_config.chain}")
+            
+            # Calculate trade amount
+            available_amount = from_holding.get("amount", 0)
+            from_price = from_holding.get("price", 1.0)
+            
+            max_safe_amount = available_amount * 0.98
+            max_safe_value = max_safe_amount * from_price
+            
+            trade_value = min(amount_usd, max_safe_value)
+            trade_amount = trade_value / from_price
+            
+            if trade_amount > max_safe_amount:
+                trade_amount = max_safe_amount
+            
+            if trade_amount < config.MIN_TRADE_SIZE:
+                logger.warning(f"❌ Trade too small: {trade_amount:.6f} < {config.MIN_TRADE_SIZE}")
+                return False
+            
+            decimals = from_config.decimals
+            amount_str = f"{trade_amount:.{decimals}f}"
+            
+            logger.info("=" * 70)
+            logger.info(f"📤 EXECUTING BUY")
+            logger.info(f"   From: {usdc_symbol} (→ {matched_config_symbol}) on {from_config.chain}")
+            logger.info(f"   To: {to_symbol_full.split('_')[0]} ({token_address[:10]}...) on {chain}")
+            logger.info(f"   Amount: {amount_str} {matched_config_symbol}")
+            logger.info(f"   Value: ${trade_value:.2f}")
+            logger.info("=" * 70)
+            
+            to_address = token_address
+            to_chain = chain
         
-        # ✅ FIX: Handle chain-suffixed USDC symbols with case-insensitive matching
-        usdc_holding = holdings.get(usdc_symbol, {})
-        usdc_address = usdc_holding.get("tokenAddress", "")
-        usdc_chain = usdc_holding.get("chain", "").lower()  # Normalize to lowercase
-        
-        if not usdc_address or not usdc_chain:
-            logger.error(f"❌ Missing USDC metadata for {usdc_symbol}")
-            return False
-        
-        # ✅ FIX: Use new helper method to find USDC config
-        result = self._find_usdc_config(usdc_address, usdc_chain)
-        
-        if not result:
-            logger.error(f"❌ No USDC config found for {usdc_symbol}")
-            logger.error(f"   Address: {usdc_address}")
-            logger.error(f"   Chain: {usdc_chain}")
-            logger.error(f"   Available USDC configs:")
-            for cs, tc in config.TOKENS.items():
-                if tc.stable:
-                    logger.error(f"      {cs}: {tc.address[:10]}... on {tc.chain}")
-            return False
-        
-        matched_config_symbol, from_config = result
-        logger.info(f"✅ Matched {usdc_symbol} to config {matched_config_symbol} on {from_config.chain}")
-        
-        # Calculate trade amount
-        available_amount = usdc_holding.get("amount", 0)
-        from_price = usdc_holding.get("price", 1.0)
-        
-        max_safe_amount = available_amount * 0.98
-        max_safe_value = max_safe_amount * from_price
-        
-        trade_value = min(amount_usd, max_safe_value)
-        trade_amount = trade_value / from_price
-        
-        if trade_amount > max_safe_amount:
-            trade_amount = max_safe_amount
-        
-        if trade_amount < config.MIN_TRADE_SIZE:
-            logger.warning(f"❌ Trade too small: {trade_amount:.6f} < {config.MIN_TRADE_SIZE}")
-            return False
-        
-        # ✅ NEW: Final sanity check (this should never fail if strategy validation worked)
-        final_validation = self._validate_trade_final(decision, portfolio)
-        if not final_validation["valid"]:
-            logger.error(f"❌ Final validation failed: {final_validation['reason']}")
-            return False
-        
-        decimals = from_config.decimals
-        amount_str = f"{trade_amount:.{decimals}f}"
-        
-        logger.info("=" * 70)
-        logger.info(f"📤 EXECUTING {decision.action.name}")
-        logger.info(f"   From: {usdc_symbol} (→ {matched_config_symbol}) on {from_config.chain}")
-        logger.info(f"   To: {to_symbol} ({token_address[:10]}...) on {chain}")
-        logger.info(f"   Amount: {amount_str} {matched_config_symbol}")
-        logger.info(f"   Value: ${trade_value:.2f}")
-        logger.info(f"   Signal: {decision.signal_type.value}")
-        logger.info(f"   Conviction: {decision.conviction.value}")
-        logger.info("=" * 70)
+        else:  # SELL
+            # ✅ SELL: We're selling a position we own
+            from_holding = holdings.get(from_symbol, {})
+            
+            if not from_holding:
+                logger.error(f"❌ Position {from_symbol} not found in holdings")
+                return False
+            
+            from_address = from_holding.get("tokenAddress", "")
+            from_chain = from_holding.get("chain", "").lower()
+            from_price = from_holding.get("price", 0)
+            available_amount = from_holding.get("amount", 0)
+            
+            if not from_address or not from_chain:
+                logger.error(f"❌ Missing metadata for {from_symbol}")
+                return False
+            
+            # Calculate sell amount
+            max_safe_value = available_amount * from_price * 0.98
+            trade_value = min(amount_usd, max_safe_value)
+            trade_amount = (trade_value / from_price) if from_price > 0 else available_amount * 0.98
+            
+            if trade_amount > available_amount * 0.98:
+                trade_amount = available_amount * 0.98
+            
+            # Use 18 decimals as default for non-config tokens
+            decimals = 18
+            amount_str = f"{trade_amount:.{decimals}f}"
+            
+            # For SELL, we sell TO a stablecoin
+            # Find best USDC config for destination
+            usdc_symbol, _ = self._find_best_usdc(holdings)
+            
+            if not usdc_symbol:
+                # Default to base USDC
+                to_address = config.TOKENS["USDC"].address
+                to_chain = config.TOKENS["USDC"].chain
+                usdc_name = "USDC"
+            else:
+                usdc_holding = holdings.get(usdc_symbol, {})
+                to_address = usdc_holding.get("tokenAddress", config.TOKENS["USDC"].address)
+                to_chain = usdc_holding.get("chain", config.TOKENS["USDC"].chain).lower()
+                usdc_name = usdc_symbol
+            
+            logger.info("=" * 70)
+            logger.info(f"📤 EXECUTING SELL")
+            logger.info(f"   From: {from_symbol} ({from_address[:10]}...) on {from_chain}")
+            logger.info(f"   To: {usdc_name} ({to_address[:10]}...) on {to_chain}")
+            logger.info(f"   Amount: {trade_amount:.6f} {from_symbol}")
+            logger.info(f"   Estimated Value: ${trade_value:.2f}")
+            logger.info("=" * 70)
         
         try:
             result = await self.client.execute_trade(
                 competition_id=competition_id,
-                from_token=from_config.address,
-                to_token=token_address,
+                from_token=from_address,
+                to_token=to_address,
                 amount=amount_str,
                 reason=decision.reason[:500],
-                from_chain=from_config.chain,
-                to_chain=chain
+                from_chain=from_chain,
+                to_chain=to_chain
             )
             
             if result.get("success"):
@@ -307,14 +353,15 @@ class PortfolioManager:
                 if decision.action == TradingAction.BUY:
                     await self._track_buy(to_symbol_full, trade_value, metadata)
                 elif decision.action == TradingAction.SELL:
-                    current_price = metadata.get("price", 0)
+                    current_price = from_price
                     await self._track_sell(from_symbol, trade_value, current_price)
                 
-                # Feedback to scanner: Trade succeeded
+                # Feedback to scanner
                 if self.market_scanner and token_address:
+                    symbol_for_feedback = to_symbol_full.split('_')[0] if decision.action == TradingAction.BUY else from_symbol.split('_')[0]
                     self.market_scanner.record_trade_result(
-                        token_address,
-                        to_symbol,
+                        token_address if decision.action == TradingAction.BUY else from_address,
+                        symbol_for_feedback,
                         success=True,
                         pnl_pct=None
                     )
@@ -336,14 +383,15 @@ class PortfolioManager:
                 logger.error(f"❌ Trade failed: {error_msg}")
                 
                 # Record failure
-                token_validator.record_trade_failure(token_address, chain)
-                
-                if self.market_scanner and token_address:
-                    self.market_scanner.record_trade_result(
-                        token_address,
-                        to_symbol,
-                        success=False
-                    )
+                if decision.action == TradingAction.BUY:
+                    token_validator.record_trade_failure(token_address, chain)
+                    
+                    if self.market_scanner:
+                        self.market_scanner.record_trade_result(
+                            token_address,
+                            to_symbol_full.split('_')[0],
+                            success=False
+                        )
                 
                 return False
                 
@@ -351,19 +399,20 @@ class PortfolioManager:
             error_msg = str(e)
             logger.error(f"❌ Trade error: {error_msg}")
             
-            # ✅ CRITICAL: Record failure for blacklisting
-            if "Unable to determine price" in error_msg or "400" in error_msg:
-                logger.error(f"🚫 Recording failed address for blacklisting")
-                token_validator.record_trade_failure(token_address, chain)
-                
-                if self.market_scanner:
-                    self.market_scanner.blacklist_token(
-                        token_address,
-                        "unable_to_price"
-                    )
+            # Record failure for BUY trades
+            if decision.action == TradingAction.BUY:
+                if "Unable to determine price" in error_msg or "400" in error_msg:
+                    logger.error(f"🚫 Recording failed address for blacklisting")
+                    token_validator.record_trade_failure(token_address, chain)
+                    
+                    if self.market_scanner:
+                        self.market_scanner.blacklist_token(
+                            token_address,
+                            "unable_to_price"
+                        )
             
             return False
-    
+        
     def _validate_trade_final(self, decision: TradeDecision, portfolio: Dict) -> Dict:
         """
         ✅ RENAMED: Final validation before API call (after strategy has chosen this token)
