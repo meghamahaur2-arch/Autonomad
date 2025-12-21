@@ -1,8 +1,8 @@
 """
-Trading Strategy - FIXED: Aggressive Token-to-Token Swaps
-✅ Prioritizes swaps when USDC is low
-✅ Doesn't require USDC for rebalancing
-✅ More aggressive swap thresholds
+Trading Strategy - BIG TRADES MODE
+✅ Aggressively exits positions to free USDC for $10k trades
+✅ Rebalances constantly to maintain buying power
+✅ Prioritizes token-to-token swaps over holding
 """
 from typing import List, Dict, Optional, Tuple
 from config import config
@@ -18,14 +18,15 @@ logger = get_logger("Strategy")
 
 class TradingStrategy:
     """
-    🔥 ELITE HYBRID STRATEGY - SWAP-FIRST MODE
+    🔥 BIG TRADES MODE - Aggressive capital rotation
     """
     
     def __init__(self, llm_brain=None):
         self.llm_brain = llm_brain
-        logger.info("📊 Hybrid Trading Strategy initialized")
-        logger.info("   ✅ Token-to-Token swap priority enabled")
-        logger.info("   ✅ Low USDC triggers aggressive swaps")
+        logger.info("📊 BIG TRADES Strategy initialized")
+        logger.info(f"   💰 Target Position Size: ${config.BASE_POSITION_SIZE:,}")
+        logger.info("   ⚡ Aggressive exit mode ENABLED")
+        logger.info("   🔄 Continuous rebalancing ENABLED")
     
     async def generate_decision(
         self,
@@ -34,7 +35,7 @@ class TradingStrategy:
         metrics: TradingMetrics,
         market_snapshot: MarketSnapshot
     ) -> TradeDecision:
-        """Generate trade decision (swap-first approach)"""
+        """Generate trade decision with aggressive capital management"""
         positions = portfolio.get("positions", [])
         holdings = portfolio.get("holdings", {})
         
@@ -44,46 +45,64 @@ class TradingStrategy:
         
         logger.info(f"💰 Portfolio: ${total_value:,.2f} | USDC: ${usdc_available:,.2f} | Positions: {len(positions)}")
         
-        # STEP 1: Check exit signals (ALWAYS FIRST)
+        # 🔥 AGGRESSIVE CAPITAL MANAGEMENT
+        target_usdc_reserve = config.BASE_POSITION_SIZE * 1.5  # Want 1.5x position size in reserve
+        
+        # STEP 1: Emergency exits (stop losses, etc.)
         for position in positions:
             exit_decision = self._check_exit_signals(position, portfolio)
             if exit_decision:
+                logger.info("🚨 Emergency exit signal detected")
                 return exit_decision
         
-        # STEP 2: ✅ CRITICAL - Check if USDC is low (< BASE_POSITION_SIZE)
-        usdc_is_low = usdc_available < config.BASE_POSITION_SIZE
-        
-        if usdc_is_low and positions:
-            logger.warning(f"⚠️ Low USDC (${usdc_available:.2f} < ${config.BASE_POSITION_SIZE:.2f})")
-            logger.info("🔄 PRIORITIZING TOKEN SWAPS...")
+        # STEP 2: 🔥 AGGRESSIVE - Exit positions if USDC too low for target size
+        if usdc_available < target_usdc_reserve and positions:
+            logger.warning(f"⚡ LOW USDC: ${usdc_available:,.2f} < ${target_usdc_reserve:,.2f}")
+            logger.info("🔄 INITIATING CAPITAL ROTATION...")
             
-            # Try token swap - MORE AGGRESSIVE
-            swap_decision = await self._check_token_swap_opportunities_aggressive(
-                portfolio,
-                opportunities,
-                metrics,
-                market_snapshot,
-                force_swap=True  # ✅ Force swap when USDC low
+            # Calculate how much we need
+            usdc_needed = target_usdc_reserve - usdc_available
+            logger.info(f"   Need to free: ${usdc_needed:,.2f}")
+            
+            # Find positions to exit (prioritize worst performers + smallest positions)
+            exit_candidates = self._find_exit_candidates_for_rebalance(
+                positions, 
+                usdc_needed,
+                portfolio
             )
             
-            if swap_decision and swap_decision.action != TradingAction.HOLD:
-                return swap_decision
-            
-            # If no swap found but USDC is critically low, exit worst position
-            if usdc_available < config.MIN_TRADE_SIZE * 2:
-                logger.warning(f"💸 USDC critically low (${usdc_available:.2f})")
-                worst_exit = self._force_exit_worst_position(portfolio)
-                if worst_exit:
-                    return worst_exit
+            if exit_candidates:
+                position, reason = exit_candidates[0]
+                logger.warning(f"   🎯 Exiting: {position.symbol} ({reason})")
+                
+                holdings = portfolio.get("holdings", {})
+                position_holding = holdings.get(position.symbol, {})
+                
+                return TradeDecision(
+                    action=TradingAction.SELL,
+                    from_token=position.symbol,
+                    to_token="USDC",
+                    amount_usd=position.value * 0.98,
+                    conviction=Conviction.HIGH,
+                    signal_type=SignalType.REBALANCE,
+                    reason=f"💰 Free capital for $10k trades: {reason} (Need ${usdc_needed:,.0f}, have ${usdc_available:,.0f})",
+                    metadata={
+                        "token_address": position_holding.get("tokenAddress", ""),
+                        "chain": position_holding.get("chain", "eth"),
+                        "price": position.current_price,
+                        "liquidity": 999999,
+                        "volume_24h": 999999,
+                        "score": 10.0
+                    }
+                )
         
-        # STEP 3: Try normal swaps (even with sufficient USDC)
+        # STEP 3: Token-to-token swaps (even if USDC is adequate)
         if positions and opportunities:
-            swap_decision = await self._check_token_swap_opportunities_aggressive(
+            swap_decision = await self._check_aggressive_swaps(
                 portfolio,
                 opportunities,
                 metrics,
-                market_snapshot,
-                force_swap=False
+                market_snapshot
             )
             if swap_decision and swap_decision.action != TradingAction.HOLD:
                 return swap_decision
@@ -92,15 +111,25 @@ class TradingStrategy:
         if len(positions) >= config.MAX_POSITIONS:
             return TradeDecision(
                 action=TradingAction.HOLD,
-                reason=f"📊 Max positions ({config.MAX_POSITIONS}) reached. Need to exit first."
+                reason=f"📊 Max positions ({config.MAX_POSITIONS}) reached. Rebalancing needed."
             )
         
-        # STEP 5: Only try USDC trades if we have enough
-        if usdc_available < config.MIN_TRADE_SIZE:
-            return TradeDecision(
-                action=TradingAction.HOLD,
-                reason=f"💰 Insufficient USDC (${usdc_available:.2f}). Waiting for exits or market opportunities."
-            )
+        # STEP 5: Check if we have enough USDC for BIG trade
+        min_usdc_for_trade = config.BASE_POSITION_SIZE * 0.5  # At least 50% of target
+        
+        if usdc_available < min_usdc_for_trade:
+            logger.warning(f"💸 Cannot execute BIG trade: ${usdc_available:,.2f} < ${min_usdc_for_trade:,.2f}")
+            
+            if positions:
+                return TradeDecision(
+                    action=TradingAction.HOLD,
+                    reason=f"💰 Need ${min_usdc_for_trade:,.0f} USDC for trade (have ${usdc_available:,.0f}). Waiting for exits..."
+                )
+            else:
+                return TradeDecision(
+                    action=TradingAction.HOLD,
+                    reason=f"💰 Insufficient capital (${usdc_available:,.0f}) and no positions to exit"
+                )
         
         # STEP 6: Get LLM rankings
         if self.llm_brain and self.llm_brain.enabled and opportunities:
@@ -113,17 +142,14 @@ class TradingStrategy:
                 (token, llm_score, reason) 
                 for token, llm_score, reason in ranked_opportunities
             ]
-            
-            llm_count = sum(1 for _, _, reason in opportunities_with_scores if "algo" not in reason.lower())
-            logger.info(f"📊 LLM ranked {llm_count} tokens, {len(opportunities_with_scores) - llm_count} using algo scores")
         else:
             opportunities_with_scores = [
                 (token, token.opportunity_score, "Algorithmic")
                 for token in opportunities
             ]
         
-        # STEP 7: Try USDC-to-token trades
-        entry_candidate = await self._check_entry_signals_exhaustive(
+        # STEP 7: Try USDC-to-token trades (BIG SIZE)
+        entry_candidate = await self._check_entry_signals_big_trades(
             portfolio, 
             opportunities_with_scores,
             metrics,
@@ -132,16 +158,68 @@ class TradingStrategy:
         
         return entry_candidate
     
-    async def _check_token_swap_opportunities_aggressive(
+    def _find_exit_candidates_for_rebalance(
+        self,
+        positions: List[Position],
+        usdc_needed: float,
+        portfolio: Dict
+    ) -> List[Tuple[Position, str]]:
+        """
+        🔥 Find positions to exit for rebalancing
+        Prioritizes: Losers > Small gains > Small positions > Sideways
+        """
+        candidates = []
+        
+        for position in positions:
+            # Score this position for exit (higher = more likely to exit)
+            exit_score = 0
+            reason_parts = []
+            
+            # Factor 1: Performance (biggest weight)
+            if position.pnl_pct < -3:
+                exit_score += 100
+                reason_parts.append(f"losing {position.pnl_pct:.1f}%")
+            elif position.pnl_pct < 0:
+                exit_score += 50
+                reason_parts.append(f"slight loss {position.pnl_pct:.1f}%")
+            elif position.pnl_pct < 3:
+                exit_score += 30
+                reason_parts.append(f"small gain {position.pnl_pct:.1f}%")
+            elif position.pnl_pct < 8:
+                exit_score += 10
+                reason_parts.append(f"moderate gain {position.pnl_pct:.1f}%")
+            
+            # Factor 2: Position size (prefer exiting smaller positions)
+            if position.value < config.BASE_POSITION_SIZE * 0.3:
+                exit_score += 40
+                reason_parts.append(f"small position ${position.value:.0f}")
+            elif position.value < config.BASE_POSITION_SIZE * 0.5:
+                exit_score += 20
+                reason_parts.append(f"medium position ${position.value:.0f}")
+            
+            # Factor 3: If this position's value covers what we need
+            if position.value >= usdc_needed:
+                exit_score += 20
+                reason_parts.append("covers USDC need")
+            
+            reason = ", ".join(reason_parts)
+            candidates.append((position, reason, exit_score))
+        
+        # Sort by exit score (highest first)
+        candidates.sort(key=lambda x: x[2], reverse=True)
+        
+        # Return position + reason (drop score)
+        return [(pos, reason) for pos, reason, _ in candidates]
+    
+    async def _check_aggressive_swaps(
         self,
         portfolio: Dict,
         opportunities: List[DiscoveredToken],
         metrics: TradingMetrics,
-        market_snapshot: MarketSnapshot,
-        force_swap: bool = False
+        market_snapshot: MarketSnapshot
     ) -> Optional[TradeDecision]:
         """
-        ✅ AGGRESSIVE: Swap tokens even with mild losses when USDC is low
+        🔥 VERY AGGRESSIVE: Swap even profitable positions if new opportunity is MUCH better
         """
         positions = portfolio.get("positions", [])
         
@@ -168,13 +246,10 @@ class TradingStrategy:
         best_opportunity = None
         best_score = 0
         
-        logger.info(f"🔍 Evaluating {len(opportunities_with_scores)} opportunities for swaps...")
-        
-        for token, score, reason in opportunities_with_scores[:15]:  # Check more tokens
+        for token, score, reason in opportunities_with_scores[:10]:
             # Skip if already holding
             symbol_key = f"{token.symbol}_{token.chain}"
             if any(pos.symbol == symbol_key or pos.symbol == token.symbol for pos in positions):
-                logger.debug(f"   ⏭️ {token.symbol}: Already holding")
                 continue
             
             # Validate token
@@ -187,40 +262,62 @@ class TradingStrategy:
             )
             
             if not is_valid or token_validator.is_blacklisted(token.address):
-                logger.debug(f"   ❌ {token.symbol}: Invalid ({validation_reason})")
                 continue
             
-            # ✅ LOWERED THRESHOLD: Accept score >= 6 (was 8)
-            min_score = 5.0 if force_swap else 7.0
-            
-            if score > best_score and score >= min_score:
+            # 🔥 AGGRESSIVE: Accept score >= 8 for swaps
+            if score > best_score and score >= 8.0:
                 best_opportunity = (token, score, reason)
                 best_score = score
-                logger.info(f"   ✅ {token.symbol}: Score {score:.1f} - New best candidate")
         
         if not best_opportunity:
-            logger.warning("🔍 No valid swap opportunities found")
             return None
         
-        # Find position to swap out - ✅ MORE AGGRESSIVE CRITERIA
-        swap_candidate = self._find_swap_candidate_aggressive(
-            positions, 
-            best_opportunity,
-            force_swap
-        )
+        # Find position to swap - 🔥 VERY AGGRESSIVE
+        token, new_score, opp_reason = best_opportunity
         
-        if not swap_candidate:
-            logger.debug("💎 All positions look good, no swap needed")
+        swap_candidates = []
+        
+        for position in positions:
+            # Aggressive swap criteria
+            swap_score = 0
+            swap_reason_parts = []
+            
+            # ANY loss = candidate
+            if position.pnl_pct < 0:
+                swap_score += 100
+                swap_reason_parts.append(f"losing {position.pnl_pct:.1f}%")
+            
+            # Small gain + new opportunity is MUCH better
+            elif position.pnl_pct < 5 and new_score >= 15:
+                swap_score += 80
+                swap_reason_parts.append(f"small gain {position.pnl_pct:.1f}% vs score {new_score:.1f}")
+            
+            # Moderate gain but new opportunity is exceptional
+            elif position.pnl_pct < 10 and new_score >= 20:
+                swap_score += 60
+                swap_reason_parts.append(f"moderate gain {position.pnl_pct:.1f}% vs exceptional score {new_score:.1f}")
+            
+            # Sideways/stale
+            elif 0 <= position.pnl_pct < 2 and new_score >= 12:
+                swap_score += 50
+                swap_reason_parts.append(f"sideways {position.pnl_pct:.1f}%")
+            
+            if swap_score > 0:
+                reason = ", ".join(swap_reason_parts)
+                swap_candidates.append((position, reason, swap_score))
+        
+        if not swap_candidates:
             return None
         
-        position, reason = swap_candidate
-        token, score, opp_reason = best_opportunity
+        # Get best swap candidate
+        swap_candidates.sort(key=lambda x: x[2], reverse=True)
+        position, reason, _ = swap_candidates[0]
         
-        logger.info(f"🔄 SWAP OPPORTUNITY IDENTIFIED!")
-        logger.info(f"   OUT: {position.symbol} (PnL: {position.pnl_pct:+.1f}%, Reason: {reason})")
-        logger.info(f"   IN:  {token.symbol} (Score: {score:.1f}, {opp_reason})")
+        logger.info(f"🔄 SWAP IDENTIFIED!")
+        logger.info(f"   OUT: {position.symbol} ({reason})")
+        logger.info(f"   IN:  {token.symbol} (Score: {new_score:.1f})")
         
-        # Create sell decision (first leg of swap)
+        # Create sell decision
         holdings = portfolio.get("holdings", {})
         position_holding = holdings.get(position.symbol, {})
         
@@ -228,10 +325,10 @@ class TradingStrategy:
             action=TradingAction.SELL,
             from_token=position.symbol,
             to_token="USDC",
-            amount_usd=position.value * 0.98,  # 98% to account for slippage
-            conviction=Conviction.HIGH if force_swap else Conviction.MEDIUM,
+            amount_usd=position.value * 0.98,
+            conviction=Conviction.HIGH,
             signal_type=SignalType.REBALANCE,
-            reason=f"🔄 Swap: {position.symbol}→{token.symbol} ({reason})",
+            reason=f"🔄 Swap to better opportunity: {position.symbol}→{token.symbol} ({reason})",
             metadata={
                 "token_address": position_holding.get("tokenAddress", ""),
                 "chain": position_holding.get("chain", "eth"),
@@ -240,91 +337,11 @@ class TradingStrategy:
                 "volume_24h": 999999,
                 "score": 10.0,
                 "swap_target": token.symbol,
-                "swap_target_address": token.address,
-                "swap_target_chain": token.chain,
-                "swap_target_score": score
+                "swap_target_score": new_score
             }
         )
     
-    def _find_swap_candidate_aggressive(
-        self,
-        positions: List[Position],
-        best_opportunity: Tuple,
-        force_swap: bool
-    ) -> Optional[Tuple[Position, str]]:
-        """
-        ✅ AGGRESSIVE: Find position to swap with looser criteria
-        """
-        token, new_score, _ = best_opportunity
-        
-        candidates = []
-        
-        for position in positions:
-            # Criteria 1: Losing positions (any loss if forced)
-            if force_swap and position.pnl_pct < 0:
-                candidates.append((position, f"loss_{position.pnl_pct:.1f}%", position.pnl_pct))
-                continue
-            
-            # Criteria 2: Losing > 3% (normal mode)
-            if position.pnl_pct < -3:
-                candidates.append((position, f"loss_{position.pnl_pct:.1f}%", position.pnl_pct))
-                continue
-            
-            # Criteria 3: Small gains (< 5%) when new opportunity is much better
-            if position.pnl_pct < 5 and new_score >= 12:
-                candidates.append((position, f"small_gain_{position.pnl_pct:.1f}%_vs_score_{new_score:.1f}", position.pnl_pct))
-                continue
-            
-            # Criteria 4: Sideways (0-2%) for a while (assume stale)
-            if 0 <= position.pnl_pct < 2 and new_score >= 10:
-                candidates.append((position, f"sideways_{position.pnl_pct:.1f}%", position.pnl_pct))
-                continue
-        
-        if not candidates:
-            return None
-        
-        # Sort by PnL (worst first)
-        candidates.sort(key=lambda x: x[2])
-        
-        worst_position, reason, _ = candidates[0]
-        return (worst_position, reason)
-    
-    def _force_exit_worst_position(self, portfolio: Dict) -> Optional[TradeDecision]:
-        """
-        ✅ NEW: Force exit worst position when USDC is critically low
-        """
-        positions = portfolio.get("positions", [])
-        
-        if not positions:
-            return None
-        
-        # Find worst performer
-        worst = min(positions, key=lambda p: p.pnl_pct)
-        
-        logger.warning(f"💸 FORCED EXIT: {worst.symbol} (PnL: {worst.pnl_pct:+.1f}%)")
-        
-        holdings = portfolio.get("holdings", {})
-        position_holding = holdings.get(worst.symbol, {})
-        
-        return TradeDecision(
-            action=TradingAction.SELL,
-            from_token=worst.symbol,
-            to_token="USDC",
-            amount_usd=worst.value * 0.98,
-            conviction=Conviction.HIGH,
-            signal_type=SignalType.REBALANCE,
-            reason=f"💸 Emergency exit: Need USDC (PnL: {worst.pnl_pct:+.1f}%)",
-            metadata={
-                "token_address": position_holding.get("tokenAddress", ""),
-                "chain": position_holding.get("chain", "eth"),
-                "price": worst.current_price,
-                "liquidity": 999999,
-                "volume_24h": 999999,
-                "score": 10.0
-            }
-        )
-    
-    async def _check_entry_signals_exhaustive(
+    async def _check_entry_signals_big_trades(
         self,
         portfolio: Dict,
         opportunities_with_scores: List[Tuple],
@@ -332,35 +349,28 @@ class TradingStrategy:
         market_snapshot: MarketSnapshot
     ) -> TradeDecision:
         """
-        Validate ALL tokens until one succeeds (USDC-based trades)
-        ✅ Uses flexible position sizing
+        Entry signals with BIG TRADE sizing
         """
-        
         total_value = portfolio.get("total_value", 0)
         holdings = portfolio.get("holdings", {})
         positions = portfolio.get("positions", [])
         
-        # Calculate deployed capital
+        # Calculate USDC
+        usdc_value = self._get_total_usdc(holdings)
+        
+        logger.info(f"💵 Available for trade: ${usdc_value:,.2f}")
+        
+        # Check deployment
         deployed = sum(
             h["value"] for sym, h in holdings.items()
-            if sym != "USDC" and not self._is_stablecoin(sym)
+            if not self._is_stablecoin(sym)
         )
         deployed_pct = deployed / total_value if total_value > 0 else 0
         
-        # Check max deployment
         if deployed_pct >= config.MAX_PORTFOLIO_RISK:
             return TradeDecision(
                 action=TradingAction.HOLD,
                 reason=f"⚠️ Max risk deployed ({deployed_pct*100:.0f}%)"
-            )
-        
-        # Check USDC availability
-        usdc_value = self._get_total_usdc(holdings)
-        
-        if usdc_value < config.MIN_TRADE_SIZE:
-            return TradeDecision(
-                action=TradingAction.HOLD,
-                reason=f"💰 Insufficient USDC (${usdc_value:.0f})"
             )
         
         # No opportunities
@@ -375,23 +385,21 @@ class TradingStrategy:
         
         validated_count = 0
         failed_tokens = []
-        max_to_validate = min(len(opportunities_with_scores), 20)
         
-        logger.info(f"🔍 Starting exhaustive validation (up to {max_to_validate} tokens)...")
-        logger.info(f"   Available USDC: ${usdc_value:,.2f}")
+        logger.info(f"🔍 Validating opportunities for BIG trades...")
         
-        for token, score, llm_reason in opportunities_with_scores[:max_to_validate]:
+        for token, score, llm_reason in opportunities_with_scores[:20]:
             # Skip if already holding
             symbol_key = f"{token.symbol}_{token.chain}"
             if symbol_key in existing_symbols or token.symbol in existing_symbols:
                 continue
             
             # Score threshold
-            if score < 3.0:
+            if score < 5.0:  # Higher bar for big trades
                 continue
             
             validated_count += 1
-            logger.info(f"🔍 Validating token #{validated_count}: {token.symbol} (Score: {score:.1f})")
+            logger.info(f"🔍 #{validated_count}: {token.symbol} (Score: {score:.1f})")
             
             # Validate address
             is_valid, reason = token_validator.validate_token(
@@ -403,7 +411,7 @@ class TradingStrategy:
             )
             
             if not is_valid:
-                logger.warning(f"   ❌ Address validation failed: {reason}")
+                logger.warning(f"   ❌ Invalid: {reason}")
                 failed_tokens.append(f"{token.symbol} ({reason})")
                 token_validator.record_trade_failure(token.address, token.chain)
                 continue
@@ -413,7 +421,7 @@ class TradingStrategy:
                 failed_tokens.append(f"{token.symbol} (blacklisted)")
                 continue
             
-            # Pre-validate trading requirements
+            # Pre-validate
             trade_validation = self._pre_validate_token_requirements(
                 token, 
                 portfolio, 
@@ -421,27 +429,30 @@ class TradingStrategy:
             )
             
             if not trade_validation["valid"]:
-                logger.warning(f"   ❌ Trading validation failed: {trade_validation['reason']}")
+                logger.warning(f"   ❌ {trade_validation['reason']}")
                 failed_tokens.append(f"{token.symbol} ({trade_validation['reason']})")
                 continue
             
-            logger.info(f"   ✅ All validations passed!")
+            logger.info(f"   ✅ Validated!")
             
             # Classify opportunity
             signal_type, conviction = self._classify_opportunity(token)
             
-            # ✅ Calculate position size (flexible based on available USDC)
-            position_size = self._calculate_position_size_flexible(
+            # 🔥 BIG TRADE SIZING
+            position_size = self._calculate_big_trade_size(
                 usdc_value,
                 total_value,
                 conviction,
-                metrics
+                metrics,
+                score
             )
             
             if position_size < config.MIN_TRADE_SIZE:
                 logger.warning(f"   ⚠️ Position too small: ${position_size:.2f}")
-                failed_tokens.append(f"{token.symbol} (position_too_small)")
+                failed_tokens.append(f"{token.symbol} (insufficient_capital)")
                 continue
+            
+            logger.info(f"   💰 Trade size: ${position_size:,.2f}")
             
             # Create decision
             decision = TradeDecision(
@@ -451,7 +462,7 @@ class TradingStrategy:
                 amount_usd=position_size,
                 conviction=conviction,
                 signal_type=signal_type,
-                reason=f"🎯 {signal_type.value}: {token.symbol} | Score: {score:.1f} | {llm_reason}",
+                reason=f"🎯 BIG TRADE: {signal_type.value} | Score: {score:.1f} | {llm_reason}",
                 metadata={
                     "token_address": token.address,
                     "chain": token.chain,
@@ -466,7 +477,7 @@ class TradingStrategy:
             
             # LLM confirmation
             if self.llm_brain and self.llm_brain.enabled:
-                logger.info("   🧠 Getting LLM trade confirmation...")
+                logger.info("   🧠 LLM confirmation...")
                 
                 portfolio_stats = {
                     "positions": len(positions),
@@ -492,13 +503,10 @@ class TradingStrategy:
                 decision.reason = f"{decision.reason} | LLM: {reasoning}"
             
             # Success!
-            if failed_tokens:
-                logger.info(f"✅ Found valid token after trying {validated_count} (Skipped: {len(failed_tokens)})")
-            
             return decision
         
         # Exhausted all tokens
-        logger.warning(f"❌ Validated {validated_count} tokens, all failed")
+        logger.warning(f"❌ No valid trades after checking {validated_count} tokens")
         
         if failed_tokens:
             failures_summary = ", ".join(failed_tokens[:5])
@@ -507,47 +515,64 @@ class TradingStrategy:
             
             return TradeDecision(
                 action=TradingAction.HOLD,
-                reason=f"🔍 No valid trades (tried {validated_count}): {failures_summary}"
+                reason=f"🔍 No valid trades: {failures_summary}"
             )
         
         return TradeDecision(
             action=TradingAction.HOLD,
-            reason=f"🔍 No suitable opportunities (checked {validated_count} tokens)"
+            reason=f"🔍 No suitable opportunities (checked {validated_count})"
         )
     
-    def _calculate_position_size_flexible(
+    def _calculate_big_trade_size(
         self,
         usdc_available: float,
         total_value: float,
         conviction: Conviction,
-        metrics: TradingMetrics
+        metrics: TradingMetrics,
+        opportunity_score: float
     ) -> float:
         """
-        ✅ FLEXIBLE: Use available USDC, not fixed BASE_POSITION_SIZE
+        🔥 BIG TRADE SIZING
+        Uses as much USDC as possible (up to BASE_POSITION_SIZE)
         """
-        # Use 70% of available USDC (conservative)
-        max_usable = usdc_available * 0.70
+        # Base size = configured target
+        base_size = config.BASE_POSITION_SIZE
         
-        # Apply conviction multiplier
+        # But can't exceed available USDC (leave 5% buffer)
+        max_available = usdc_available * 0.95
+        
+        # Start with smaller of the two
+        size = min(base_size, max_available)
+        
+        # Conviction multiplier (scale up/down)
         conviction_mult = {
-            Conviction.HIGH: 1.0,    # 70% of available
-            Conviction.MEDIUM: 0.75, # 52.5% of available
-            Conviction.LOW: 0.5      # 35% of available
+            Conviction.HIGH: 1.0,      # Full size
+            Conviction.MEDIUM: 0.75,   # 75%
+            Conviction.LOW: 0.5        # 50%
         }
+        size *= conviction_mult.get(conviction, 0.75)
         
-        size = max_usable * conviction_mult.get(conviction, 0.75)
+        # Opportunity score boost (if exceptional)
+        if opportunity_score >= 20:
+            size *= 1.2  # 20% boost for amazing opportunities
+        elif opportunity_score >= 15:
+            size *= 1.1  # 10% boost
         
-        # Reduce after losses
+        # Reduce after consecutive losses
         if metrics.consecutive_losses >= 3:
-            size *= 0.5
+            size *= 0.6  # 40% reduction
+            logger.warning(f"   ⚠️ Reducing size due to {metrics.consecutive_losses} losses")
         
-        # Cap at max position percentage of total portfolio
+        # Cap at portfolio limit
         if total_value > 0:
             max_position = total_value * config.MAX_POSITION_PCT
             size = min(size, max_position)
         
-        # Ensure minimum
-        return max(size, config.MIN_TRADE_SIZE)
+        # Final bounds check
+        size = min(size, max_available)
+        size = max(size, config.MIN_TRADE_SIZE)
+        
+        return size
     
     def _check_exit_signals(self, position: Position, portfolio: Dict) -> Optional[TradeDecision]:
         """Check exit signals"""
@@ -572,7 +597,7 @@ class TradingStrategy:
                 amount_usd=position.value * 0.98,
                 conviction=Conviction.HIGH,
                 signal_type=SignalType.STOP_LOSS,
-                reason=f"🛑 Stop-loss: {position.pnl_pct:.1f}% loss on ${position.value:.2f}",
+                reason=f"🛑 Stop-loss: {position.pnl_pct:.1f}% loss",
                 metadata=metadata
             )
         
@@ -585,11 +610,11 @@ class TradingStrategy:
                 amount_usd=position.value * 0.98,
                 conviction=Conviction.HIGH,
                 signal_type=SignalType.STOP_LOSS,
-                reason=f"📉 Trailing stop triggered",
+                reason=f"📉 Trailing stop",
                 metadata=metadata
             )
         
-        # Take Profit
+        # Take Profit (partial)
         if position.should_take_profit(config.TAKE_PROFIT_PCT):
             return TradeDecision(
                 action=TradingAction.SELL,
@@ -598,7 +623,7 @@ class TradingStrategy:
                 amount_usd=position.value * 0.5,
                 conviction=Conviction.MEDIUM,
                 signal_type=SignalType.TAKE_PROFIT,
-                reason=f"🎯 Take-profit: {position.pnl_pct:.1f}% gain (partial 50%)",
+                reason=f"🎯 Take-profit: {position.pnl_pct:.1f}% (partial 50%)",
                 metadata=metadata
             )
         
@@ -610,66 +635,24 @@ class TradingStrategy:
         portfolio: Dict,
         positions: List[Position]
     ) -> Dict:
-        """Pre-validate token trading requirements"""
+        """Pre-validate token"""
         
         if token.liquidity_usd < config.MIN_LIQUIDITY_USD:
-            return {
-                "valid": False,
-                "reason": f"low_liquidity (${token.liquidity_usd:,.0f} < ${config.MIN_LIQUIDITY_USD:,.0f})"
-            }
+            return {"valid": False, "reason": f"low_liquidity"}
         
         if token.volume_24h < config.MIN_VOLUME_24H_USD:
-            return {
-                "valid": False,
-                "reason": f"low_volume (${token.volume_24h:,.0f} < ${config.MIN_VOLUME_24H_USD:,.0f})"
-            }
+            return {"valid": False, "reason": f"low_volume"}
         
-        if token.opportunity_score < 3.0:
-            return {
-                "valid": False,
-                "reason": f"low_score ({token.opportunity_score:.1f} < 3.0)"
-            }
+        if token.opportunity_score < 5.0:  # Higher bar for big trades
+            return {"valid": False, "reason": f"low_score"}
         
         if len(positions) >= config.MAX_POSITIONS:
-            return {
-                "valid": False,
-                "reason": f"max_positions ({len(positions)}/{config.MAX_POSITIONS})"
-            }
+            return {"valid": False, "reason": f"max_positions"}
         
-        holdings = portfolio.get("holdings", {})
-        total_usdc = sum(
-            h["value"] for s, h in holdings.items()
-            if self._is_stablecoin(s)
-        )
-        
-        if total_usdc < config.MIN_TRADE_SIZE:
-            return {
-                "valid": False,
-                "reason": f"insufficient_usdc (${total_usdc:.2f})"
-            }
-        
-        total_value = portfolio.get("total_value", 0)
-        if total_value > 0:
-            deployed = sum(
-                h["value"] for s, h in holdings.items()
-                if not self._is_stablecoin(s)
-            )
-            
-            # Use 70% of available USDC for estimation
-            estimated_position_size = min(total_usdc * 0.70, config.BASE_POSITION_SIZE)
-            new_deployed = deployed + estimated_position_size
-            new_deployed_pct = new_deployed / total_value
-            
-            if new_deployed_pct > config.MAX_PORTFOLIO_RISK:
-                return {
-                    "valid": False,
-                    "reason": f"max_risk ({new_deployed_pct*100:.0f}% > {config.MAX_PORTFOLIO_RISK*100:.0f}%)"
-                }
-        
-        return {"valid": True, "reason": "All checks passed"}
+        return {"valid": True, "reason": "OK"}
     
     def _classify_opportunity(self, token: DiscoveredToken) -> tuple:
-        """Classify opportunity type"""
+        """Classify opportunity"""
         change = token.change_24h_pct
         score = token.opportunity_score
         
@@ -686,29 +669,8 @@ class TradingStrategy:
                 return SignalType.MOMENTUM, Conviction.MEDIUM
             elif -15 < change < -5:
                 return SignalType.MEAN_REVERSION, Conviction.MEDIUM
-            elif token.volume_24h > 2_000_000:
-                return SignalType.VOLUME_SPIKE, Conviction.MEDIUM
-        
-        if change > 2:
-            return SignalType.MOMENTUM, Conviction.LOW
-        elif -10 < change < -2:
-            return SignalType.MEAN_REVERSION, Conviction.LOW
         
         return SignalType.MOMENTUM, Conviction.LOW
-    
-    def _get_deployed_pct(self, portfolio: Dict) -> float:
-        """Calculate deployed percentage"""
-        total_value = portfolio.get("total_value", 0)
-        if total_value <= 0:
-            return 0.0
-        
-        holdings = portfolio.get("holdings", {})
-        deployed = sum(
-            h["value"] for sym, h in holdings.items()
-            if not self._is_stablecoin(sym)
-        )
-        
-        return deployed / total_value
     
     def _is_stablecoin(self, symbol: str) -> bool:
         """Check if stablecoin"""
