@@ -398,7 +398,7 @@ class MultiAPIMarketScanner:
             logger.debug(f"   {status} {api_name}: {state}, failures: {failures}")
     
     async def _scan_dexscreener_boosted(self) -> List[DiscoveredToken]:
-        """Get boosted tokens from DexScreener"""
+        """Get boosted tokens from DexScreener - FIXED"""
         try:
             session = await self._get_session()
             url = f"{self.DEXSCREENER_BASE}/token-boosts/latest/v1"
@@ -411,38 +411,54 @@ class MultiAPIMarketScanner:
                     
                     data = await resp.json()
                     
-                    if not data:
+                    # ✅ FIX: The API returns a list directly, not a dict
+                    if not data or not isinstance(data, list):
+                        logger.debug(f"   DexScreener boosted: unexpected format")
                         return []
                     
-                    chain_id = data.get("chainId")
-                    token_address = data.get("tokenAddress")
+                    tokens = []
                     
-                    if not chain_id or not token_address:
-                        return []
+                    # Process each boosted token in the list
+                    for boost_item in data[:10]:  # Limit to 10 items
+                        if not isinstance(boost_item, dict):
+                            continue
+                        
+                        chain_id = boost_item.get("chainId")
+                        token_address = boost_item.get("tokenAddress")
+                        
+                        if not chain_id or not token_address:
+                            continue
+                        
+                        # Now fetch pairs for this token
+                        pairs_url = f"{self.DEXSCREENER_BASE}/latest/dex/tokens/{token_address}"
+                        
+                        try:
+                            async with session.get(pairs_url) as pairs_resp:
+                                if pairs_resp.status != 200:
+                                    continue
+                                
+                                pairs_data = await pairs_resp.json()
+                                pairs = pairs_data.get("pairs", [])
+                                
+                                for pair in pairs[:5]:  # Limit to 5 pairs per token
+                                    token = self._parse_dexscreener_pair(pair)
+                                    if token:
+                                        token.opportunity_score += 3.0  # Boost score
+                                        tokens.append(token)
+                            
+                            await asyncio.sleep(0.2)  # Rate limit between token lookups
+                            
+                        except Exception as e:
+                            logger.debug(f"   Failed to fetch pairs for {token_address}: {e}")
+                            continue
                     
-                    pairs_url = f"{self.DEXSCREENER_BASE}/latest/dex/tokens/{token_address}"
-                    
-                    async with session.get(pairs_url) as pairs_resp:
-                        if pairs_resp.status != 200:
-                            return []
-                        
-                        pairs_data = await pairs_resp.json()
-                        pairs = pairs_data.get("pairs", [])
-                        
-                        tokens = []
-                        for pair in pairs[:10]:
-                            token = self._parse_dexscreener_pair(pair)
-                            if token:
-                                token.opportunity_score += 3.0
-                                tokens.append(token)
-                        
-                        logger.info(f"   DexScreener Boosted: {len(tokens)} tokens")
-                        return tokens
+                    logger.info(f"   DexScreener Boosted: {len(tokens)} tokens")
+                    return tokens
         
         except Exception as e:
             logger.debug(f"   DexScreener boosted failed: {e}")
-            raise  # ✅ Re-raise for circuit breaker
-    
+            raise  # Re-raise for circuit breaker
+        
     async def _scan_dexscreener_search_top(self) -> List[DiscoveredToken]:
         """Search DexScreener for top volume tokens"""
         try:
