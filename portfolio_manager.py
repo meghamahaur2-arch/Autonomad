@@ -208,7 +208,57 @@ class PortfolioManager:
         except Exception as e:
             logger.error(f"❌ Failed to get portfolio: {e}", exc_info=True)
             return self._get_cached_portfolio_state()
+        
     
+    def _find_usdc_on_chain(self, holdings: Dict, target_chain: str) -> Optional[Tuple[str, float]]:
+        """
+        🆕 NEW: Find USDC on specific chain
+        Returns (symbol, value) or None
+        """
+        target_chain_lower = target_chain.lower()
+        
+        # Normalize chain names
+        chain_map = {
+            "eth": "ethereum",
+            "ethereum": "ethereum",
+            "polygon": "polygon",
+            "arbitrum": "arbitrum",
+            "base": "base",
+            "optimism": "optimism",
+            "bsc": "bsc",
+            "solana": "solana",
+            "svm": "solana"
+        }
+        target_chain_normalized = chain_map.get(target_chain_lower, target_chain_lower)
+        
+        usdc_candidates = []
+        
+        for symbol, holding in holdings.items():
+            if not holding.get("is_stablecoin", False):
+                continue
+            
+            value = holding.get("value", 0)
+            if value < 10:  # Min $10
+                continue
+            
+            chain = holding.get("chain", "").lower()
+            chain_normalized = chain_map.get(chain, chain)
+            
+            # ✅ Match normalized chain names
+            if chain_normalized == target_chain_normalized:
+                usdc_candidates.append((symbol, value))
+        
+        if not usdc_candidates:
+            return None
+        
+        # Return highest balance
+        usdc_candidates.sort(key=lambda x: x[1], reverse=True)
+        
+        logger.info(f"✅ Found USDC on {target_chain}: {usdc_candidates[0][0]} (${usdc_candidates[0][1]:.2f})")
+        
+        return usdc_candidates[0]
+
+        
     def _calculate_portfolio_health(self, holdings: Dict, positions: List[Position]) -> Dict:
         """🆕 NEW: Calculate portfolio health metrics"""
         total_positions = len(positions)
@@ -558,6 +608,7 @@ class PortfolioManager:
             
             return False
     
+        
     async def _prepare_buy_trade(
         self,
         decision: TradeDecision,
@@ -566,14 +617,22 @@ class PortfolioManager:
         chain: str,
         amount_usd: float
     ) -> Optional[Dict]:
-        """🆕 Prepare BUY trade parameters"""
+        """✅ FIXED: Prepare BUY trade with same-chain USDC preference"""
         
-        # Find USDC
-        usdc_result = self._find_best_usdc(holdings)
+        # ✅ FIX: Find USDC on SAME CHAIN as target token FIRST
+        usdc_result = self._find_usdc_on_chain(holdings, chain)
         
+        # Fallback to any USDC only if no same-chain USDC
         if not usdc_result:
-            logger.error("❌ No USDC available for BUY")
-            return None
+            logger.warning(f"⚠️ No USDC on {chain}, trying any available USDC...")
+            usdc_result = self._find_best_usdc(holdings)
+            
+            if not usdc_result:
+                logger.error("❌ No USDC available for BUY")
+                return None
+            
+            # Warn about cross-chain
+            logger.warning(f"⚠️ Will attempt CROSS-CHAIN trade (may fail at API)")
         
         usdc_symbol, usdc_available = usdc_result
         from_holding = holdings.get(usdc_symbol, {})
@@ -619,6 +678,12 @@ class PortfolioManager:
         logger.info(f"   To: {decision.to_token.split('_')[0]} on {chain}")
         logger.info(f"   Amount: {amount_str} {matched_config_symbol}")
         logger.info(f"   Value: ${trade_value:.2f}")
+        
+        # ✅ Warn if cross-chain
+        if from_chain != chain.lower():
+            logger.warning(f"   ⚠️ CROSS-CHAIN TRADE: {from_chain} → {chain}")
+            logger.warning(f"   ⚠️ This may fail if API doesn't support this route")
+        
         logger.info("=" * 70)
         
         return {
