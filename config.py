@@ -33,7 +33,9 @@ class Config:
     COMPETITION_ID: str = os.getenv("COMPETITION_ID", "")
     SANDBOX_URL: str = "https://api.sandbox.competitions.recall.network"
     PRODUCTION_URL: str = "https://api.competitions.recall.network"
-    
+    BIRDEYE_API_KEY = os.getenv("BIRDEYE_API_KEY", "e4301d976b0b4e9cb649c9463c931d04")
+    DEFINED_API_KEY = os.getenv("DEFINED_API_KEY", "your_key_here")
+
     # =========================================================================
     # Retry and Resilience
     # =========================================================================
