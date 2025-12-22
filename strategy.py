@@ -7,7 +7,7 @@ Trading Strategy - PREDICTIVE BIG TRADES MODE
 ✅ Time-based trading filters
 ✅ Multi-signal confirmation for entries
 """
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Set
 from datetime import datetime, timezone, timedelta
 from config import config
 from models import (
@@ -242,6 +242,42 @@ class TradingStrategy:
     # 🆕 NEW: PREDICTIVE SCORING METHODS
     # ═══════════════════════════════════════════════════════════════
     
+    def _get_chains_with_usdc(self, holdings: Dict) -> Set[str]:
+        """
+        🆕 NEW: Get list of chains where we have USDC
+        Returns set of normalized chain names
+        """
+        chains_with_usdc = set()
+        
+        # Chain name normalization map
+        chain_map = {
+            "eth": "ethereum",
+            "ethereum": "ethereum",
+            "polygon": "polygon",
+            "arbitrum": "arbitrum",
+            "base": "base",
+            "optimism": "optimism",
+            "bsc": "bsc",
+            "solana": "solana",
+            "svm": "solana"
+        }
+        
+        for symbol, holding in holdings.items():
+            if not holding.get("is_stablecoin", False):
+                continue
+            
+            value = holding.get("value", 0)
+            if value < 10:  # Need at least $10 to trade
+                continue
+            
+            chain = holding.get("chain", "").lower()
+            chain_normalized = chain_map.get(chain, chain)
+            chains_with_usdc.add(chain_normalized)
+        
+        return chains_with_usdc
+
+
+
     def _calculate_predictive_score(self, token: DiscoveredToken) -> float:
         """
         🆕 Calculate score based on PREDICTIVE signals
@@ -336,6 +372,7 @@ class TradingStrategy:
     # 🆕 NEW: SMART ENTRY LOGIC
     # ═══════════════════════════════════════════════════════════════
     
+    
     async def _check_entry_signals_predictive(
         self,
         portfolio: Dict,
@@ -343,17 +380,27 @@ class TradingStrategy:
         metrics: TradingMetrics,
         market_snapshot: MarketSnapshot
     ) -> TradeDecision:
-        """
-        🆕 Entry signals with PREDICTIVE confirmation
-        """
+        """Entry signals with PREDICTIVE confirmation + CHAIN FILTERING"""
+        
         total_value = portfolio.get("total_value", 0)
         holdings = portfolio.get("holdings", {})
         positions = portfolio.get("positions", [])
         
         usdc_value = self._get_total_usdc(holdings)
         
-        logger.info(f"💵 Available for trade: ${usdc_value:,.2f}")
+        # ✅ NEW: Get chains where we have USDC
+        available_chains = self._get_chains_with_usdc(holdings)
+        
+        logger.info(f"💰 Portfolio: ${total_value:,.2f} | USDC: ${usdc_value:,.2f} | Positions: {len(positions)}")
+        logger.info(f"🔗 Chains with USDC: {', '.join(sorted(available_chains)) if available_chains else 'NONE'}")
         logger.info(f"🎯 Dynamic score threshold: {self._dynamic_score_threshold:.1f}")
+        
+        # ✅ Check if we have ANY USDC on ANY chain
+        if not available_chains:
+            return TradeDecision(
+                action=TradingAction.HOLD,
+                reason="❌ No USDC available on any chain"
+            )
         
         # Check deployment
         deployed = sum(
@@ -377,16 +424,30 @@ class TradingStrategy:
         existing_symbols = {pos.symbol for pos in positions}
         validated_count = 0
         failed_tokens = []
+        skipped_chains = 0
         
         logger.info(f"🔮 Evaluating PREDICTIVE opportunities...")
         
         for token, score, reason in opportunities_with_scores[:20]:
+            # ✅ NEW: Skip if we don't have USDC on this chain
+            token_chain_normalized = token.chain.lower()
+            if token_chain_normalized == "eth":
+                token_chain_normalized = "ethereum"
+            elif token_chain_normalized == "svm":
+                token_chain_normalized = "solana"
+            
+            if token_chain_normalized not in available_chains:
+                skipped_chains += 1
+                if skipped_chains <= 3:  # Only log first 3
+                    logger.debug(f"   ⏭️ {token.symbol} on {token.chain}: No USDC on this chain")
+                continue
+            
             # Skip if already holding
             symbol_key = f"{token.symbol}_{token.chain}"
             if symbol_key in existing_symbols or token.symbol in existing_symbols:
                 continue
             
-            # 🆕 Check cooldown (prevent rapid re-entry after exit)
+            # Check cooldown (prevent rapid re-entry after exit)
             if self._is_on_cooldown(token.address):
                 logger.debug(f"   ⏳ {token.symbol}: On cooldown")
                 continue
@@ -396,9 +457,9 @@ class TradingStrategy:
                 continue
             
             validated_count += 1
-            logger.info(f"🔍 #{validated_count}: {token.symbol} (Score: {score:.1f})")
+            logger.info(f"🔍 #{validated_count}: {token.symbol} on {token.chain} (Score: {score:.1f})")
             
-            # 🆕 Check predictive signals
+            # Check predictive signals
             signal_count = 0
             signal_types = []
             if hasattr(token, 'predictive_signals') and token.predictive_signals:
@@ -406,8 +467,7 @@ class TradingStrategy:
                 signal_types = [s.signal_type for s in token.predictive_signals]
                 logger.info(f"   🔮 Predictive signals: {signal_types}")
             
-            # 🆕 CONFIRMATION REQUIREMENT
-            # Higher conviction needed if no predictive signals
+            # CONFIRMATION REQUIREMENT
             required_conviction = self._determine_required_conviction(token, score, signal_count)
             
             # Validate address
@@ -428,14 +488,14 @@ class TradingStrategy:
                 logger.warning(f"   🚫 Blacklisted")
                 continue
             
-            # 🆕 MOMENTUM CONFIRMATION
+            # MOMENTUM CONFIRMATION
             momentum_confirmed = self._confirm_momentum(token, market_snapshot)
             if not momentum_confirmed:
                 logger.warning(f"   ⚠️ Momentum not confirmed - waiting")
                 failed_tokens.append(f"{token.symbol} (no_momentum)")
                 continue
             
-            # 🆕 VOLUME-PRICE DIVERGENCE CHECK
+            # VOLUME-PRICE DIVERGENCE CHECK
             if self._detect_volume_price_divergence(token):
                 logger.warning(f"   ⚠️ Volume-price divergence detected - skipping")
                 failed_tokens.append(f"{token.symbol} (divergence)")
@@ -527,16 +587,23 @@ class TradingStrategy:
             return decision
         
         # No valid trades
+        summary_parts = []
+        
+        if skipped_chains > 0:
+            summary_parts.append(f"{skipped_chains} wrong chain")
+        
         if failed_tokens:
-            failures_summary = ", ".join(failed_tokens[:5])
-            return TradeDecision(
-                action=TradingAction.HOLD,
-                reason=f"🔍 No valid trades: {failures_summary}"
-            )
+            failures_summary = ", ".join(failed_tokens[:3])
+            summary_parts.append(failures_summary)
+        
+        if summary_parts:
+            reason = f"🔍 No valid trades: {' | '.join(summary_parts)}"
+        else:
+            reason = f"🔍 No suitable opportunities"
         
         return TradeDecision(
             action=TradingAction.HOLD,
-            reason=f"🔍 No suitable opportunities"
+            reason=reason
         )
     
     # ═══════════════════════════════════════════════════════════════
