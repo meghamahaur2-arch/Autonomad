@@ -52,6 +52,8 @@ class Config:
     # Trading Intervals
     # =========================================================================
     TRADING_INTERVAL: int = int(os.getenv("TRADING_INTERVAL_SECONDS", "300"))
+    MIN_TRADE_INTERVAL: int = int(os.getenv("MIN_TRADE_INTERVAL", "1"))  # Seconds between trades
+    MAX_DAILY_TRADES: int = int(os.getenv("MAX_DAILY_TRADES", "50"))  # Maximum trades per day
     MARKET_DATA_CACHE_TTL: int = int(os.getenv("MARKET_DATA_CACHE_TTL", "60"))
     MARKET_SCAN_DEPTH: int = int(os.getenv("MARKET_SCAN_DEPTH", "50"))
     

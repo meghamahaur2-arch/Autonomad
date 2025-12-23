@@ -15,6 +15,7 @@ from collections import deque
 import asyncio
 import json
 import os
+from chain_router import chain_router
 
 from config import config
 from models import (
@@ -326,13 +327,13 @@ class PortfolioManager:
         
         # Check 2: Daily trade limit (prevent overtrading)
         self._update_daily_trade_count()
-        if self._daily_trade_count >= os.getenv("MAX_DAILY_TRADES", 50):
+        if self._daily_trade_count >= getattr(config, "MAX_DAILY_TRADES", 50):
             return False, f"Daily trade limit reached ({self._daily_trade_count})"
         
         # Check 3: Minimum time between trades (prevent spam)
         if self._last_trade_time:
             time_since_last = (datetime.now(timezone.utc) - self._last_trade_time).total_seconds()
-            min_interval = config.get("MIN_TRADE_INTERVAL", 30)  # 30 seconds default
+            min_interval = getattr(config, "MIN_TRADE_INTERVAL", 30)  # 30 seconds default
             if time_since_last < min_interval:
                 return False, f"Too soon since last trade ({time_since_last:.0f}s < {min_interval}s)"
         
@@ -617,84 +618,151 @@ class PortfolioManager:
         chain: str,
         amount_usd: float
     ) -> Optional[Dict]:
-        """✅ FIXED: Prepare BUY trade with same-chain USDC preference"""
+        """
+        ✅ UPGRADED: Prepare BUY trade with intelligent cross-chain routing
+        Handles scenarios where direct routes don't exist
+        """
         
-        # ✅ FIX: Find USDC on SAME CHAIN as target token FIRST
-        usdc_result = self._find_usdc_on_chain(holdings, chain)
-        
-        # Fallback to any USDC only if no same-chain USDC
-        if not usdc_result:
-            logger.warning(f"⚠️ No USDC on {chain}, trying any available USDC...")
-            usdc_result = self._find_best_usdc(holdings)
-            
-            if not usdc_result:
-                logger.error("❌ No USDC available for BUY")
-                return None
-            
-            # Warn about cross-chain
-            logger.warning(f"⚠️ Will attempt CROSS-CHAIN trade (may fail at API)")
-        
-        usdc_symbol, usdc_available = usdc_result
-        from_holding = holdings.get(usdc_symbol, {})
-        from_address = from_holding.get("tokenAddress", "")
-        from_chain = from_holding.get("chain", "").lower()
-        
-        if not from_address or not from_chain:
-            logger.error(f"❌ Missing USDC metadata for {usdc_symbol}")
-            return None
-        
-        # Find USDC config
-        result = self._find_usdc_config(from_address, from_chain)
-        
-        if not result:
-            logger.error(f"❌ No USDC config found for {usdc_symbol}")
-            return None
-        
-        matched_config_symbol, from_config = result
-        
-        # Calculate trade amount
-        available_amount = from_holding.get("amount", 0)
-        from_price = from_holding.get("price", 1.0)
-        
-        max_safe_amount = available_amount * 0.98
-        max_safe_value = max_safe_amount * from_price
-        
-        trade_value = min(amount_usd, max_safe_value)
-        trade_amount = trade_value / from_price
-        
-        if trade_amount > max_safe_amount:
-            trade_amount = max_safe_amount
-        
-        if trade_amount < config.MIN_TRADE_SIZE:
-            logger.warning(f"❌ Trade too small: {trade_amount:.6f}")
-            return None
-        
-        decimals = from_config.decimals
-        amount_str = f"{trade_amount:.{decimals}f}"
+        to_symbol_base = decision.to_token.split('_')[0]
         
         logger.info("=" * 70)
-        logger.info(f"📤 PREPARING BUY")
-        logger.info(f"   From: {usdc_symbol} on {from_config.chain}")
-        logger.info(f"   To: {decision.to_token.split('_')[0]} on {chain}")
-        logger.info(f"   Amount: {amount_str} {matched_config_symbol}")
-        logger.info(f"   Value: ${trade_value:.2f}")
-        
-        # ✅ Warn if cross-chain
-        if from_chain != chain.lower():
-            logger.warning(f"   ⚠️ CROSS-CHAIN TRADE: {from_chain} → {chain}")
-            logger.warning(f"   ⚠️ This may fail if API doesn't support this route")
-        
+        logger.info(f"🔍 PREPARING BUY: {to_symbol_base} on {chain}")
         logger.info("=" * 70)
         
-        return {
-            "from_address": from_address,
-            "to_address": token_address,
-            "amount_str": amount_str,
-            "from_chain": from_chain,
-            "to_chain": chain,
-            "trade_value": trade_value,
-            "trade_type": "BUY"
-        }
+        # Step 1: Try to find USDC on SAME chain (best case)
+        logger.info(f"📍 Step 1: Looking for USDC on {chain}...")
+        usdc_result = chain_router.get_usdc_symbol_for_chain(holdings, chain)
+        
+        if usdc_result:
+            usdc_symbol, usdc_address = usdc_result
+            logger.info(f"✅ Found {usdc_symbol} on {chain}: {usdc_address[:10]}...")
+            
+            # Direct trade possible
+            from_holding = holdings.get(usdc_symbol, {})
+            from_chain = chain_router.normalize_chain(from_holding.get("chain", chain))
+            
+            # Verify same chain
+            if chain_router.normalize_chain(chain) == from_chain:
+                logger.info(f"✅ Direct trade possible (same chain)")
+                return await self._create_direct_trade_params(
+                    usdc_symbol,
+                    from_holding,
+                    token_address,
+                    chain,
+                    amount_usd,
+                    to_symbol_base
+                )
+            else:
+                logger.warning(f"⚠️ Chain mismatch: {from_chain} != {chain}")
+        
+        # Step 2: No USDC on target chain - find route
+        logger.warning(f"⚠️ No USDC on {chain}, finding alternative route...")
+        
+        # Find any available USDC on any chain
+        all_usdc = []
+        for symbol, holding in holdings.items():
+            if holding.get("is_stablecoin", False) and holding.get("value", 0) >= 10:
+                all_usdc.append({
+                    "symbol": symbol,
+                    "chain": holding.get("chain", ""),
+                    "address": holding.get("tokenAddress", ""),
+                    "value": holding.get("value", 0)
+                })
+        
+        if not all_usdc:
+            logger.error("❌ No USDC available on any chain")
+            return None
+        
+        logger.info(f"📊 Found USDC on {len(all_usdc)} chain(s):")
+        for usdc in all_usdc:
+            logger.info(f"   - {usdc['symbol']} on {usdc['chain']}: ${usdc['value']:.2f}")
+        
+        # Step 3: Try each USDC source and find best route
+        best_route = None
+        best_usdc = None
+        
+        for usdc in all_usdc:
+            route = chain_router.find_best_route(
+                from_token_address=usdc["address"],
+                from_chain=usdc["chain"],
+                to_token_address=token_address,
+                to_chain=chain,
+                available_holdings=holdings
+            )
+            
+            if route:
+                cost_est = chain_router.estimate_route_cost(route)
+                logger.info(f"✅ Route found via {usdc['chain']}: {route.total_steps} steps, "
+                        f"~{cost_est['estimated_time_mins']}min, "
+                        f"cost: {cost_est['relative_gas_cost']}")
+                
+                # Prefer routes without bridges
+                if not cost_est["needs_bridge"]:
+                    best_route = route
+                    best_usdc = usdc
+                    break
+                
+                # Store first valid route as backup
+                if best_route is None:
+                    best_route = route
+                    best_usdc = usdc
+        
+        if not best_route or not best_usdc:
+            logger.error("❌ No valid route found to target chain")
+            logger.error(f"💡 Suggestion: Ensure you have USDC on {chain} before buying tokens there")
+            return None
+        
+        # Step 4: Execute multi-step trade if needed
+        if best_route.total_steps == 1:
+            # Direct trade
+            logger.info("✅ Executing direct trade")
+            from_holding = holdings.get(best_usdc["symbol"], {})
+            return await self._create_direct_trade_params(
+                best_usdc["symbol"],
+                from_holding,
+                token_address,
+                chain,
+                amount_usd,
+                to_symbol_base
+            )
+        else:
+            # Multi-step trade required
+            logger.info(f"🔄 Multi-step trade required ({best_route.total_steps} steps)")
+            
+            # Check if multi-step is supported
+            if best_route.total_steps > 2:
+                logger.warning("⚠️ Complex multi-step trades not yet supported")
+                logger.warning("💡 Simplifying to: Sell source token → Buy with target chain USDC")
+            
+            # For now, we'll do a 2-step process:
+            # 1. Sell the source position to get USDC
+            # 2. Then the system will have USDC to buy on target chain
+            
+            logger.info("=" * 70)
+            logger.info(f"📤 CROSS-CHAIN TRADE STRATEGY")
+            logger.info(f"   Source: {best_usdc['chain']} (${best_usdc['value']:.2f})")
+            logger.info(f"   Target: {chain}")
+            logger.info(f"   Strategy: Use existing USDC on source chain")
+            logger.info("=" * 70)
+            
+            # For 2-step route: Source USDC → Target token
+            # The API might handle this internally, so we try it
+            from_holding = holdings.get(best_usdc["symbol"], {})
+            
+            trade_params = await self._create_cross_chain_trade_params(
+                from_holding,
+                best_usdc,
+                token_address,
+                chain,
+                amount_usd,
+                to_symbol_base
+            )
+            
+            if trade_params:
+                trade_params["is_cross_chain"] = True
+                trade_params["route"] = best_route
+            
+            return trade_params
     
     async def _prepare_sell_trade(
         self,
@@ -761,6 +829,172 @@ class PortfolioManager:
             "trade_type": "SELL",
             "from_price": from_price
         }
+    
+    async def _create_direct_trade_params(
+        self,
+        usdc_symbol: str,
+        from_holding: Dict,
+        token_address: str,
+        chain: str,
+        amount_usd: float,
+        to_symbol: str
+    ) -> Optional[Dict]:
+        """Create trade parameters for direct same-chain trade"""
+        
+        from_address = from_holding.get("tokenAddress", "")
+        from_chain = from_holding.get("chain", "").lower()
+        from_price = from_holding.get("price", 1.0)
+        available_amount = from_holding.get("amount", 0)
+        
+        if not from_address or not from_chain:
+            logger.error(f"❌ Missing USDC metadata for {usdc_symbol}")
+            return None
+        
+        # Find USDC config for decimals
+        result = self._find_usdc_config(from_address, from_chain)
+        if not result:
+            logger.error(f"❌ No USDC config found for {usdc_symbol}")
+            return None
+        
+        matched_config_symbol, from_config = result
+        
+        # Calculate trade amount
+        max_safe_amount = available_amount * 0.98
+        max_safe_value = max_safe_amount * from_price
+        
+        trade_value = min(amount_usd, max_safe_value)
+        trade_amount = trade_value / from_price
+        
+        if trade_amount > max_safe_amount:
+            trade_amount = max_safe_amount
+        
+        if trade_amount < config.MIN_TRADE_SIZE:
+            logger.warning(f"❌ Trade too small: {trade_amount:.6f}")
+            return None
+        
+        decimals = from_config.decimals
+        amount_str = f"{trade_amount:.{decimals}f}"
+        
+        logger.info(f"   ✅ Direct trade on {chain}")
+        logger.info(f"   From: {usdc_symbol} ({from_address[:10]}...)")
+        logger.info(f"   To: {to_symbol} ({token_address[:10]}...)")
+        logger.info(f"   Amount: {amount_str} {matched_config_symbol}")
+        logger.info(f"   Value: ${trade_value:.2f}")
+        logger.info("=" * 70)
+        
+        return {
+            "from_address": from_address,
+            "to_address": token_address,
+            "amount_str": amount_str,
+            "from_chain": from_chain,
+            "to_chain": chain.lower(),
+            "trade_value": trade_value,
+            "trade_type": "BUY"
+        }
+
+
+    async def _create_cross_chain_trade_params(
+        self,
+        from_holding: Dict,
+        usdc_info: Dict,
+        token_address: str,
+        target_chain: str,
+        amount_usd: float,
+        to_symbol: str
+    ) -> Optional[Dict]:
+        """
+        Create trade parameters for cross-chain trade
+        Will attempt the trade and let API handle routing
+        """
+        
+        from_address = from_holding.get("tokenAddress", "")
+        from_chain = from_holding.get("chain", "").lower()
+        from_price = from_holding.get("price", 1.0)
+        available_amount = from_holding.get("amount", 0)
+        
+        if not from_address or not from_chain:
+            logger.error(f"❌ Missing USDC metadata")
+            return None
+        
+        # Find USDC config
+        result = self._find_usdc_config(from_address, from_chain)
+        if not result:
+            logger.warning(f"⚠️ No USDC config found, using defaults")
+            decimals = 6
+        else:
+            _, from_config = result
+            decimals = from_config.decimals
+        
+        # Calculate trade amount
+        max_safe_amount = available_amount * 0.98
+        max_safe_value = max_safe_amount * from_price
+        
+        trade_value = min(amount_usd, max_safe_value)
+        trade_amount = trade_value / from_price
+        
+        if trade_amount > max_safe_amount:
+            trade_amount = max_safe_amount
+        
+        if trade_amount < config.MIN_TRADE_SIZE:
+            logger.warning(f"❌ Trade too small: {trade_amount:.6f}")
+            return None
+        
+        amount_str = f"{trade_amount:.{decimals}f}"
+        
+        logger.info(f"   ⚠️ CROSS-CHAIN trade attempt")
+        logger.info(f"   From: {usdc_info['chain']} ({from_address[:10]}...)")
+        logger.info(f"   To: {to_symbol} on {target_chain} ({token_address[:10]}...)")
+        logger.info(f"   Amount: {amount_str} USDC")
+        logger.info(f"   Value: ${trade_value:.2f}")
+        logger.info(f"   ⚠️ API will attempt routing, may fail if unsupported")
+        logger.info("=" * 70)
+        
+        return {
+            "from_address": from_address,
+            "to_address": token_address,
+            "amount_str": amount_str,
+            "from_chain": from_chain,
+            "to_chain": target_chain.lower(),
+            "trade_value": trade_value,
+            "trade_type": "BUY",
+            "cross_chain_warning": True
+        }
+
+
+    # ALSO ADD this helper to _execute_with_retry to handle cross-chain errors better:
+
+    def _handle_api_error_response(self, result: Dict, trade_params: Dict) -> Tuple[bool, str]:
+        """
+        ✅ NEW: Handle API error responses with better messaging
+        
+        Returns:
+            (should_retry, error_message)
+        """
+        error_msg = result.get('error', 'Unknown error')
+        error_lower = error_msg.lower()
+        
+        # Check for "unable to determine price" error
+        if "unable to determine price" in error_lower or "no route found" in error_lower:
+            from_chain = trade_params.get("from_chain", "unknown")
+            to_chain = trade_params.get("to_chain", "unknown")
+            
+            enhanced_msg = (
+                f"❌ Cross-chain trade failed: {error_msg}\n"
+                f"   From: {from_chain}\n"
+                f"   To: {to_chain}\n"
+                f"   💡 Reason: No trading route exists between these chains\n"
+                f"   💡 Solution: Ensure you have USDC on {to_chain} before buying tokens there"
+            )
+            
+            logger.error(enhanced_msg)
+            return (False, enhanced_msg)  # Don't retry
+        
+        # Check for other non-retryable errors
+        if self._is_retryable_error(error_msg):
+            return (True, error_msg)
+        else:
+            return (False, error_msg)
+
     
     async def _execute_with_retry(
         self,
@@ -856,7 +1090,13 @@ class PortfolioManager:
                     return True
                 
                 else:
-                    error_msg = result.get('error', 'Unknown error')
+                    should_retry, error_msg = self._handle_api_error_response(result, trade_params)
+                    
+                    if not should_retry:
+                        logger.error(f"❌ Non-retryable error: {error_msg}")
+                        await self._record_trade_failure(trade_id, error_msg, result)
+                        return False
+                    
                     logger.warning(f"⚠️ Attempt {attempt + 1} failed: {error_msg}")
                     
                     # Check if retryable
@@ -864,12 +1104,6 @@ class PortfolioManager:
                         logger.error(f"❌ Non-retryable error: {error_msg}")
                         await self._record_trade_failure(trade_id, error_msg, result)
                         return False
-                    
-                    # Wait before retry (exponential backoff)
-                    if attempt < MAX_RETRY_ATTEMPTS - 1:
-                        wait_time = RETRY_BACKOFF_BASE ** (attempt + 1)
-                        logger.info(f"⏳ Waiting {wait_time}s before retry...")
-                        await asyncio.sleep(wait_time)
             
             except Exception as e:
                 error_msg = str(e)
