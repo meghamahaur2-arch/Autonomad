@@ -157,15 +157,15 @@ class MultiAPIMarketScanner:
             "dex_id": "ethereum",
             "gecko_id": "eth",
             "moralis_id": "0x1",
-            "min_liquidity": 500_000,
-            "min_volume": 1_000_000,
+            "min_liquidity": 100_000,
+            "min_volume": 100_000,
             "quality_bonus": 1.5
         },
         "solana": {
             "dex_id": "solana",
             "gecko_id": "solana",
             "moralis_id": None,  # Not supported
-            "min_liquidity": 50_000,
+            "min_liquidity": 100_000,
             "min_volume": 100_000,
             "quality_bonus": 1.2
         },
@@ -174,15 +174,15 @@ class MultiAPIMarketScanner:
             "gecko_id": "base",
             "moralis_id": "0x2105",
             "min_liquidity": 100_000,
-            "min_volume": 200_000,
+            "min_volume": 100_000,
             "quality_bonus": 1.3
         },
         "arbitrum": {
             "dex_id": "arbitrum",
             "gecko_id": "arbitrum_one",
             "moralis_id": "0xa4b1",
-            "min_liquidity": 150_000,
-            "min_volume": 300_000,
+            "min_liquidity": 100_000,
+            "min_volume": 100_000,
             "quality_bonus": 1.2
         },
         "polygon": {
@@ -190,15 +190,15 @@ class MultiAPIMarketScanner:
             "gecko_id": "polygon_pos",
             "moralis_id": "0x89",
             "min_liquidity": 100_000,
-            "min_volume": 200_000,
+            "min_volume": 100_000,
             "quality_bonus": 1.0
         },
         "bsc": {
             "dex_id": "bsc",
             "gecko_id": "bsc",
             "moralis_id": "0x38",
-            "min_liquidity": 80_000,
-            "min_volume": 150_000,
+            "min_liquidity": 100_000,
+            "min_volume": 100_000,
             "quality_bonus": 0.8
         }
     }
